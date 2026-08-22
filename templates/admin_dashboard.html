@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="admin-csrf" content="{{ admin_csrf }}">
+  <title>管理後台｜天外一筆</title>
+  <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="admin-page">
+  <aside class="admin-sidebar">
+    <a class="admin-brand" href="{{ url_for('admin.dashboard') }}"><span><img src="{{ url_for('static', filename='brand/website-nav-logo-256.png') }}" alt=""></span><div><strong>天外一筆</strong><small>ADMIN CONSOLE</small></div></a>
+    <nav aria-label="後台區塊">
+      <a href="#overview" class="is-active">總覽</a>
+      <a href="#ideas-admin">仙策管理</a>
+      <a href="#integrations-admin">串接狀態</a>
+      <a href="#orders-admin">訂單</a>
+      <a href="#security-admin">安全紀錄</a>
+      <a href="#audit-admin">操作稽核</a>
+    </nav>
+    <a class="admin-preview-link" href="{{ url_for('public.home') }}" target="_blank" rel="noopener">開啟官網 ↗</a>
+    <form action="{{ url_for('admin.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ admin_csrf }}"><button type="submit">安全登出</button></form>
+  </aside>
+  <main id="admin-root" class="admin-main">
+    <header class="admin-topbar"><div><p>管理帳號・{{ username }}</p><h1>營運管理總覽</h1></div><div id="security-flags" class="security-flags" aria-live="polite"></div></header>
+    <p id="admin-status" class="admin-status" role="status" aria-live="polite">正在讀取本機資料…</p>
+
+    <section id="overview" class="admin-section">
+      <div class="admin-section-heading"><div><span>OVERVIEW</span><h2>營運數據與目前瓶頸</h2></div><button id="refresh-dashboard" type="button">重新整理</button></div>
+      <div id="metric-grid" class="metric-grid"></div>
+      <div class="admin-two-col overview-panels"><div class="admin-panel"><div class="panel-heading"><div><span>近七日</span><h3>營收脈動</h3></div></div><div id="revenue-chart" class="revenue-chart"></div></div><div class="admin-panel"><div class="panel-heading"><div><span>近三十日</span><h3>流量來源</h3></div></div><div id="traffic-sources" class="traffic-sources"></div></div></div>
+    </section>
+
+    <section id="ideas-admin" class="admin-section">
+      <div class="admin-section-heading"><div><span>CATALOG</span><h2>仙策內容、上架與價格</h2></div></div>
+      <div class="admin-two-col">
+        <form id="price-form" class="admin-panel compact-form"><div class="panel-heading"><div><span>GLOBAL PRICE</span><h3>全站試行價</h3></div></div><label>新台幣<input id="global-price" name="price" type="number" min="1" max="100000" required></label><button type="submit">更新全部未覆寫價格</button><small>舊訂單保留成交價，不會被回溯修改。</small></form>
+        <div class="admin-panel"><div class="panel-heading"><div><span>SIX PATHS</span><h3>六脈上架狀態</h3></div></div><div id="idea-admin-list" class="idea-admin-list"></div></div>
+      </div>
+    </section>
+
+    <section id="integrations-admin" class="admin-section"><div class="admin-section-heading"><div><span>INTEGRATIONS</span><h2>外部串接狀態</h2></div></div><div id="integration-grid" class="integration-grid"></div><p class="integration-note">本機初版會明確維持 mock 狀態；只有公開 HTTPS、正式憑證與回呼驗收完成後，才應切換正式服務。</p></section>
+
+    <section id="orders-admin" class="admin-section"><div class="admin-section-heading"><div><span>ORDERS</span><h2>最近訂單</h2></div></div><div class="admin-panel table-panel"><div class="table-scroll"><table><thead><tr><th>訂單</th><th>仙策</th><th>客戶</th><th>金額</th><th>狀態</th><th>建立時間</th></tr></thead><tbody id="orders-table"></tbody></table></div></div></section>
+
+    <section id="security-admin" class="admin-section">
+      <div class="admin-section-heading"><div><span>SECURITY</span><h2>防護與封鎖</h2></div><button id="security-test" type="button">寫入測試事件</button></div>
+      <div class="admin-two-col security-columns"><div class="admin-panel"><div class="panel-heading"><div><span>EVENTS</span><h3>最近安全事件</h3></div></div><div id="security-events" class="event-list"></div></div><div class="admin-panel"><div class="panel-heading"><div><span>BLOCKS</span><h3>目前封鎖 IP</h3></div></div><div id="blocked-ips" class="event-list"></div></div></div>
+    </section>
+
+    <section id="audit-admin" class="admin-section"><div class="admin-section-heading"><div><span>AUDIT</span><h2>管理操作稽核</h2></div></div><div class="admin-panel"><div id="audit-logs" class="event-list"></div></div></section>
+  </main>
+  <dialog id="idea-editor" class="idea-editor">
+    <form id="idea-editor-form" method="dialog">
+      <header><div><span>IDEA CONTENT</span><h2>編輯仙策</h2><p id="idea-editor-slug"></p></div><button class="dialog-close" type="button" data-close-dialog aria-label="關閉編輯視窗">×</button></header>
+      <input id="idea-id" type="hidden">
+      <div class="editor-grid">
+        <label>仙策名稱<input id="idea-title" maxlength="80" required></label>
+        <label>角色／技能者<input id="idea-role" maxlength="60" required></label>
+        <label>法印字<input id="idea-seal" maxlength="4" required></label>
+        <label>視覺色系<select id="idea-accent" required><option value="cinnabar">朱砂</option><option value="jade">青玉</option><option value="gold">月金</option><option value="azure">天青</option><option value="violet">靛紫</option><option value="silver">月銀</option></select></label>
+        <label>排序<input id="idea-sort-order" type="number" min="1" max="999" required></label>
+        <label>單品價格（留空套用全站價）<input id="idea-price-override" type="number" min="1" max="100000" placeholder="套用全站價"></label>
+      </div>
+      <label>專長分類<input id="idea-discipline" maxlength="100" required></label>
+      <label>卡片摘要<textarea id="idea-summary" minlength="10" maxlength="240" rows="3" required></textarea></label>
+      <label>免費公開殘頁<textarea id="idea-teaser" minlength="10" maxlength="600" rows="4" required></textarea></label>
+      <label>付費完整內容<textarea id="idea-paid-content" minlength="20" maxlength="6000" rows="10" required></textarea></label>
+      <label>交付物（以｜分隔）<input id="idea-deliverables" maxlength="500" required></label>
+      <label>標籤（以逗號分隔）<input id="idea-tags" maxlength="200" required></label>
+      <p id="idea-editor-status" class="form-status" role="status" aria-live="polite"></p>
+      <footer><button type="button" data-close-dialog>取消</button><button class="save-idea" type="submit">儲存仙策內容</button></footer>
+    </form>
+  </dialog>
+  <script src="{{ url_for('static', filename='admin.js') }}" defer></script>
+</body>
+</html>

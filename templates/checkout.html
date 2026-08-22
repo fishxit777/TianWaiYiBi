@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}解鎖 {{ idea['title'] }}｜仙策閣{% endblock %}
+{% block body_class %}checkout-page accent-{{ idea['accent'] }}{% endblock %}
+{% block content %}
+<section class="checkout-shell section-shell">
+  <div class="checkout-summary reveal">
+    <a class="back-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}">← 返回心法介紹</a>
+    <p class="section-index">締結仙契</p>
+    <span class="checkout-seal">{{ idea['seal'] }}</span>
+    <p class="idea-role">{{ idea['role'] }}</p>
+    <h1>{{ idea['title'] }}</h1>
+    <p>{{ idea['summary'] }}</p>
+    <dl>
+      <div><dt>內容</dt><dd>{{ idea['deliverables'] }}</dd></div>
+      <div><dt>授權</dt><dd>個人使用・一次買斷</dd></div>
+      <div><dt>目前流程</dt><dd>本機模擬付款</dd></div>
+    </dl>
+  </div>
+  <div class="checkout-card reveal delay-1">
+    <img class="checkout-brand-mark" src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt="" width="64" height="64">
+    <div class="checkout-price"><span>本次解鎖</span><strong>NT${{ price }}</strong></div>
+    <form id="order-form" data-idea-slug="{{ idea['slug'] }}" novalidate>
+      <label>你的稱呼<input name="customer_name" type="text" minlength="2" maxlength="80" autocomplete="name" required placeholder="例：雲遊旅人"></label>
+      <label>收件 Email<input name="customer_email" type="email" maxlength="254" autocomplete="email" required placeholder="you@example.com"></label>
+      <label class="consent-row"><input name="consent" type="checkbox" required><span>我知道這是數位內容初版，且目前模擬付款不會實際扣款。</span></label>
+      <button class="button button-primary button-wide" type="submit">建立訂單・前往付款</button>
+      <p id="order-status" class="form-status" role="status" aria-live="polite"></p>
+    </form>
+    <div class="trust-list"><span>付款事件防重送</span><span>成交價永久保存</span><span>專屬連結交付</span></div>
+  </div>
+</section>
+{% endblock %}

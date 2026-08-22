@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: tianwai-yibi
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 30 app:app
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: ENABLE_DEV_TOOLS
+        value: "false"
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/data/tianwai.db
+      - key: APP_SECRET_KEY
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: keeper
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_SESSION_BIND_IP
+        value: "true"
+      - key: ADMIN_IP_ALLOWLIST_REQUIRED
+        value: "false"
+      - key: PAYMENT_WEBHOOK_SECRET
+        generateValue: true
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false

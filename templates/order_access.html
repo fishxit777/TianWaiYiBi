@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ order['title'] }}｜專屬心法{% endblock %}
+{% block body_class %}access-page accent-{{ order['accent'] }}{% endblock %}
+{% block content %}
+<section class="access-shell section-shell">
+  {% if order['status'] == 'paid' %}
+  <header class="access-header reveal">
+    <span class="access-seal"><img src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt=""></span>
+    <div><p class="section-index">心法已解鎖</p><h1>{{ order['title'] }}</h1><p>{{ order['role'] }}・{{ order['discipline'] }}</p></div>
+  </header>
+  <article class="manuscript reveal delay-1">
+    <div class="manuscript-edge" aria-hidden="true"></div>
+    <p class="manuscript-copy">{{ order['paid_content'] }}</p>
+    <footer><span>交付物</span><strong>{{ order['deliverables'] }}</strong></footer>
+  </article>
+  <aside class="access-reminder reveal delay-2"><strong>把這個專屬網址收藏好。</strong><p>目前初版尚未寄送 Email；正式上線會補上付款通知、交付信與退款規則。</p></aside>
+  {% else %}
+  <div class="message-card reveal"><p class="section-index">仙契未成</p><h1>尚未完成付款</h1><p>訂單 {{ order['order_no'] }} 目前仍在等待付款；請從原付款連結繼續。</p></div>
+  {% endif %}
+</section>
+{% endblock %}

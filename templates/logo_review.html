@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}V13 修仙品牌套件｜天外一筆{% endblock %}
+{% block body_class %}logo-review-page{% endblock %}
+{% block content %}
+<section class="logo-review-shell section-shell">
+  <header class="logo-review-intro reveal">
+    <div><p class="section-index">APPROVED BRAND DIRECTION・V13</p><h1>神筆成器<br>靈氣成印。</h1></div>
+    <div><span class="review-badge">已整合本機初版／尚未公開部署</span><p>V13 以無字神筆法印作為真正 Logo：白玉筆身、朱砂筆鋒、月金法陣與青玉靈氣形成單一焦點；官網主視覺才承接雲海、九霄與品牌文字，避免 LINE 頭像縮小後失焦。</p></div>
+  </header>
+
+  <figure class="logo-stage dark reveal delay-1">
+    <figcaption>V13・深色背景版／正式品牌標記</figcaption>
+    <img src="{{ url_for('static', filename='brand/logo-dark-1254.png') }}" alt="天外一筆 V13 深色背景 Logo，朱砂神筆穿越月金法陣並由青玉靈氣環繞">
+  </figure>
+
+  <section class="logo-review-notes reveal">
+    <div><span>焦點</span><strong>筆就是法器主角</strong><p>筆鋒的朱砂色與白玉筆身擁有最高辨識度；法陣與靈氣只負責托住動勢，不再搶戲。</p></div>
+    <div><span>修仙</span><strong>月金成陣，青玉成氣</strong><p>深靛九霄提供深度，月金法陣建立仙門法印感，青玉薄霧則補足仙氣飄逸。</p></div>
+    <div><span>實用</span><strong>圓形安全區已驗證</strong><p>LINE 頭像保留約 8–10% 呼吸空間；核心筆、法陣與靈氣都不會被圓形裁切。</p></div>
+  </section>
+
+  <figure class="logo-stage light reveal delay-2">
+    <figcaption>V13・淺色背景版／暖象牙與青瓷適配</figcaption>
+    <img src="{{ url_for('static', filename='brand/logo-light-1254.png') }}" alt="天外一筆 V13 淺色背景 Logo">
+  </figure>
+
+  <figure class="logo-stage crop-proof reveal">
+    <figcaption>LINE 圓形裁切安全區證明</figcaption>
+    <img src="{{ url_for('static', filename='brand/line-circle-crop-proof.png') }}" alt="天外一筆 LINE 頭像圓形裁切安全區檢視">
+  </figure>
+</section>
+{% endblock %}

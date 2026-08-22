@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}本機模擬付款｜{{ order['title'] }}{% endblock %}
+{% block body_class %}payment-page{% endblock %}
+{% block content %}
+<section class="payment-shell section-shell">
+  <div class="payment-card reveal">
+    <p class="section-index">本機試煉・不會扣款</p>
+    <span class="mock-badge">MOCK PAYMENT</span>
+    <h1>確認解鎖仙策</h1>
+    <div class="payment-order">
+      <div><span>{{ order['role'] }}</span><strong>{{ order['title'] }}</strong></div>
+      <strong>NT${{ order['amount'] }}</strong>
+    </div>
+    <dl>
+      <div><dt>訂單編號</dt><dd>{{ order['order_no'] }}</dd></div>
+      <div><dt>付款狀態</dt><dd>等待本機模擬</dd></div>
+    </dl>
+    <form action="{{ url_for('payments.mock_payment_complete') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="payment_token" value="{{ payment_token }}">
+      <button class="button button-primary button-wide" type="submit">模擬付款成功</button>
+    </form>
+    <p class="payment-warning">這個按鈕只測試訂單、防重送與內容解鎖，不會連到銀行、綠界或 LINE Pay。</p>
+  </div>
+</section>
+{% endblock %}
+

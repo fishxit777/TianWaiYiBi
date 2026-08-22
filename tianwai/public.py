@@ -1,0 +1,190 @@
+import re
+import secrets
+from datetime import datetime, timezone
+
+from flask import Blueprint, jsonify, render_template, request, session, url_for
+
+from .db import get_db, get_setting_int, utc_now
+from .security import derive_access_token, hash_token, require_public_csrf
+
+
+public_bp = Blueprint("public", __name__)
+EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+ANALYTICS_EVENTS = {"view_idea", "checkout_opened", "line_cta_clicked", "filter_used"}
+ANALYTICS_SOURCES = {"web", "line", "direct", "admin-preview"}
+
+
+def _published_ideas():
+    return get_db().execute(
+        "SELECT * FROM ideas WHERE published = 1 ORDER BY sort_order, id"
+    ).fetchall()
+
+
+def _idea_price(idea):
+    if idea["price_override"] is not None:
+        return int(idea["price_override"])
+    return get_setting_int("idea_price", 199)
+
+
+def _track(event_name, idea_id=None, source="web"):
+    if "analytics_sid" not in session:
+        session["analytics_sid"] = secrets.token_urlsafe(12)
+    connection = get_db()
+    connection.execute(
+        """
+        INSERT INTO analytics_events (event_name, idea_id, source, session_id, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (event_name, idea_id, source, session["analytics_sid"], utc_now()),
+    )
+    connection.commit()
+
+
+@public_bp.get("/")
+def home():
+    ideas = _published_ideas()
+    price = get_setting_int("idea_price", 199)
+    _track("page_view", source="web")
+    return render_template("home.html", ideas=ideas, global_price=price)
+
+
+@public_bp.get("/logo-review")
+def logo_review():
+    return render_template("logo_review.html")
+
+
+@public_bp.get("/ideas/<slug>")
+def idea_detail(slug):
+    idea = get_db().execute(
+        "SELECT * FROM ideas WHERE slug = ? AND published = 1", (slug,)
+    ).fetchone()
+    if idea is None:
+        return render_template("message.html", title="此想法尚未開放", message="請回仙策閣查看其他心法。"), 404
+    source = str(request.args.get("source", "web")).strip().lower()
+    _track("view_idea", idea["id"], source if source in ANALYTICS_SOURCES else "web")
+    return render_template("idea_detail.html", idea=idea, price=_idea_price(idea))
+
+
+@public_bp.get("/checkout/<slug>")
+def checkout(slug):
+    idea = get_db().execute(
+        "SELECT * FROM ideas WHERE slug = ? AND published = 1", (slug,)
+    ).fetchone()
+    if idea is None:
+        return render_template("message.html", title="無法結帳", message="此想法目前未開放。"), 404
+    _track("checkout_opened", idea["id"], "web")
+    return render_template("checkout.html", idea=idea, price=_idea_price(idea))
+
+
+@public_bp.post("/api/orders")
+def create_order():
+    csrf_error = require_public_csrf()
+    if csrf_error:
+        return csrf_error
+    data = request.get_json(silent=True) or request.form
+    slug = str(data.get("idea_slug", "")).strip()[:100]
+    name = str(data.get("customer_name", "")).strip()[:80]
+    email = str(data.get("customer_email", "")).strip().lower()[:254]
+    if not EMAIL_PATTERN.fullmatch(email):
+        return jsonify({"error": "請輸入有效的 Email"}), 400
+    if len(name) < 2:
+        return jsonify({"error": "請輸入至少 2 個字的稱呼"}), 400
+    idea = get_db().execute(
+        "SELECT * FROM ideas WHERE slug = ? AND published = 1", (slug,)
+    ).fetchone()
+    if idea is None:
+        return jsonify({"error": "此想法目前未開放"}), 404
+
+    now = datetime.now(timezone.utc)
+    order_no = f"TWYB{now.strftime('%Y%m%d')}{secrets.token_hex(4).upper()}"
+    payment_token = secrets.token_urlsafe(32)
+    access_token = derive_access_token(payment_token)
+    amount = _idea_price(idea)
+    connection = get_db()
+    connection.execute(
+        """
+        INSERT INTO orders
+            (order_no, idea_id, customer_name, customer_email, amount, status,
+             payment_provider, payment_token_hash, access_token_hash, created_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', 'mock', ?, ?, ?)
+        """,
+        (
+            order_no, idea["id"], name, email, amount, hash_token(payment_token),
+            hash_token(access_token), utc_now(),
+        ),
+    )
+    connection.execute(
+        """
+        INSERT INTO analytics_events (event_name, idea_id, source, session_id, created_at)
+        VALUES ('order_created', ?, 'web', ?, ?)
+        """,
+        (idea["id"], session.get("analytics_sid"), utc_now()),
+    )
+    connection.commit()
+    return (
+        jsonify(
+            {
+                "order_no": order_no,
+                "amount": amount,
+                "checkout_url": url_for("payments.mock_payment_page", payment_token=payment_token),
+            }
+        ),
+        201,
+    )
+
+
+@public_bp.get("/orders/<access_token>")
+def order_access(access_token):
+    order = get_db().execute(
+        """
+        SELECT orders.*, ideas.title, ideas.role, ideas.seal, ideas.discipline,
+               ideas.paid_content, ideas.deliverables, ideas.accent
+        FROM orders JOIN ideas ON ideas.id = orders.idea_id
+        WHERE orders.access_token_hash = ?
+        """,
+        (hash_token(access_token),),
+    ).fetchone()
+    if order is None:
+        return render_template("message.html", title="找不到訂單", message="請確認你的專屬連結是否完整。"), 404
+    return render_template("order_access.html", order=order)
+
+
+@public_bp.get("/api/ideas")
+def ideas_api():
+    ideas = _published_ideas()
+    return jsonify(
+        {
+            "ideas": [
+                {
+                    "slug": item["slug"],
+                    "title": item["title"],
+                    "role": item["role"],
+                    "discipline": item["discipline"],
+                    "summary": item["summary"],
+                    "tags": item["tags"].split(","),
+                    "price": _idea_price(item),
+                }
+                for item in ideas
+            ]
+        }
+    )
+
+
+@public_bp.post("/api/events")
+def analytics_event():
+    csrf_error = require_public_csrf()
+    if csrf_error:
+        return csrf_error
+    data = request.get_json(silent=True) or {}
+    event_name = str(data.get("event_name", ""))
+    source = str(data.get("source", "web"))
+    if event_name not in ANALYTICS_EVENTS or source not in ANALYTICS_SOURCES:
+        return jsonify({"error": "不支援的事件"}), 400
+    idea_id = None
+    slug = str(data.get("idea_slug", ""))[:100]
+    if slug:
+        idea = get_db().execute("SELECT id FROM ideas WHERE slug = ?", (slug,)).fetchone()
+        if idea:
+            idea_id = idea["id"]
+    _track(event_name, idea_id, source)
+    return "", 204

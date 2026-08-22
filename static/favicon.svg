@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="天外一筆">
+  <path fill="#07110f" stroke="#f06443" stroke-width="2" d="M32 3 61 32 32 61 3 32Z"/>
+  <path fill="none" stroke="#d3b46f" stroke-width="2" d="M13 43c12-3 24-9 37-23"/>
+  <path fill="#caf2d8" d="M20 30h24v4H20z"/>
+  <circle cx="47" cy="18" r="3" fill="#9ed5bb"/>
+</svg>

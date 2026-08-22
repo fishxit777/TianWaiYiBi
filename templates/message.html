@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}｜仙策閣{% endblock %}
+{% block content %}
+<section class="message-shell section-shell"><div class="message-card reveal"><span class="message-symbol">◇</span><h1>{{ title }}</h1><p>{{ message }}</p><a class="button button-primary" href="{{ url_for('public.home') }}">返回仙策閣</a></div></section>
+{% endblock %}
+

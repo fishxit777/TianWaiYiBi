@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}LINE Bot 本機模擬器｜仙策閣{% endblock %}
+{% block body_class %}line-page{% endblock %}
+{% block content %}
+<section class="simulator-shell section-shell">
+  <div class="simulator-intro reveal"><p class="section-index">仙策靈使・本機試煉</p><h1>先測對話，再接正式帳號。</h1><p>這裡使用與正式 webhook 相同的訊息組裝器，但不會送到 LINE。輸入「靈感」、「價格」、「說明」或 1～6，測試文字與 Flex 商品導覽。</p><div class="simulator-status"><span>原始 Body 驗簽</span><span>事件防重送</span><span>Flex Carousel</span></div></div>
+  <div class="phone-frame reveal delay-1">
+    <header><img class="bot-avatar" src="{{ url_for('static', filename='brand/line-avatar-1254.png') }}" alt="天外一筆 LINE Bot 頭像"><div><strong>天外一筆・仙策靈使</strong><small>本機模擬中・不會傳送 LINE</small></div></header>
+    <div id="chat-log" class="chat-log" aria-live="polite"><div class="bubble bot">這裡是天外一筆・仙策閣。回覆「靈感」看六脈仙策，回覆「價格」看目前統一試行價。</div></div>
+    <div class="quick-replies" aria-label="快速指令"><button type="button" data-line-command="靈感">六脈仙策</button><button type="button" data-line-command="價格">查看價格</button><button type="button" data-line-command="說明">使用說明</button></div>
+    <form id="line-simulator-form"><label class="sr-only" for="line-message">訊息</label><input id="line-message" name="message" maxlength="200" autocomplete="off" placeholder="輸入：靈感"><button type="submit" aria-label="送出訊息">送</button></form>
+  </div>
+</section>
+{% endblock %}
