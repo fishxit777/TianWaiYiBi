@@ -50,7 +50,10 @@ def test_transmission_landing_keeps_line_white_page_behind_branded_experience(cl
 
     assert response.status_code == 200
     assert "一印傳音" in body
+    assert "一筆啟月門" in body
+    assert "守閣之誓" in body
     assert "守閣者本人親自接續" in body
+    assert "不索取密碼與驗證碼" in body
     assert "brand/line-add-qr.svg" in body
     assert "https://line.me/R/ti/p/%40279plitu" in body
     assert "啟動傳音法陣" in body

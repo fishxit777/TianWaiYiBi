@@ -1,45 +1,120 @@
 {% extends "base.html" %}
-{% block title %}傳音入閣｜天外一筆・仙策靈使{% endblock %}
-{% block body_class %}transmission-page{% endblock %}
+{% block title %}九霄傳音詔｜天外一筆・仙策靈使{% endblock %}
+{% block body_class %}transmission-page transmission-v2-page{% endblock %}
+
+{% block main_navigation %}
+  <a href="{{ url_for('public.home') }}#ideas">翻閱六脈</a>
+  <a class="nav-seal" href="{{ url_for('public.home') }}">歸返仙策閣</a>
+{% endblock %}
+
 {% block content %}
-<section class="transmission-landing section-shell">
-  <div class="transmission-sky" aria-hidden="true"></div>
-  <div class="transmission-hero">
-    <div class="transmission-copy reveal">
-      <p class="section-index">卷外・傳音入閣</p>
-      <h1>一印傳音<br><span>仙策相迎</span></h1>
-      <p class="transmission-lead">此法印只通往「天外一筆｜仙策靈使」。若你尚未看清該選哪一脈，先把眼前最難跨過的關寫下；靈使會先接引，需要時由守閣者本人親自接續。</p>
-      <div class="transmission-vows" aria-label="傳音服務特色">
-        <span>六脈導覽</span>
-        <span>仙策問答</span>
-        <span>守閣者親回</span>
+<section class="transmission-v2 section-shell" aria-labelledby="transmission-title">
+  <div class="xianxia-scenery" aria-hidden="true">
+    <span class="xian-moon"></span>
+    <span class="xian-cloud cloud-one"></span>
+    <span class="xian-cloud cloud-two"></span>
+    <span class="xian-cloud cloud-three"></span>
+    <span class="xian-peak peak-one"></span>
+    <span class="xian-peak peak-two"></span>
+    <span class="xian-peak peak-three"></span>
+  </div>
+
+  <div class="transmission-v2-hero">
+    <div class="transmission-v2-copy reveal">
+      <p class="transmission-ceremony"><span>卷外</span><i aria-hidden="true"></i>九霄傳音詔</p>
+      <h1 id="transmission-title">
+        <span>一筆啟月門</span>
+        <em>一念渡靈音</em>
+      </h1>
+      <p class="transmission-legacy">一印傳音・仙策相迎</p>
+      <p class="transmission-v2-lead">你不必先想好答案，也不必把故事說得完美。只需寫下眼前最難跨過的那一道關，仙策靈使便循著此念接引；需要深談時，由守閣者本人親自接續。</p>
+
+      <blockquote class="ink-scroll">
+        <span aria-hidden="true">問</span>
+        <p>迷霧未散，先尋一線；萬念紛飛，先落一筆。</p>
+      </blockquote>
+
+      <div class="jade-vows" aria-label="傳音服務特色">
+        <span><b>壹</b>六脈擇法</span>
+        <span><b>貳</b>仙策問答</span>
+        <span><b>參</b>真人承接</span>
       </div>
-      <div class="transmission-actions">
-        <a class="button button-primary mobile-line-action" href="{{ line_add_friend_url }}" target="_blank" rel="noopener" data-line-cta>啟動傳音法陣</a>
-        <button class="copy-id-button" type="button" data-copy-line-id="@279plitu">抄錄靈使名號</button>
-        <a class="text-link" href="{{ url_for('public.home') }}">返回仙策閣 <span aria-hidden="true">↖</span></a>
+
+      <div class="transmission-v2-actions">
+        <a class="seal-cta mobile-line-action" href="{{ line_add_friend_url }}" target="_blank" rel="noopener" data-line-cta>
+          <span>啟動傳音法陣</span><small>手機點此開啟 LINE</small>
+        </a>
+        <div class="desktop-scan-note"><span aria-hidden="true">月</span><p><strong>桌機入閣</strong>以手機 LINE 掃描右方月印</p></div>
+        <button class="copy-id-button v2-copy-button" type="button" data-copy-line-id="@279plitu">抄錄靈使名號</button>
       </div>
-      <p id="copy-line-status" class="copy-line-status" role="status" aria-live="polite">仙策靈使・@279plitu</p>
+      <p id="copy-line-status" class="copy-line-status v2-copy-status" role="status" aria-live="polite">唯一傳音名號・@279plitu</p>
     </div>
 
-    <figure class="transmission-altar reveal delay-1">
-      <div class="altar-orbit" aria-hidden="true"><i></i><b></b></div>
-      <img class="altar-avatar" src="{{ url_for('static', filename='brand/line-avatar-1254.png') }}" alt="天外一筆仙策靈使法印">
-      <div class="qr-sanctum">
-        <span class="qr-corner corner-a" aria-hidden="true"></span>
-        <span class="qr-corner corner-b" aria-hidden="true"></span>
-        <span class="qr-corner corner-c" aria-hidden="true"></span>
-        <span class="qr-corner corner-d" aria-hidden="true"></span>
+    <figure class="moon-altar reveal delay-1">
+      <div class="altar-inscription left" aria-hidden="true">一念既起</div>
+      <div class="altar-inscription right" aria-hidden="true">靈音必達</div>
+      <div class="moon-medallion">
+        <span class="moon-halo" aria-hidden="true"></span>
+        <img src="{{ url_for('static', filename='brand/line-avatar-1254.png') }}" alt="天外一筆仙策靈使法印" width="92" height="92">
+        <small>唯一靈使</small>
+      </div>
+
+      <div class="ritual-wheel" aria-hidden="true">
+        <span>乾</span><span>坎</span><span>艮</span><span>震</span>
+        <span>巽</span><span>離</span><span>坤</span><span>兌</span>
+      </div>
+
+      <div class="qr-reliquary">
+        <i class="talisman-line talisman-top" aria-hidden="true"></i>
+        <i class="talisman-line talisman-bottom" aria-hidden="true"></i>
         <img src="{{ url_for('static', filename='brand/line-add-qr.svg') }}" alt="掃描後加入天外一筆仙策靈使為好友的 QR Code" width="420" height="420">
       </div>
-      <figcaption><span>月金傳音法印</span><strong>以 LINE 掃描，召喚仙策靈使</strong><small>手機訪客可直接點選「啟動傳音法陣」</small></figcaption>
+
+      <figcaption>
+        <span>月下法印・掃描即入閣</span>
+        <strong>以 LINE 掃描，召喚仙策靈使</strong>
+        <small>認明唯一名號　@279plitu</small>
+      </figcaption>
     </figure>
   </div>
 
-  <ol class="transmission-path" aria-label="傳音入閣三步">
-    <li class="reveal"><span>壹</span><div><strong>掃描法印</strong><p>電腦版請以手機 LINE 掃描上方 QR Code。</p></div></li>
-    <li class="reveal delay-1"><span>貳</span><div><strong>加入仙策靈使</strong><p>確認帳號為「天外一筆｜仙策靈使」，名號 @279plitu。</p></div></li>
-    <li class="reveal delay-2"><span>參</span><div><strong>寫下真正難題</strong><p>可回覆「靈感」看六脈，也可直接傳來你想跨過的那一道關。</p></div></li>
-  </ol>
+  <section class="three-breaths" aria-labelledby="three-breaths-title">
+    <header class="three-breaths-heading reveal">
+      <p>三息入閣</p>
+      <h2 id="three-breaths-title">月印一照，靈念便有歸處</h2>
+      <span>不繞遠路，不問俗名，只問你真正想破的局。</span>
+    </header>
+    <ol class="transmission-path-v2" aria-label="傳音入閣三步">
+      <li class="reveal">
+        <span class="step-seal">壹</span>
+        <div><small>第一息</small><strong>照見月印</strong><p>桌機以手機 LINE 掃描法印；手機則直接啟動傳音法陣。</p></div>
+      </li>
+      <li class="reveal delay-1">
+        <span class="step-seal">貳</span>
+        <div><small>第二息</small><strong>認明靈使</strong><p>確認帳號為「天外一筆｜仙策靈使」，唯一名號 @279plitu。</p></div>
+      </li>
+      <li class="reveal delay-2">
+        <span class="step-seal">參</span>
+        <div><small>第三息</small><strong>落筆問策</strong><p>可回覆「靈感」翻閱六脈，也可直接寫下最想跨過的關。</p></div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="keeper-oath reveal" aria-labelledby="keeper-oath-title">
+    <div class="oath-seal" aria-hidden="true"><span>守</span><i>誠</i></div>
+    <div class="oath-copy">
+      <p>守閣之誓</p>
+      <h2 id="keeper-oath-title">先聽懂你的迷霧，再替你指一條可走的路。</h2>
+      <p>靈使負責接引，守閣者負責承接。你傳來的不是冷冰冰的工單，而是一道值得被好好看見的難題。</p>
+    </div>
+    <ul class="oath-rules" aria-label="安全傳音守則">
+      <li><span>真人</span>需要時由守閣者接續</li>
+      <li><span>安心</span>不索取密碼與驗證碼</li>
+      <li><span>清楚</span>先釐清方向，再談後續</li>
+    </ul>
+  </section>
 </section>
 {% endblock %}
+
+{% block footer_tagline %}月印為憑・一念傳音・有問必照{% endblock %}
+{% block footer_note %}請認明唯一名號 @279plitu；本閣不會索取密碼、簡訊驗證碼或要求遠端操控。{% endblock %}
