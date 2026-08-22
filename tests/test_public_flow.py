@@ -154,6 +154,8 @@ def test_xianxia_title_art_is_web_optimized_and_versioned():
     assert ".home-page .hero-art" in v15_stylesheet
     assert "grid-template-columns: repeat(12" in v15_stylesheet
     assert "@media (max-width: 480px)" in v15_stylesheet
+    for creed_color in ("#a5433a", "#2f8177", "#685493", "#a5782f"):
+        assert creed_color in v15_stylesheet
 
 
 def test_logo_review_is_not_a_public_route(client):

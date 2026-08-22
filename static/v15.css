@@ -631,16 +631,36 @@
 }
 
 .home-page .creed-heading { grid-template-columns: 150px minmax(340px,.9fr) minmax(360px,1.1fr); margin-bottom: 46px; }
-.home-page .creed-heading .section-index { color: #a6473d; }
+.home-page .creed-heading .section-index { color: #a6473d; letter-spacing: .12em; white-space: nowrap; }
+.home-page .creed-heading .section-index::after { width: 30px; }
 .home-page .creed-heading h2 { color: #5b3537; font-size: clamp(42px,4vw,56px); text-shadow: none; -webkit-text-stroke: 0; }
 .home-page .creed-heading > p:last-child { color: #4c4857; font-size: 18px; line-height: 1.9; }
 .home-page .creed-grid { grid-template-columns: repeat(4,1fr); gap: 0; border-top: 1px solid rgba(67,55,43,.2); border-bottom: 1px solid rgba(67,55,43,.2); }
-.home-page .creed-grid article { min-height: 250px; padding: 34px 27px; border: 0; border-right: 1px solid rgba(67,55,43,.18); background: transparent; }
+.home-page .creed-grid article {
+  --creed-accent: #9d4038;
+  --creed-heading: #71342f;
+  --creed-copy: #57474b;
+  min-height: 250px;
+  padding: 34px 27px;
+  border: 0;
+  border-top: 4px solid var(--creed-accent);
+  border-right: 1px solid rgba(67,55,43,.18);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--creed-accent), transparent 94%), transparent 42%);
+}
+.home-page .creed-grid article:nth-child(1) { --creed-accent: #a5433a; --creed-heading: #71312e; --creed-copy: #59464a; }
+.home-page .creed-grid article:nth-child(2) { --creed-accent: #2f8177; --creed-heading: #235f59; --creed-copy: #405c58; }
+.home-page .creed-grid article:nth-child(3) { --creed-accent: #685493; --creed-heading: #493a70; --creed-copy: #514b63; }
+.home-page .creed-grid article:nth-child(4) { --creed-accent: #a5782f; --creed-heading: #76551f; --creed-copy: #615442; }
 .home-page .creed-grid article:last-child { border-right: 0; }
-.home-page .creed-grid article::after { color: rgba(141,61,54,.055); }
-.home-page .creed-grid span { color: #aa493f; font-size: 13px; }
-.home-page .creed-grid h3 { color: #42303a; font-size: 29px; text-shadow: none; }
-.home-page .creed-grid p { color: #595463; font-size: 16px; line-height: 1.85; }
+.home-page .creed-grid article::after { color: color-mix(in srgb, var(--creed-accent), transparent 91%); }
+.home-page .creed-grid article > span { color: var(--creed-accent); font-size: 13px; font-weight: 700; }
+.home-page .creed-grid article > h3 {
+  color: var(--creed-heading);
+  font-size: 29px;
+  -webkit-text-stroke: .008em color-mix(in srgb, var(--creed-accent), #241d26 42%);
+  text-shadow: 0 1px 0 rgba(255,250,228,.9), 1px 3px 7px rgba(44,35,40,.12);
+}
+.home-page .creed-grid article > p { color: var(--creed-copy); font-size: 16px; line-height: 1.85; }
 
 /* Chapter five — moon altar finale */
 .home-page .line-portal {
