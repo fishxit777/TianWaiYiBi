@@ -28,6 +28,8 @@ def test_home_lists_six_distinct_cultivators(client):
     assert "brand/wordmark-xianxia-v14.webp" in response.get_data(as_text=True)
     assert "brand/website-hero-v15.webp" in response.get_data(as_text=True)
     assert "static/v15.css" in response.get_data(as_text=True)
+    assert "world-chapter-mark" in response.get_data(as_text=True)
+    assert "續入下一卷" in response.get_data(as_text=True)
     assert response.get_data(as_text=True).count('fetchpriority="high"') >= 5
     assert response.get_data(as_text=True).count("idea-card") >= 6
     for role in ("破局劍修", "造境符師", "增長丹師", "機關偃師", "回聲樂修", "觀星策士"):
