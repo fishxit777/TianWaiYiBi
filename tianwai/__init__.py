@@ -27,6 +27,10 @@ def create_app(test_config=None):
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=secure_public_cookie,
+        LINE_ADD_FRIEND_URL=(
+            os.environ.get("LINE_ADD_FRIEND_URL", "").strip()
+            or "https://line.me/R/ti/p/@279plitu"
+        ),
     )
     if test_config:
         app.config.update(test_config)
@@ -58,7 +62,10 @@ def create_app(test_config=None):
 
     @app.context_processor
     def inject_globals():
-        return {"csrf_token": get_public_csrf_token}
+        return {
+            "csrf_token": get_public_csrf_token,
+            "line_add_friend_url": app.config["LINE_ADD_FRIEND_URL"],
+        }
 
     @app.get("/healthz")
     def healthz():

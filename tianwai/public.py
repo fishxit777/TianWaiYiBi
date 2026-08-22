@@ -48,11 +48,6 @@ def home():
     return render_template("home.html", ideas=ideas, global_price=price)
 
 
-@public_bp.get("/logo-review")
-def logo_review():
-    return render_template("logo_review.html")
-
-
 @public_bp.get("/ideas/<slug>")
 def idea_detail(slug):
     idea = get_db().execute(

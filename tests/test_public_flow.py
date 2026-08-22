@@ -28,6 +28,27 @@ def test_home_lists_six_distinct_cultivators(client):
         assert role in response.get_data(as_text=True)
 
 
+def test_home_hides_internal_tools_and_offers_human_transmission(client):
+    response = client.get("/")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    for private_label in ("Logo 評估", "管理後台", "開啟本機模擬器", "LINE Bot"):
+        assert private_label not in body
+    assert "/logo-review" not in body
+    assert "/dev/line" not in body
+    assert "/admin" not in body
+    assert "傳音給守閣者" in body
+    assert "由守閣者本人親自接續" in body
+    assert "https://line.me/R/ti/p/@279plitu" in body
+
+
+def test_logo_review_is_not_a_public_route(client):
+    response = client.get("/logo-review")
+
+    assert response.status_code == 404
+
+
 def test_idea_detail_uses_global_price(client):
     response = client.get("/ideas/brand-world-forge")
 
@@ -81,4 +102,3 @@ def test_analytics_endpoint_accepts_allowlisted_event(client):
     )
 
     assert response.status_code == 204
-

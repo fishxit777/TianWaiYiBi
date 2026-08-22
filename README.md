@@ -1,6 +1,6 @@
 # 天外一筆・仙策閣
 
-天外一筆工作室的新產品初版：一個原創修仙世界觀的付費想法商城，包含響應式官網、數位內容解鎖、LINE Bot 邏輯、本機模擬付款、營運後台、分析數據與安全事件紀錄。
+天外一筆工作室的新產品初版：一個原創修仙世界觀的付費想法商城，包含響應式官網、數位內容解鎖、LINE 訊息導覽、本機模擬付款、營運後台、分析數據與安全事件紀錄。
 
 專案位置：`C:\Users\bao58\Projects\TianWaiYiBi`
 
@@ -15,11 +15,11 @@
 - LINE Bot 支援好友加入、靈感目錄、價格、說明與 1～6 導覽；目錄使用六張 LINE Flex Carousel 商品卡，正式憑證未設定時可用本機模擬器完整預覽。
 - 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項仙策內容、單品價格、排序與上下架。
 - V13 Logo 已整合官網、LINE 頭像、favicon 與後台；正式 LINE 官方帳號、Messaging API 與公開 webhook 已完成接線。
+- 公開官網只保留六脈仙策、仙閣心訣與真人客服傳音入口；Logo 審稿、本機模擬器與管理後台不出現在公開導覽或頁尾。
 
 正式入口：
 
 - 官網：`https://tianwai-yibi.onrender.com/`
-- 管理後台：`https://tianwai-yibi.onrender.com/admin/login`
 - LINE 官方帳號：`@279plitu`（天外一筆｜仙策靈使）
 
 ## 一鍵啟動
@@ -36,9 +36,10 @@ cd C:\Users\bao58\Projects\TianWaiYiBi
 開啟：
 
 - 官網：`http://127.0.0.1:5088/`
-- Logo 評估：`http://127.0.0.1:5088/logo-review`
 - LINE Bot 模擬器：`http://127.0.0.1:5088/dev/line`
 - 管理後台：`http://127.0.0.1:5088/admin`
+
+本機模擬器與管理入口僅供開發／營運使用，不得放入公開官網導覽或頁尾。
 
 若 Windows 阻擋執行腳本，可在目前 PowerShell 視窗只放寬這一次：
 
@@ -62,7 +63,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `26 passed`。
+目前自動驗證結果為 `28 passed`。
 
 ## 公開部署
 

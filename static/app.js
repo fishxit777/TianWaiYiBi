@@ -18,6 +18,17 @@
     });
   });
 
+  document.querySelectorAll('[data-line-cta]').forEach((link) => {
+    link.addEventListener('click', () => {
+      fetch('/api/events', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},
+        body: JSON.stringify({event_name: 'line_cta_clicked', source: 'web'}),
+        keepalive: true
+      }).catch(() => {});
+    });
+  });
+
   const orderForm = document.querySelector('#order-form');
   if (orderForm) {
     orderForm.addEventListener('submit', async (event) => {

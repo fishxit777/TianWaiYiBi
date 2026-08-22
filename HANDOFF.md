@@ -24,19 +24,20 @@
 - 正式 webhook：`https://tianwai-yibi.onrender.com/line/webhook`，LINE 驗證成功並已啟用。
 - LINE Provider：`天外一筆工作室`；長期 Access Token 與 Channel Secret 僅存在 Render 環境變數。
 - LINE V13 頭像、狀態消息與官網連結已公開；內建歡迎訊息與自動回應已關閉。
+- 公開官網已移除 Logo 審稿、管理後台與本機模擬器連結，改以「仙閣心訣」補足品牌理念，並以「傳音閣」連到真人守閣者客服。
 
 ## 驗證結果
 
 - `python -m py_compile ...`：通過。
 - `node --check static\app.js`：通過。
 - `node --check static\admin.js`：通過。
-- `python -m pytest -q`：26 passed，0 failed。
+- `python -m pytest -q`：28 passed，0 failed。
 - `python -m pip check`：No broken requirements found。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
 - 手機 390 × 844：官網、V13 主視覺、LINE 模擬器、後台與內容編輯 dialog 都沒有根頁面水平溢位。
 - 瀏覽器 console：0 error、0 warning。
-- HTTP smoke：`/healthz`、`/`、`/logo-review` 均回 200；健康狀態為 `ok`。
+- HTTP smoke：`/healthz`、`/` 回 200；`/logo-review` 與正式環境 `/dev/line` 回 404；健康狀態為 `ok`。
 
 瀏覽器驗收使用的假訂單與假 Email 已從正式本機資料庫清除；可復原 QA 副本暫存於 Windows Temp，不屬專案交付資料。
 
@@ -47,11 +48,12 @@
 - `/checkout/<slug>`：建立訂單
 - `/pay/mock/<token>`：本機模擬付款
 - `/orders/<access_token>`：付費內容
-- `/logo-review`：V13 深淺 Logo 與 LINE 圓形裁切評估
 - `/dev/line`：LINE Bot 模擬器
 - `/line/webhook`：正式 LINE webhook 入口
 - `/payments/webhook/mock`：支付 webhook 範例
 - `/admin`：管理後台
+
+`/dev/line` 與 `/admin` 為非公開營運入口，不得從公開頁面連結；Logo 評估路由已撤除。
 
 ## 下一個最高 ROI 決策
 

@@ -9,7 +9,7 @@
     <p class="hero-lead">這裡不賣空泛的靈光。我們把每個想法煉成一位擁有獨門技能的修士，讓你依眼前的難題，找到真正能落地的一脈心法。</p>
     <div class="hero-actions">
       <a class="button button-primary" href="#ideas">進入仙策閣</a>
-      <a class="text-link" href="#how">先看如何運作 <span aria-hidden="true">↘</span></a>
+      <a class="text-link" href="#transmission">向守閣者傳音 <span aria-hidden="true">↘</span></a>
     </div>
   </div>
   <aside class="hero-art reveal delay-1" aria-label="天外一筆 V13 修仙品牌主視覺">
@@ -89,13 +89,29 @@
   </ol>
 </section>
 
-<section class="line-portal section-shell reveal">
-  <img class="line-glyph" src="{{ url_for('static', filename='brand/line-avatar-1254.png') }}" alt="天外一筆 LINE Bot 圓形頭像">
-  <div>
-    <p class="section-index">LINE Bot 試煉場</p>
-    <h2>先和仙策靈使聊聊。</h2>
-    <p>輸入「靈感」看六脈導覽、輸入「價格」看統一試行價；目前先用本機模擬器驗證，正式帳號憑證尚未接入。</p>
+<section id="creed" class="creed-section section-shell">
+  <header class="creed-heading reveal">
+    <p class="section-index">卷四・仙閣心訣</p>
+    <h2>天馬行空，也要落在人間。</h2>
+    <p>靈感不是妄念，只是尚未被煉成的仙策。天外一筆不販賣空話；我們先辨真問、再找限制，最後把一念寫成能驗證、能執行、能留下成果的路。</p>
+  </header>
+  <div class="creed-grid">
+    <article class="reveal"><span>一念</span><h3>先辨真問</h3><p>不急著堆砌招式，先看清真正卡住你的那一道關。</p></article>
+    <article class="reveal delay-1"><span>一策</span><h3>以行證道</h3><p>每一脈心法都要化成下一步；用行動與結果回答，不靠想像自我說服。</p></article>
+    <article class="reveal delay-2"><span>一筆</span><h3>因人擇法</h3><p>六脈各有專長。依你的難題召來對的同道，不讓一把劍硬解天下事。</p></article>
+    <article class="reveal"><span>一程</span><h3>長路共修</h3><p>不求一夜飛昇，只求每次選擇都更接近可持續、可複用、能累積的成果。</p></article>
   </div>
-  <a class="button button-ghost" href="{{ url_for('line.simulator_page') }}">開啟本機模擬器</a>
+</section>
+
+<section id="transmission" class="line-portal section-shell reveal">
+  <img class="line-glyph" src="{{ url_for('static', filename='brand/line-avatar-1254.png') }}" alt="天外一筆仙策靈使傳音法印">
+  <div>
+    <p class="section-index">卷五・傳音閣</p>
+    <h2>心有疑問，便傳音入閣。</h2>
+    <p>不知該選哪一脈、想先說說你的難題，或需要詢問仙策內容，都可召喚「天外一筆｜仙策靈使」。留下你的來意，需要時會由守閣者本人親自接續，替你引路。</p>
+    <p class="keeper-note"><strong>傳音暗號</strong>　回覆「靈感」看六脈、「價格」看試行價，也可直接寫下你真正想解的問題。</p>
+    <span class="transmission-id">仙策靈使・@279plitu</span>
+  </div>
+  <a class="button button-ghost" href="{{ line_add_friend_url }}" target="_blank" rel="noopener" data-line-cta>傳音給守閣者</a>
 </section>
 {% endblock %}
