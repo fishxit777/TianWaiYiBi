@@ -135,6 +135,7 @@ python -m pytest -q
 - `docs/plans/2026-08-23-logo-aligned-calligraphy.md`
 - `docs/plans/2026-08-23-white-gold-xianxia-type-treatment.md`
 - `docs/plans/2026-08-23-v14-illustrated-title-hierarchy.md`
+- `docs/plans/2026-08-23-readable-public-typography.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`

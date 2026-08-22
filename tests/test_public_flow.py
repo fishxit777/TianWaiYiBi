@@ -112,6 +112,12 @@ def test_public_site_self_hosts_vector_brush_fonts():
     assert "--title-page-size" in stylesheet
     assert "--title-section-size" in stylesheet
     assert "--title-card-size" in stylesheet
+    assert "--body-readable-size: 18px" in stylesheet
+    assert "--lead-readable-size: 19px" in stylesheet
+    assert "--meta-readable-size: 13px" in stylesheet
+    assert "-webkit-font-smoothing: auto" in stylesheet
+    assert ".public-site .brand-copy small" in stylesheet
+    assert "font-size: 12px" in stylesheet
     assert ".public-site .brand-wordmark" in stylesheet
     assert ".public-site .hero-title-image-heading" in stylesheet
     assert "-webkit-text-stroke" in stylesheet

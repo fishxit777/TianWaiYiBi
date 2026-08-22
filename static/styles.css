@@ -1545,3 +1545,155 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .public-site .brand-copy { width: min(39vw, 145px); }
   .public-site .main-nav .nav-seal { padding-inline: 8px; }
 }
+
+/* V14.1 readability pass. Keep the illustrated titles, but never ask the
+   brush body face to survive at utility-font sizes. Public copy is enlarged
+   and the browser may use ClearType/sub-pixel rendering again. */
+.public-site {
+  --body-readable-size: 18px;
+  --lead-readable-size: 19px;
+  --nav-readable-size: 15px;
+  --label-readable-size: 14px;
+  --meta-readable-size: 13px;
+  font-size: var(--body-readable-size);
+  -webkit-font-smoothing: auto;
+  font-kerning: normal;
+}
+
+.public-site :where(p, li, dd, dt, label, input, textarea, select, button, a, small) {
+  text-rendering: optimizeLegibility;
+}
+
+.public-site .brand-copy small {
+  display: block;
+  padding-left: 3px;
+  color: #ead9a8;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: .14em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, .72);
+}
+
+.public-site .main-nav { font-size: var(--nav-readable-size); }
+
+.public-site :is(.eyebrow, .section-index) {
+  font-size: var(--label-readable-size);
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: .15em;
+}
+
+.public-site :is(.button, .text-link, .filter-button, .back-link) {
+  font-size: var(--label-readable-size);
+  line-height: 1.25;
+}
+
+.public-site :is(
+  .hero-lead,
+  .world-note-copy,
+  .how-intro > p:last-child,
+  .creed-heading > p:last-child,
+  .line-portal > div > p:not(.section-index):not(.keeper-note),
+  .detail-copy > p:not(.section-index),
+  .checkout-summary > p:not(.section-index),
+  .simulator-intro > p:last-child
+) {
+  font-size: var(--lead-readable-size);
+  line-height: 1.9;
+}
+
+.public-site :is(
+  .hero-art-facts dt,
+  .idea-number,
+  .idea-role,
+  .idea-discipline,
+  .idea-tags span,
+  .idea-card footer,
+  .creed-grid > article > span,
+  .character-plaque small,
+  .teaser-box span,
+  .deliverable-list > p,
+  .purchase-rune div span,
+  .checkout-summary dt,
+  .payment-card dt,
+  .trust-list span,
+  .mock-badge,
+  .payment-order div span,
+  .manuscript footer span,
+  .transmission-id
+) {
+  font-family: var(--sans);
+  font-size: var(--meta-readable-size);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.public-site .hero-art-facts dd { font-size: 16px; }
+.public-site .idea-summary { font-size: 17px; line-height: 1.8; }
+.public-site .creed-grid p { font-size: 16px; line-height: 1.85; }
+.public-site .keeper-note { font-size: 16px; line-height: 1.75; }
+.public-site .site-footer { font-size: var(--label-readable-size); line-height: 1.7; }
+.public-site .deliverable-list li { font-size: 15px; }
+.public-site .locked-note { font-size: 15px; }
+.public-site .checkout-price span { font-size: 15px; }
+.public-site label { font-size: var(--label-readable-size); font-weight: 700; }
+.public-site :is(input, textarea, select) { font-size: 16px; }
+.public-site .form-status { font-size: var(--label-readable-size); }
+.public-site .payment-warning { font-size: 14px; line-height: 1.65; }
+.public-site .access-reminder p { font-size: 15px; }
+
+.public-site.transmission-v2-page .transmission-ceremony { font-size: 15px; }
+.public-site.transmission-v2-page .transmission-legacy { font-size: 17px; }
+.public-site.transmission-v2-page .transmission-v2-lead { font-size: 18px; line-height: 2; }
+.public-site.transmission-v2-page .ink-scroll p { font-size: 17px; }
+.public-site.transmission-v2-page .jade-vows span { font-size: 14px; font-weight: 700; }
+.public-site.transmission-v2-page .desktop-scan-note p { font-size: 14px; line-height: 1.35; }
+.public-site.transmission-v2-page .desktop-scan-note strong { font-size: 17px; }
+.public-site.transmission-v2-page :is(.v2-copy-button, .v2-copy-status) { font-size: 14px; }
+.public-site.transmission-v2-page :is(.altar-inscription, .moon-medallion small, .ritual-wheel span, .moon-altar figcaption span, .moon-altar figcaption small, .three-breaths-heading > p, .three-breaths-heading > span, .transmission-path-v2 small) {
+  font-size: 13px;
+  font-weight: 700;
+}
+.public-site.transmission-v2-page .transmission-path-v2 p { font-size: 16px; }
+.public-site.transmission-v2-page .oath-copy > p:first-child { font-size: 15px; font-weight: 700; }
+.public-site.transmission-v2-page .oath-copy > p:last-child { font-size: 17px; }
+.public-site.transmission-v2-page .oath-rules li { font-size: 16px; }
+
+@media (max-width: 760px) {
+  .public-site {
+    --body-readable-size: 17px;
+    --lead-readable-size: 17px;
+    --nav-readable-size: 14px;
+    --label-readable-size: 13px;
+    --meta-readable-size: 12.5px;
+  }
+
+  .public-site .brand-copy { width: min(45vw, 178px); }
+  .public-site .brand-copy small {
+    display: block;
+    padding-left: 2px;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    white-space: nowrap;
+  }
+
+  .public-site .main-nav .nav-seal { font-size: 13px; }
+  .public-site .hero-art-facts dd { font-size: 14px; }
+  .public-site .idea-summary { font-size: 16px; }
+  .public-site .creed-grid p { font-size: 15px; }
+  .public-site.transmission-v2-page .transmission-ceremony { font-size: 13px; }
+  .public-site.transmission-v2-page .transmission-legacy { font-size: 15px; }
+  .public-site.transmission-v2-page .transmission-v2-lead { font-size: 17px; }
+  .public-site.transmission-v2-page .ink-scroll p { font-size: 16px; }
+  .public-site.transmission-v2-page .jade-vows span { font-size: 13px; }
+  .public-site.transmission-v2-page .transmission-path-v2 p { font-size: 15px; }
+  .public-site.transmission-v2-page .oath-copy > p:last-child { font-size: 16px; }
+  .public-site.transmission-v2-page .oath-rules li { font-size: 15px; }
+}
+
+@media (max-width: 430px) {
+  .public-site .brand-copy { width: min(44vw, 160px); }
+  .public-site .brand-copy small { font-size: 10px; letter-spacing: .075em; }
+}
