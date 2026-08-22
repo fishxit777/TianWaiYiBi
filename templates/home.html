@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block title %}天外一筆・仙策閣｜想法販售・創意支援{% endblock %}
+{% block hero_image_preload %}<link rel="preload" href="{{ url_for('static', filename='brand/home-title-xianxia-v14.webp') }}" as="image" type="image/webp" fetchpriority="high">{% endblock %}
 {% block body_class %}home-page{% endblock %}
 {% block content %}
 <section class="hero">
   <div class="hero-copy reveal">
     <p class="eyebrow"><span>天外一筆工作室</span>／ 原創想法交易所</p>
     <h1 class="hero-title-image-heading">
-      <img class="home-title-art" src="{{ url_for('static', filename='brand/home-title-xianxia-v14.webp') }}" alt="一筆開天，靈感成案" width="782" height="503">
+      <img class="home-title-art" src="{{ url_for('static', filename='brand/home-title-xianxia-v14.webp') }}" alt="一筆開天，靈感成案" width="782" height="503" fetchpriority="high">
     </h1>
     <p class="hero-lead">這裡不賣空泛的靈光。我們把每個想法煉成一位擁有獨門技能的修士，讓你依眼前的難題，找到真正能落地的一脈心法。</p>
     <div class="hero-actions">

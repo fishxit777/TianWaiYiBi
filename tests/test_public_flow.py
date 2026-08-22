@@ -26,6 +26,7 @@ def test_home_lists_six_distinct_cultivators(client):
     assert "仙策閣" in response.get_data(as_text=True)
     assert "brand/home-title-xianxia-v14.webp" in response.get_data(as_text=True)
     assert "brand/wordmark-xianxia-v14.webp" in response.get_data(as_text=True)
+    assert response.get_data(as_text=True).count('fetchpriority="high"') >= 4
     assert response.get_data(as_text=True).count("idea-card") >= 6
     for role in ("破局劍修", "造境符師", "增長丹師", "機關偃師", "回聲樂修", "觀星策士"):
         assert role in response.get_data(as_text=True)
@@ -56,6 +57,7 @@ def test_transmission_landing_keeps_line_white_page_behind_branded_experience(cl
     assert "一筆啟月門" in body
     assert "brand/transmission-title-xianxia-v14.webp" in body
     assert "brand/wordmark-xianxia-v14.webp" in body
+    assert body.count('fetchpriority="high"') >= 4
     assert "守閣之誓" in body
     assert "守閣者本人親自接續" in body
     assert "不索取密碼與驗證碼" in body

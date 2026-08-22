@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}九霄傳音詔｜天外一筆・仙策靈使{% endblock %}
+{% block hero_image_preload %}<link rel="preload" href="{{ url_for('static', filename='brand/transmission-title-xianxia-v14.webp') }}" as="image" type="image/webp" fetchpriority="high">{% endblock %}
 {% block body_class %}transmission-page transmission-v2-page{% endblock %}
 {% block main_navigation %}
   <a href="{{ url_for('public.home') }}#ideas">翻閱六脈</a>
@@ -22,7 +23,7 @@
     <div class="transmission-v2-copy reveal">
       <p class="transmission-ceremony"><span>卷外</span><i aria-hidden="true"></i>九霄傳音詔</p>
       <h1 id="transmission-title" class="hero-title-image-heading transmission-title-image-heading">
-        <img class="transmission-title-art" src="{{ url_for('static', filename='brand/transmission-title-xianxia-v14.webp') }}" alt="一筆啟月門，一念渡靈音" width="838" height="469">
+        <img class="transmission-title-art" src="{{ url_for('static', filename='brand/transmission-title-xianxia-v14.webp') }}" alt="一筆啟月門，一念渡靈音" width="838" height="469" fetchpriority="high">
       </h1>
       <p class="transmission-legacy">一印傳音・仙策相迎</p>
       <p class="transmission-v2-lead">你不必先想好答案，也不必把故事說得完美。只需寫下眼前最難跨過的那一道關，仙策靈使便循著此念接引；需要深談時，由守閣者本人親自接續。</p>
