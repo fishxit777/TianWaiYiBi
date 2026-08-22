@@ -8,7 +8,7 @@
 
 @font-face {
   font-family: "Tianwai Masa";
-  src: url("fonts/tianwai-masa-medium.woff2") format("woff2");
+  src: url("fonts/tianwai-masa-bold.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 700;
@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: "Tianwai Masa Display";
-  src: url("fonts/tianwai-masa-medium.woff2") format("woff2");
+  src: url("fonts/tianwai-masa-bold.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;
@@ -1371,9 +1371,145 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .mobile-title-break { display: block; }
 }
 
-/* The selected font already contains real brush texture. Avoid glow and fake
-   strokes, which make the outline look blurry at browser zoom levels. */
-.public-site * {
-  text-shadow: none !important;
-  -webkit-text-stroke: 0 !important;
+/* White-jade / moon-gold title craft inspired by classic xianxia cover art.
+   The type remains live HTML; layered strokes and shadows provide the carved
+   depth without replacing editable titles with raster images. */
+.public-site {
+  --title-ivory-top: #fffef5;
+  --title-ivory-mid: #f7eccb;
+  --title-ivory-low: #d8b96f;
+  --title-gold-top: #fff0b0;
+  --title-gold-mid: #d7a54e;
+  --title-gold-low: #8b4d25;
+  --title-wine-edge: #3a1118;
+}
+
+.public-site :is(
+  .hero h1,
+  .world-note h2,
+  .section-heading h2,
+  .how-intro h2,
+  .creed-heading h2,
+  .line-portal h2,
+  .detail-copy h1,
+  .checkout-summary h1,
+  .payment-card h1,
+  .access-header h1,
+  .message-card h1,
+  .transmission-v2-copy h1,
+  .three-breaths-heading h2,
+  .oath-copy h2
+) {
+  color: var(--title-gold-top);
+  background-image:
+    linear-gradient(180deg,
+      var(--title-gold-top) 0%,
+      #f2d784 30%,
+      var(--title-gold-mid) 61%,
+      var(--title-gold-low) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: .018em rgba(42, 12, 16, .96);
+  text-shadow:
+    0 .022em 0 rgba(255, 249, 221, .92),
+    .014em .052em 0 #c69347,
+    .031em .078em 0 #81502e,
+    .048em .108em 0 var(--title-wine-edge),
+    .062em .137em 0 rgba(18, 7, 12, .86),
+    0 .18em .2em rgba(0, 0, 0, .68),
+    0 0 .17em rgba(246, 205, 112, .2);
+}
+
+.public-site :is(.hero h1 > span, .transmission-v2-copy h1 > span) {
+  display: inline-block;
+  color: var(--title-ivory-top);
+  background-image:
+    linear-gradient(180deg,
+      #fffef8 0%,
+      var(--title-ivory-mid) 44%,
+      #e7d29e 72%,
+      var(--title-ivory-low) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.public-site .transmission-v2-copy h1 > em {
+  color: var(--title-gold-top);
+  background-image:
+    linear-gradient(180deg,
+      #fff1b2 0%,
+      #e9c46f 43%,
+      #c1843d 73%,
+      #78401f 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.public-site :is(
+  .brand-copy strong,
+  .idea-card h3,
+  .steps h3,
+  .creed-grid h3,
+  .character-plaque p,
+  .payment-order strong,
+  .transmission-path-v2 strong,
+  .moon-altar figcaption strong,
+  .site-footer strong
+) {
+  font-family: var(--display);
+  font-weight: 400;
+  color: #f8e7b8;
+  -webkit-text-stroke: .012em rgba(50, 18, 19, .84);
+  text-shadow:
+    0 .04em 0 rgba(196, 139, 62, .8),
+    .025em .075em 0 rgba(57, 20, 22, .84),
+    0 .12em .18em rgba(0, 0, 0, .5);
+}
+
+.public-site :is(.main-nav a, .button, .filter-button, .text-link, .back-link) {
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+.public-site :is(.main-nav .nav-seal, .button-ghost, .text-link) {
+  color: #f0d28a;
+  text-shadow:
+    0 1px 0 rgba(255, 248, 218, .3),
+    1px 2px 0 rgba(68, 28, 24, .75),
+    0 5px 12px rgba(0, 0, 0, .4);
+}
+
+.public-site .button-primary {
+  color: #24120f;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .5);
+}
+
+@media (max-width: 760px) {
+  .public-site :is(
+    .hero h1,
+    .world-note h2,
+    .section-heading h2,
+    .how-intro h2,
+    .creed-heading h2,
+    .line-portal h2,
+    .detail-copy h1,
+    .checkout-summary h1,
+    .payment-card h1,
+    .access-header h1,
+    .message-card h1,
+    .transmission-v2-copy h1,
+    .three-breaths-heading h2,
+    .oath-copy h2
+  ) {
+    -webkit-text-stroke-width: .014em;
+    text-shadow:
+      0 .02em 0 rgba(255, 249, 221, .9),
+      .013em .047em 0 #c69347,
+      .027em .071em 0 #81502e,
+      .04em .097em 0 var(--title-wine-edge),
+      0 .15em .17em rgba(0, 0, 0, .62);
+  }
 }

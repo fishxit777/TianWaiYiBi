@@ -60,7 +60,7 @@ def test_transmission_landing_keeps_line_white_page_behind_branded_experience(cl
     assert "啟動傳音法陣" in body
     assert 'data-copy-line-id="@279plitu"' in body
     assert "fonts/tianwai-masa-regular.woff2" in body
-    assert "fonts/tianwai-masa-medium.woff2" in body
+    assert "fonts/tianwai-masa-bold.woff2" in body
     for private_label in ("Logo 評估", "管理後台", "開啟本機模擬器", "LINE Bot"):
         assert private_label not in body
 
@@ -76,7 +76,7 @@ def test_all_customer_pages_share_the_sitewide_brush_shell(client):
         body = client.get(path).get_data(as_text=True)
         assert 'class="public-site ' in body
         assert "fonts/tianwai-masa-regular.woff2" in body
-        assert "fonts/tianwai-masa-medium.woff2" in body
+        assert "fonts/tianwai-masa-bold.woff2" in body
 
 
 def test_internal_line_simulator_does_not_use_public_brand_font_shell(client):
@@ -90,7 +90,7 @@ def test_public_site_self_hosts_vector_brush_fonts():
     project_root = Path(__file__).resolve().parents[1]
     font_paths = (
         project_root / "static" / "fonts" / "tianwai-masa-regular.woff2",
-        project_root / "static" / "fonts" / "tianwai-masa-medium.woff2",
+        project_root / "static" / "fonts" / "tianwai-masa-bold.woff2",
     )
 
     for font_path in font_paths:
@@ -98,9 +98,15 @@ def test_public_site_self_hosts_vector_brush_fonts():
         assert data[:4] == b"wOF2"
         assert 100_000 < len(data) < 350_000
 
+    assert not (project_root / "static" / "fonts" / "tianwai-masa-medium.woff2").exists()
+
     stylesheet = (project_root / "static" / "styles.css").read_text(encoding="utf-8")
     assert 'font-family: "Tianwai Masa"' in stylesheet
     assert 'font-family: "Tianwai Masa Display"' in stylesheet
+    assert "--title-ivory-top" in stylesheet
+    assert "--title-gold-top" in stylesheet
+    assert "--title-wine-edge" in stylesheet
+    assert "-webkit-text-stroke" in stylesheet
     assert "tianwai-brush-display.woff2" not in stylesheet
     assert "tianwai-wenkai-body.woff2" not in stylesheet
 

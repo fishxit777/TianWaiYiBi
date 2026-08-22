@@ -1,4 +1,4 @@
-"""Build the two self-hosted MasaFont WOFF2 subsets used by the public site.
+"""Build the self-hosted MasaFont Regular and Bold WOFF2 subsets.
 
 Install the optional build dependencies with:
     python -m pip install fonttools brotli
@@ -61,13 +61,13 @@ def subset_font(source: Path, destination: Path, codepoints: set[int]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--regular", required=True, type=Path)
-    parser.add_argument("--medium", required=True, type=Path)
+    parser.add_argument("--bold", required=True, type=Path)
     arguments = parser.parse_args()
 
     codepoints = collect_codepoints()
     outputs = (
         (arguments.regular, PROJECT_ROOT / "static/fonts/tianwai-masa-regular.woff2"),
-        (arguments.medium, PROJECT_ROOT / "static/fonts/tianwai-masa-medium.woff2"),
+        (arguments.bold, PROJECT_ROOT / "static/fonts/tianwai-masa-bold.woff2"),
     )
 
     for source, destination in outputs:
