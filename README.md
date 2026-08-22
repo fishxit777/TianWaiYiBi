@@ -11,7 +11,9 @@
 - 官網已整合核准的 V13 品牌套件：靛紫九霄、青玉靈氣、月金法陣與朱砂神筆，並同時提供深色、淺色與透明 Logo 使用情境。
 - 六個想法區塊由六位原創修士代表，每位角色的能力、適用問題與付費內容不同。
 - 所有想法目前統一 NT$199；管理後台改一次即可全站調價，舊訂單保留成交價。
-- 使用者可建立訂單、執行本機模擬付款、測試 webhook 防重送，並取得專屬內容連結。
+- 使用者可建立訂單、執行本機模擬付款、測試 webhook 防重送；付款成功後才寄送專屬開通連結與一次性 12 位開通碼。
+- 首次開通碼有效 24 小時且成功後立即作廢；重新登入碼有效 7 分鐘，失效可重寄，不會取消已付款的購買權限。
+- 已開通客戶使用 30 天 HttpOnly session 進入已購內容庫，內容授權不再依賴可分享的永久網址。
 - LINE Bot 支援好友加入、靈感目錄、價格、說明與 1～6 導覽；目錄使用六張 LINE Flex Carousel 商品卡，正式憑證未設定時可用本機模擬器完整預覽。
 - 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項仙策內容、單品價格、排序與上下架。
 - V13 Logo 已整合官網、LINE 頭像、favicon 與後台；正式 LINE 官方帳號、Messaging API 與公開 webhook 已完成接線。
@@ -59,13 +61,13 @@ Set-ExecutionPolicy -Scope Process Bypass
 或分別執行：
 
 ```powershell
-python -m py_compile app.py tianwai\*.py
+python -m py_compile app.py tianwai\__init__.py tianwai\db.py tianwai\public.py tianwai\payments.py tianwai\access.py tianwai\mailer.py tianwai\line_bot.py tianwai\security.py tianwai\admin.py
 node --check static\app.js
 node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `33 passed`。
+目前自動驗證結果為 `43 passed`。
 
 ## 公開部署
 
@@ -74,6 +76,10 @@ python -m pytest -q
 - `ADMIN_PASSWORD`
 - `LINE_CHANNEL_SECRET`
 - `LINE_CHANNEL_ACCESS_TOKEN`
+- `ECPAY_MERCHANT_ID`
+- `ECPAY_HASH_KEY`
+- `ECPAY_HASH_IV`
+- `SMTP_PASSWORD`
 
 `APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。`DATABASE_PATH` 可指定資料庫檔案位置；未設定 `BASE_URL` 時，LINE 卡片連結會自動使用目前公開請求的 HTTPS 網域。
 
@@ -84,7 +90,8 @@ python -m pytest -q
 - 本機資料庫：`data\tianwai.db`，第一次啟動自動建立。
 - 初始六筆商品由 `tianwai\db.py` 寫入空資料庫。
 - 全域價格在 `settings.idea_price`；訂單的 `orders.amount` 是不可回溯修改的成交快照。
-- 已付款內容透過 HMAC 派生的高熵 access token 存取，網址不含 Email 或姓名；資料庫只存 token 雜湊。
+- 專屬開通連結使用 HMAC 派生的高熵 token，網址不含 Email 或姓名；12 位開通／登入碼只保存用途隔離的 HMAC 雜湊。
+- 訂單 paid 權益、短效驗證碼與客戶 session 分開保存；驗證碼失效不會刪除訂單權益。
 
 重建乾淨資料庫時，請先關閉服務，再把 `data\tianwai.db` 移到備份位置；下次啟動會重建。不要在未備份時直接刪除正式資料。
 
@@ -97,6 +104,8 @@ python -m pytest -q
 - 連續管理登入失敗會暫時封鎖來源 IP。
 - 支援 `ADMIN_IP_ALLOWLIST_REQUIRED`、`ADMIN_ALLOWED_IPS` 與 `ADMIN_SESSION_BIND_IP`。
 - LINE 與支付 webhook 使用 HMAC 驗簽，並以事件 ID 防止重複處理。
+- 綠界 AioCheckOut V5 回呼驗證 CheckMacValue、MerchantID、訂單編號、金額、狀態與重送；前端返回頁不是唯一付款依據。
+- 開通與登入碼最多嘗試 5 次，寄送請求限流；正式頁不顯示明文驗證碼。
 - 安全預檢攔截 `.env`、`.git`、WordPress 掃描、路徑穿越與常見注入探測；不記錄 Cookie、token 或訊息全文。
 - CSP 禁止第三方腳本與 inline script；後台禁止快取與 frame 嵌入。
 - 加入 COOP、CORP、Origin-Agent-Cluster、`object-src 'none'` 與跨網域政策標頭。
@@ -115,10 +124,11 @@ python -m pytest -q
 
 ## 待完成
 
-- 綠界、LINE Pay 或其他正式金流商店資料。
-- 電子發票、退款、付款失敗補單與 Email 交付。
+- 綠界程式介面已完成；仍缺正式特店資料與 stage／正式小額驗收。
+- SMTP 程式介面已完成；仍缺寄信帳號、寄件網域與實際收信驗收。
+- 電子發票、退款後撤銷權益、付款失敗補單與客服 SOP。
 - PostgreSQL、持久化備份與監控；目前 Render 免費執行個體使用非持久化 SQLite。
-- 會員帳號與跨裝置訂單查詢。
+- 完整會員資料管理；跨裝置 Email 無密碼登入與已購內容查詢已完成。
 
 正式接線前先決定支付供應商、單次購買／訂閱模式、退款規則、電子發票與正式網域。這些選擇會影響資料模型與法務文案，不應在沒有帳號與政策確認時假設。
 
@@ -126,6 +136,8 @@ python -m pytest -q
 
 - `docs/architecture-v13.md`
 - `docs/adr/0001-keep-modular-monolith-for-v13.md`
+- `docs/adr/0002-separate-paid-entitlements-from-short-lived-codes.md`
+- `docs/plans/2026-08-23-paid-activation-and-ecpay.md`
 - `docs/plans/2026-08-22-v13-product-integration.md`
 - `docs/plans/2026-08-22-xiance-pavilion-design.md`
 - `docs/plans/2026-08-22-xiance-pavilion-implementation.md`

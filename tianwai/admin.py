@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, make_response, redirect, render_template, request, url_for
 
 from .db import get_db, get_setting_int, utc_now
+from .mailer import email_delivery_ready
 from .security import (
     ADMIN_COOKIE,
     admin_cookie_secure,
@@ -111,7 +112,10 @@ def dashboard():
 @admin_bp.get("/api/dashboard")
 @admin_required
 def dashboard_data():
+    from .payments import payment_checkout_status
+
     connection = get_db()
+    checkout_status = payment_checkout_status()
     metrics = connection.execute(
         """
         SELECT
@@ -220,12 +224,13 @@ def dashboard_data():
             "revenue_days": [dict(row) for row in revenue_days],
             "traffic_sources": [dict(row) for row in traffic_sources],
             "integration_status": {
-                "mode": "local-mvp",
+                "mode": checkout_status["mode"],
                 "base_url": base_url,
                 "public_https": base_url.lower().startswith("https://"),
                 "line_channel": bool(os.environ.get("LINE_CHANNEL_SECRET") and os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")),
-                "payment_provider": "mock",
-                "email_delivery": False,
+                "payment_provider": checkout_status["provider"],
+                "payment_label": checkout_status["label"],
+                "email_delivery": email_delivery_ready(),
                 "line_events": int(line_event_count or 0),
             },
             "security_config": {

@@ -13,20 +13,48 @@
     <dl>
       <div><dt>內容</dt><dd>{{ idea['deliverables'] }}</dd></div>
       <div><dt>授權</dt><dd>個人使用・一次買斷</dd></div>
-      <div><dt>目前流程</dt><dd>本機模擬付款</dd></div>
+      <div><dt>付款方式</dt><dd>{{ payment_status['label'] }}</dd></div>
     </dl>
   </div>
   <div class="checkout-card reveal delay-1">
     <img class="checkout-brand-mark" src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt="" width="64" height="64">
     <div class="checkout-price"><span>本次解鎖</span><strong>NT${{ price }}</strong></div>
+    {% if payment_status['ready'] %}
     <form id="order-form" data-idea-slug="{{ idea['slug'] }}" novalidate>
       <label>你的稱呼<input name="customer_name" type="text" minlength="2" maxlength="80" autocomplete="name" required placeholder="例：雲遊旅人"></label>
       <label>收件 Email<input name="customer_email" type="email" maxlength="254" autocomplete="email" required placeholder="you@example.com"></label>
-      <label class="consent-row"><input name="consent" type="checkbox" required><span>我知道這是數位內容初版，且目前模擬付款不會實際扣款。</span></label>
-      <button class="button button-primary button-wide" type="submit">建立訂單・前往付款</button>
+      <p class="checkout-plain-notice">付款成功後，專屬開通連結與一次性 12 位開通碼會寄到此 Email。請先確認地址正確。</p>
+      <button class="button button-primary button-wide" type="submit">確認資料並前往付款</button>
       <p id="order-status" class="form-status" role="status" aria-live="polite"></p>
+
+      <dialog class="consumer-dialog" id="purchase-notice-dialog" aria-labelledby="purchase-notice-title">
+        <div class="consumer-dialog-card">
+          <p class="plain-kicker">付款前重要說明</p>
+          <h2 id="purchase-notice-title">請確認付款與開通方式</h2>
+          <ul>
+            <li>本次金額為 <strong>NT${{ price }}</strong>，付款成功後才會開通內容。</li>
+            <li>系統會寄送專屬開通連結與一次性 12 位開通碼到你填寫的 Email。</li>
+            <li>開通碼有效 24 小時，成功使用後立即失效。已付款的購買權限不會因此消失。</li>
+            <li>日後重新登入時，系統會另寄登入碼；登入碼 7 分鐘後自動失效，可重新申請。</li>
+            <li>開通連結與驗證碼請勿轉傳。客服不會要求你提供完整驗證碼。</li>
+          </ul>
+          <label class="consent-row plain-consent"><input name="purchase_notice_consent" type="checkbox"><span>我已確認商品、金額、收件 Email，以及付款後的開通與登入方式。</span></label>
+          <label class="consent-row plain-consent"><input name="digital_content_consent" type="checkbox"><span>我同意付款完成後立即提供數位內容，並知悉在法律允許範圍內，開始提供後可能不適用通訊交易七日解除權；瑕疵、重複扣款等法定權利不受影響。</span></label>
+          <p class="dialog-error" id="purchase-notice-error" role="alert"></p>
+          <div class="dialog-actions">
+            <button class="button button-ghost" type="button" data-dialog-close>返回檢查</button>
+            <button class="button button-primary" type="button" data-confirm-purchase>我已了解，繼續付款</button>
+          </div>
+        </div>
+      </dialog>
     </form>
-    <div class="trust-list"><span>付款事件防重送</span><span>成交價永久保存</span><span>專屬連結交付</span></div>
+    {% else %}
+    <div class="payment-unavailable" role="status">
+      <strong>正式付款尚未開放</strong>
+      <p>目前缺少正式金流或 Email 交付設定，因此不會建立訂單或產生扣款。</p>
+    </div>
+    {% endif %}
+    <div class="trust-list"><span>付款結果由伺服器確認</span><span>成交價保留</span><span>一次性開通碼</span></div>
   </div>
 </section>
 {% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}客戶登入｜天外一筆{% endblock %}
+{% block body_class %}payment-page{% endblock %}
+{% block content %}
+<section class="payment-shell section-shell">
+  <div class="payment-card activation-card reveal">
+    <p class="plain-kicker">已購客戶登入</p>
+    {% if step == 'request' %}
+      <h1>取回已購內容</h1>
+      <p>輸入購買時使用的 Email。若有已付款訂單，系統會寄出一次性登入碼。</p>
+      <form action="{{ url_for('access.customer_login_request') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>購買 Email<input name="customer_email" type="email" autocomplete="email" maxlength="254" required></label>
+        <button class="button button-primary button-wide" type="submit">寄送登入碼</button>
+      </form>
+    {% else %}
+      <h1>輸入登入碼</h1>
+      <p>若 Email 有已付款訂單，登入碼已寄出。登入碼僅能使用一次，7 分鐘後自動失效。</p>
+      {% if development_code %}<div class="development-code"><span>本機測試登入碼</span><strong>{{ development_code }}</strong></div>{% endif %}
+      {% if error %}<p class="plain-error" role="alert">{{ error }}</p>{% endif %}
+      <form action="{{ url_for('access.customer_login_complete') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>12 位登入碼<input name="login_code" type="text" autocomplete="one-time-code" maxlength="14" placeholder="ABCD-EFGH-JKLM" required></label>
+        <button class="button button-primary button-wide" type="submit">登入已購內容</button>
+      </form>
+      <a class="text-button inline-text-link" href="{{ url_for('access.customer_login_page') }}">登入碼失效？重新申請</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

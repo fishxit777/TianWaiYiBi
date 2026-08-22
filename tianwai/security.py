@@ -96,6 +96,23 @@ def derive_access_token(payment_token):
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
+def derive_activation_token(order_no):
+    """Derive a stable, non-guessable activation-link token for an order."""
+    secret = str(current_app.config["SECRET_KEY"]).encode("utf-8")
+    digest = hmac.new(secret, f"activation:{order_no}".encode("utf-8"), hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+
+def hash_scoped_token(scope, token):
+    """Hash short-lived codes with the app secret and a purpose boundary."""
+    secret = str(current_app.config["SECRET_KEY"]).encode("utf-8")
+    return hmac.new(
+        secret,
+        f"{scope}:{token}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
 def _parse_time(value):
     try:
         return datetime.fromisoformat(value)
@@ -309,6 +326,26 @@ def add_security_headers(response):
         "font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; "
         "base-uri 'self'; form-action 'self'",
     )
+    if request.path.startswith("/pay/ecpay/"):
+        response.headers["Content-Security-Policy"] = response.headers["Content-Security-Policy"].replace(
+            "form-action 'self'",
+            "form-action 'self' https://payment-stage.ecpay.com.tw https://payment.ecpay.com.tw",
+        )
+    sensitive_customer_paths = (
+        "/activate/",
+        "/payment/status/",
+        "/customer/",
+        "/library/",
+        "/orders/",
+    )
+    if request.path.startswith(sensitive_customer_paths):
+        response.headers["Cache-Control"] = "no-store, no-cache, max-age=0, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Content-Security-Policy"] = response.headers["Content-Security-Policy"].replace(
+            "frame-ancestors 'self'", "frame-ancestors 'none'"
+        )
     if request.path.startswith("/admin"):
         response.headers["Cache-Control"] = "no-store, no-cache, max-age=0, must-revalidate"
         response.headers["Pragma"] = "no-cache"

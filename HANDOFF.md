@@ -12,6 +12,12 @@
 - V13 修仙品牌響應式官網、六個原創想法商品、深淺 Logo、透明 Logo、favicon 與 LINE 圓形頭像。
 - 統一價格設定、訂單成交價快照、專屬內容連結。
 - 本機模擬付款、HMAC webhook、事件冪等與金額核對。
+- 付款前明確告知彈窗、雙重同意版本與稽核紀錄；付款後成功彈窗改用清楚的消費者文字。
+- 付款成功後才寄送專屬開通連結與 12 位一次性開通碼；首次碼 24 小時有效、成功後立即作廢，最多嘗試 5 次。
+- 重新登入採另一組 12 位碼，伺服器端 7 分鐘失效且可重寄；已付款權益不會因驗證碼失效而刪除。
+- 30 天 HttpOnly 客戶 session、已購內容庫、跨裝置 Email 無密碼登入與登出撤銷。
+- 綠界 AioCheckOut V5 已完成表單轉送、官方 CheckMacValue 算法、ReturnURL／OrderResultURL、金額核對、防重送與正式啟用閘門。
+- SMTP 交易信介面已完成；本機使用不外寄的 outbox 預覽，正式環境需補 SMTP 設定。
 - LINE webhook 簽章、防重送、好友加入、文字指令、六脈 Flex Carousel 與共用訊息模型的本機模擬器。
 - 管理後台登入、server-side session、CSRF、全站／單品價格、仙策完整內容編輯、排序、上下架、訂單、營收、流量來源、串接狀態、安全事件、封鎖與稽核。
 - 敏感路徑防護、安全標頭、管理登入失敗暫時封鎖。
@@ -41,7 +47,7 @@
 - `python -m py_compile ...`：通過。
 - `node --check static\app.js`：通過。
 - `node --check static\admin.js`：通過。
-- `python -m pytest -q`：33 passed，0 failed。
+- `python -m pytest -q`：43 passed，0 failed。
 - `python -m pip check`：No broken requirements found。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
@@ -51,6 +57,7 @@
 - V14.1 可讀性 QA：桌機 computed style 確認 LOGO 副標 12px／700、導覽 15px／700、首頁卷標 14px／700、首屏說明 19px；另以 390 × 844 真實 iframe viewport 實看首頁與傳音頁，副標、主標、正文與按鈕均完整顯示且沒有水平擠壓。
 - V15 視覺 QA：桌機 1280 × 720 分段檢視首屏、古卷、六脈、不等寬末卷、三境路徑、心訣與月壇；首屏主 CTA 位於 720px 視窗內。另以 390 × 844 真實 iframe viewport 檢查首頁、六脈與傳音頁，標題／按鈕／卡片無水平溢位，固定導覽已恢復。
 - 瀏覽器 console：0 error、0 warning。
+- 付款開通流程：桌機與 390 × 844 手機版均完成「填資料 → 付款前彈窗 → 模擬付款 → 付款成功彈窗 → 12 位碼開通 → 付費內容」實際操作；根頁面無水平溢位。
 - HTTP smoke：`/healthz`、`/` 回 200；`/logo-review` 與正式環境 `/dev/line` 回 404；健康狀態為 `ok`。
 
 瀏覽器驗收使用的假訂單與假 Email 已從正式本機資料庫清除；可復原 QA 副本暫存於 Windows Temp，不屬專案交付資料。
@@ -62,7 +69,15 @@
 - `/ideas/<slug>`：免費摘要
 - `/checkout/<slug>`：建立訂單
 - `/pay/mock/<token>`：本機模擬付款
-- `/orders/<access_token>`：付費內容
+- `/pay/ecpay/<token>`：綠界付款轉送頁（設定完成後啟用）
+- `/payments/ecpay/notify`：綠界伺服器付款通知
+- `/payments/ecpay/result`：綠界客戶端付款結果返回
+- `/payment/status/<activation_token>`：付款確認與開通說明
+- `/activate/<activation_token>`：一次性 12 位碼首次開通
+- `/customer/login`：已購客戶 Email 登入碼入口
+- `/customer/library`：已購內容庫
+- `/library/orders/<order_no>`：需客戶 session 的付費內容
+- `/orders/<access_token>`：舊網址相容轉址，不再直接顯示付費內容
 - `/dev/line`：LINE Bot 模擬器
 - `/line/webhook`：正式 LINE webhook 入口
 - `/payments/webhook/mock`：支付 webhook 範例
@@ -79,8 +94,8 @@
 1. 用目前 V13 與六脈頁面做 10～20 人需求驗證，選出首發 1～2 個仙策。
 2. 把首發仙策內容補強到正式可交付品質，定案價格、退款、授權與電子發票規則。
 3. 為既有的獨立 LINE 官方帳號啟用 Messaging API，部署公開 HTTPS，填入本專案自己的 Channel Secret／Access Token。
-4. 選擇綠界或 LINE Pay，使用獨立商店資料與正式 webhook 驗收。
-5. 正式公開前換 PostgreSQL，加入備份、監控、WAF、管理員 2FA 與部署檢查。
+4. 提供本專案獨立的綠界 MerchantID／HashKey／HashIV 與 SMTP 設定，先做 stage 驗收。
+5. 正式公開前換 PostgreSQL 或 Render 持久化磁碟，補退款撤銷權益、電子發票、備份、監控、WAF、管理員 2FA 與部署檢查。
 
 ## 禁止混用
 

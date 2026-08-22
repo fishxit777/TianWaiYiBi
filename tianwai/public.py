@@ -1,14 +1,23 @@
 import re
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify, render_template, request, session, url_for
+from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
 
 from .db import get_db, get_setting_int, utc_now
-from .security import derive_access_token, hash_token, require_public_csrf
+from .payments import checkout_url_for, payment_checkout_status
+from .security import (
+    derive_access_token,
+    derive_activation_token,
+    get_client_ip,
+    hash_token,
+    require_public_csrf,
+    safe_user_agent,
+)
 
 
 public_bp = Blueprint("public", __name__)
+TAIPEI_TIMEZONE = timezone(timedelta(hours=8))
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 ANALYTICS_EVENTS = {"view_idea", "checkout_opened", "line_cta_clicked", "filter_used"}
 ANALYTICS_SOURCES = {"web", "line", "direct", "admin-preview"}
@@ -74,7 +83,12 @@ def checkout(slug):
     if idea is None:
         return render_template("message.html", title="無法結帳", message="此想法目前未開放。"), 404
     _track("checkout_opened", idea["id"], "web")
-    return render_template("checkout.html", idea=idea, price=_idea_price(idea))
+    return render_template(
+        "checkout.html",
+        idea=idea,
+        price=_idea_price(idea),
+        payment_status=payment_checkout_status(),
+    )
 
 
 @public_bp.post("/api/orders")
@@ -86,33 +100,53 @@ def create_order():
     slug = str(data.get("idea_slug", "")).strip()[:100]
     name = str(data.get("customer_name", "")).strip()[:80]
     email = str(data.get("customer_email", "")).strip().lower()[:254]
+    purchase_notice_consent = data.get("purchase_notice_consent") is True
+    digital_content_consent = data.get("digital_content_consent") is True
     if not EMAIL_PATTERN.fullmatch(email):
         return jsonify({"error": "請輸入有效的 Email"}), 400
     if len(name) < 2:
         return jsonify({"error": "請輸入至少 2 個字的稱呼"}), 400
+    if not purchase_notice_consent or not digital_content_consent:
+        return jsonify({"error": "請先閱讀並同意付款、開通與數位內容說明"}), 400
     idea = get_db().execute(
         "SELECT * FROM ideas WHERE slug = ? AND published = 1", (slug,)
     ).fetchone()
     if idea is None:
         return jsonify({"error": "此想法目前未開放"}), 404
 
-    now = datetime.now(timezone.utc)
-    order_no = f"TWYB{now.strftime('%Y%m%d')}{secrets.token_hex(4).upper()}"
+    payment_status = payment_checkout_status()
+    if not payment_status["ready"]:
+        return jsonify({"error": "正式付款尚未開放，目前不會建立扣款"}), 503
+
+    local_now = datetime.now(TAIPEI_TIMEZONE)
+    order_no = f"TWYB{local_now.strftime('%Y%m%d')}{secrets.token_hex(4).upper()}"
     payment_token = secrets.token_urlsafe(32)
     access_token = derive_access_token(payment_token)
+    activation_token = derive_activation_token(order_no)
     amount = _idea_price(idea)
     connection = get_db()
-    connection.execute(
+    cursor = connection.execute(
         """
         INSERT INTO orders
             (order_no, idea_id, customer_name, customer_email, amount, status,
-             payment_provider, payment_token_hash, access_token_hash, created_at)
-        VALUES (?, ?, ?, ?, ?, 'pending', 'mock', ?, ?, ?)
+             payment_provider, payment_token_hash, access_token_hash,
+             activation_token_hash, created_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)
         """,
         (
-            order_no, idea["id"], name, email, amount, hash_token(payment_token),
-            hash_token(access_token), utc_now(),
+            order_no, idea["id"], name, email, amount, payment_status["provider"],
+            hash_token(payment_token), hash_token(access_token), hash_token(activation_token),
+            utc_now(),
         ),
+    )
+    connection.execute(
+        """
+        INSERT INTO order_consents
+            (order_id, terms_version, purchase_notice_consent, digital_content_consent,
+             ip, user_agent, accepted_at)
+        VALUES (?, '2026-08-23-v1', 1, 1, ?, ?, ?)
+        """,
+        (cursor.lastrowid, get_client_ip(), safe_user_agent(), utc_now()),
     )
     connection.execute(
         """
@@ -127,7 +161,8 @@ def create_order():
             {
                 "order_no": order_no,
                 "amount": amount,
-                "checkout_url": url_for("payments.mock_payment_page", payment_token=payment_token),
+                "checkout_url": checkout_url_for(payment_token),
+                "payment_provider": payment_status["provider"],
             }
         ),
         201,
@@ -138,16 +173,19 @@ def create_order():
 def order_access(access_token):
     order = get_db().execute(
         """
-        SELECT orders.*, ideas.title, ideas.role, ideas.seal, ideas.discipline,
-               ideas.paid_content, ideas.deliverables, ideas.accent
-        FROM orders JOIN ideas ON ideas.id = orders.idea_id
+        SELECT orders.* FROM orders
         WHERE orders.access_token_hash = ?
         """,
         (hash_token(access_token),),
     ).fetchone()
     if order is None:
         return render_template("message.html", title="找不到訂單", message="請確認你的專屬連結是否完整。"), 404
-    return render_template("order_access.html", order=order)
+    return redirect(
+        url_for(
+            "access.activate_page",
+            activation_token=derive_activation_token(order["order_no"]),
+        )
+    )
 
 
 @public_bp.get("/api/ideas")

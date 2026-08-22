@@ -94,7 +94,7 @@
       ['本機運行模式', '已啟用', true, '資料與測試留在本機'],
       ['公開 HTTPS', config.public_https ? '已就緒' : '待設定', config.public_https, config.base_url],
       ['LINE 正式頻道', config.line_channel ? '憑證已設定' : '待設定', config.line_channel, `已接收 ${config.line_events} 筆事件`],
-      ['正式金流', config.payment_provider === 'mock' ? '模擬模式' : config.payment_provider, config.payment_provider !== 'mock', '目前不會實際扣款'],
+      ['正式金流', config.payment_label || (config.payment_provider === 'mock' ? '模擬模式' : config.payment_provider), !['mock', 'unavailable'].includes(config.payment_provider), config.payment_provider === 'unavailable' ? '缺少特店憑證或 Email 交付設定' : '付款結果以伺服器通知為準'],
       ['Email 交付', config.email_delivery ? '已啟用' : '待串接', config.email_delivery, '目前以專屬網址交付']
     ].forEach(([label, value, ready, detail]) => {
       const card = node('article', `integration-card ${ready ? 'ready' : 'pending'}`);

@@ -48,7 +48,7 @@
       <span class="footer-brand"><img src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt="" width="40" height="40"><strong>天外一筆工作室</strong></span>
       <p>{% block footer_tagline %}一筆開天・萬念成策・有問便傳音{% endblock %}</p>
     </div>
-    <p class="footer-note">{% block footer_note %}仙契金流仍在試煉中；正式收款開放前，不會產生實際扣款。{% endblock %}</p>
+    <p class="footer-note">{% block footer_note %}付款完成後才會開通內容。已購買的客戶可至 <a href="{{ url_for('access.customer_login_page') }}">客戶登入</a> 取回內容。{% endblock %}</p>
   </footer>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>

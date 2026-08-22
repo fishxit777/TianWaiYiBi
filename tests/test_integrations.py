@@ -5,6 +5,8 @@ import json
 
 from conftest import set_public_csrf
 from test_public_flow import create_order
+from tianwai.db import get_db
+from tianwai.payments import ecpay_check_mac_value
 
 
 def payment_signature(raw):
@@ -44,6 +46,7 @@ def test_payment_webhook_is_idempotent(client):
     assert first.get_json()["result"] == "paid"
     assert second.status_code == 200
     assert second.get_json()["result"] == "duplicate"
+    assert len(client.application.extensions["mail_outbox"]) == 1
 
 
 def test_payment_webhook_rejects_wrong_amount(client):
@@ -76,6 +79,92 @@ def test_payment_webhook_rejects_invalid_signature(client):
     )
 
     assert response.status_code == 401
+
+
+def test_ecpay_checksum_matches_official_aio_example():
+    parameters = {
+        "TradeDesc": "促銷方案",
+        "PaymentType": "aio",
+        "MerchantTradeDate": "2023/03/12 15:30:23",
+        "MerchantTradeNo": "ecpay20230312153023",
+        "MerchantID": "3002607",
+        "ReturnURL": "https://www.ecpay.com.tw/receive.php",
+        "ItemName": "Apple iphone 15",
+        "TotalAmount": "30000",
+        "ChoosePayment": "ALL",
+        "EncryptType": "1",
+    }
+
+    result = ecpay_check_mac_value(
+        parameters,
+        "pwFHCqoQZGmho4w6",
+        "EkRm7iFT261dpevs",
+    )
+
+    assert result == "6C51C9E6888DE861FD62FB1DD17029FC742634498FD813DC43D4243B5685B840"
+
+
+def test_ecpay_server_callback_unlocks_only_after_valid_signed_paid_notice(client, monkeypatch):
+    monkeypatch.setenv("PAYMENT_PROVIDER", "ecpay")
+    monkeypatch.setenv("ECPAY_MODE", "stage")
+    monkeypatch.setenv("ECPAY_MERCHANT_ID", "3002607")
+    monkeypatch.setenv("ECPAY_HASH_KEY", "pwFHCqoQZGmho4w6")
+    monkeypatch.setenv("ECPAY_HASH_IV", "EkRm7iFT261dpevs")
+    order = create_order(client)
+    assert order["payment_provider"] == "ecpay"
+    assert order["checkout_url"].startswith("/pay/ecpay/")
+
+    parameters = {
+        "MerchantID": "3002607",
+        "MerchantTradeNo": order["order_no"],
+        "RtnCode": "1",
+        "RtnMsg": "交易成功",
+        "TradeNo": "2608231234567890",
+        "TradeAmt": "199",
+        "PaymentDate": "2026/08/23 12:34:56",
+        "PaymentType": "Credit_CreditCard",
+        "PaymentTypeChargeFee": "5",
+        "TradeDate": "2026/08/23 12:33:00",
+        "SimulatePaid": "0",
+    }
+    parameters["CheckMacValue"] = ecpay_check_mac_value(
+        parameters,
+        "pwFHCqoQZGmho4w6",
+        "EkRm7iFT261dpevs",
+    )
+    response = client.post("/payments/ecpay/notify", data=parameters)
+
+    assert response.status_code == 200
+    assert response.get_data(as_text=True) == "1|OK"
+    assert len(client.application.extensions["mail_outbox"]) == 1
+
+
+def test_ecpay_rejects_bad_check_mac_without_granting_access(client, monkeypatch, app):
+    monkeypatch.setenv("PAYMENT_PROVIDER", "ecpay")
+    monkeypatch.setenv("ECPAY_MODE", "stage")
+    monkeypatch.setenv("ECPAY_MERCHANT_ID", "3002607")
+    monkeypatch.setenv("ECPAY_HASH_KEY", "pwFHCqoQZGmho4w6")
+    monkeypatch.setenv("ECPAY_HASH_IV", "EkRm7iFT261dpevs")
+    order = create_order(client)
+    response = client.post(
+        "/payments/ecpay/notify",
+        data={
+            "MerchantID": "3002607",
+            "MerchantTradeNo": order["order_no"],
+            "RtnCode": "1",
+            "TradeNo": "2608239999999999",
+            "TradeAmt": "199",
+            "SimulatePaid": "0",
+            "CheckMacValue": "BAD",
+        },
+    )
+
+    assert response.status_code == 400
+    with app.app_context():
+        row = get_db().execute(
+            "SELECT status FROM orders WHERE order_no = ?", (order["order_no"],)
+        ).fetchone()
+        assert row["status"] == "pending"
 
 
 def test_line_webhook_verifies_signature_and_deduplicates(client):

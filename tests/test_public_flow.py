@@ -12,6 +12,8 @@ def create_order(client, slug="brand-world-forge"):
             "idea_slug": slug,
             "customer_name": "測試旅人",
             "customer_email": "traveler@example.com",
+            "purchase_notice_consent": True,
+            "digital_content_consent": True,
         },
         headers={"X-CSRF-Token": csrf},
     )
@@ -186,7 +188,23 @@ def test_order_rejects_invalid_email(client):
     assert response.get_json()["error"] == "請輸入有效的 Email"
 
 
-def test_mock_payment_unlocks_paid_content(client):
+def test_order_requires_explicit_payment_and_digital_content_consents(client):
+    csrf = set_public_csrf(client)
+    response = client.post(
+        "/api/orders",
+        json={
+            "idea_slug": "brand-world-forge",
+            "customer_name": "測試旅人",
+            "customer_email": "traveler@example.com",
+        },
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert response.status_code == 400
+    assert "付款、開通與數位內容說明" in response.get_json()["error"]
+
+
+def test_mock_payment_requires_one_time_activation_before_paid_content(client):
     order = create_order(client)
     payment_page = client.get(order["checkout_url"])
     assert payment_page.status_code == 200
@@ -204,8 +222,36 @@ def test_mock_payment_unlocks_paid_content(client):
 
     assert paid.status_code == 200
     body = paid.get_data(as_text=True)
-    assert "心法已解鎖" in body
-    assert "七日品牌世界觀鍛造表" in body
+    assert "付款已確認" in body
+    assert "七日品牌世界觀鍛造表" not in body
+    code_match = re.search(r"本機測試開通碼.*?<strong>([^<]+)</strong>", body, re.S)
+    link_match = re.search(r'href="(/activate/[^\"]+)"', body)
+    assert code_match and link_match
+
+    activation_page = client.get(link_match.group(1))
+    assert activation_page.status_code == 200
+    csrf = set_public_csrf(client, "activation-csrf")
+    activated = client.post(
+        link_match.group(1),
+        data={"csrf_token": csrf, "activation_code": code_match.group(1)},
+        follow_redirects=True,
+    )
+
+    assert activated.status_code == 200
+    assert "七日品牌世界觀鍛造表" in activated.get_data(as_text=True)
+
+    reused = client.post(
+        link_match.group(1),
+        data={"csrf_token": csrf, "activation_code": code_match.group(1)},
+    )
+    assert reused.status_code == 400
+
+
+def test_paid_content_requires_customer_session(client):
+    response = client.get("/library/orders/TWYBNOTREAL", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/customer/login")
 
 
 def test_analytics_endpoint_accepts_allowlisted_event(client):

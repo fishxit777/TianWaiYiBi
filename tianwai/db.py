@@ -138,10 +138,37 @@ def seed_database(connection):
     connection.commit()
 
 
+def _column_names(connection, table):
+    return {row["name"] for row in connection.execute(f"PRAGMA table_info({table})").fetchall()}
+
+
+def migrate_database(connection):
+    """Apply additive SQLite migrations for databases created by earlier releases."""
+    if "activation_token_hash" not in _column_names(connection, "orders"):
+        connection.execute("ALTER TABLE orders ADD COLUMN activation_token_hash TEXT")
+
+    from .security import derive_activation_token, hash_token
+
+    rows = connection.execute(
+        "SELECT id, order_no FROM orders WHERE activation_token_hash IS NULL"
+    ).fetchall()
+    for row in rows:
+        token = derive_activation_token(row["order_no"])
+        connection.execute(
+            "UPDATE orders SET activation_token_hash = ? WHERE id = ?",
+            (hash_token(token), row["id"]),
+        )
+    connection.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_activation_token ON orders (activation_token_hash)"
+    )
+    connection.commit()
+
+
 def init_db():
     connection = get_db()
     schema_path = Path(__file__).with_name("schema.sql")
     connection.executescript(schema_path.read_text(encoding="utf-8"))
+    migrate_database(connection)
     seed_database(connection)
 
 
@@ -157,4 +184,3 @@ def get_setting_int(key, default=0):
 
 def init_app(app):
     app.teardown_appcontext(close_db)
-

@@ -46,12 +46,37 @@
 
   const orderForm = document.querySelector('#order-form');
   if (orderForm) {
+    const noticeDialog = document.querySelector('#purchase-notice-dialog');
+    const noticeError = document.querySelector('#purchase-notice-error');
+    const confirmPurchase = document.querySelector('[data-confirm-purchase]');
+
+    confirmPurchase?.addEventListener('click', () => {
+      const purchaseConsent = orderForm.querySelector('[name="purchase_notice_consent"]');
+      const digitalConsent = orderForm.querySelector('[name="digital_content_consent"]');
+      if (!purchaseConsent?.checked || !digitalConsent?.checked) {
+        noticeError.textContent = '請勾選兩項確認後再繼續付款。';
+        return;
+      }
+      noticeError.textContent = '';
+      orderForm.dataset.noticeApproved = 'true';
+      noticeDialog?.close();
+      orderForm.requestSubmit();
+    });
+
     orderForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const status = document.querySelector('#order-status');
       const submit = orderForm.querySelector('button[type="submit"]');
-      if (!orderForm.reportValidity()) return;
-      status.textContent = '正在建立仙契…';
+      const nameInput = orderForm.querySelector('[name="customer_name"]');
+      const emailInput = orderForm.querySelector('[name="customer_email"]');
+      if (!nameInput.reportValidity() || !emailInput.reportValidity()) return;
+      if (orderForm.dataset.noticeApproved !== 'true') {
+        if (typeof noticeDialog?.showModal === 'function') noticeDialog.showModal();
+        else noticeDialog?.setAttribute('open', '');
+        return;
+      }
+      orderForm.dataset.noticeApproved = 'false';
+      status.textContent = '正在建立訂單…';
       submit.disabled = true;
       try {
         const form = new FormData(orderForm);
@@ -61,7 +86,9 @@
           body: JSON.stringify({
             idea_slug: orderForm.dataset.ideaSlug,
             customer_name: form.get('customer_name'),
-            customer_email: form.get('customer_email')
+            customer_email: form.get('customer_email'),
+            purchase_notice_consent: form.get('purchase_notice_consent') === 'on',
+            digital_content_consent: form.get('digital_content_consent') === 'on'
           })
         });
         const data = await response.json();
@@ -74,6 +101,19 @@
       }
     });
   }
+
+  document.querySelectorAll('[data-dialog-close]').forEach((button) => {
+    button.addEventListener('click', () => button.closest('dialog')?.close());
+  });
+
+  document.querySelectorAll('dialog[data-auto-modal]').forEach((dialog) => {
+    if (typeof dialog.showModal !== 'function') return;
+    if (dialog.open) dialog.close();
+    window.setTimeout(() => dialog.showModal(), 80);
+  });
+
+  const paymentForm = document.querySelector('[data-auto-submit-payment]');
+  if (paymentForm) window.setTimeout(() => paymentForm.requestSubmit(), 350);
 
   const simulator = document.querySelector('#line-simulator-form');
   if (simulator) {

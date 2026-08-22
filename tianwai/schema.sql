@@ -38,8 +38,67 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_ref TEXT,
     payment_token_hash TEXT NOT NULL UNIQUE,
     access_token_hash TEXT NOT NULL UNIQUE,
+    activation_token_hash TEXT UNIQUE,
     created_at TEXT NOT NULL,
     paid_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS order_consents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL UNIQUE REFERENCES orders(id),
+    terms_version TEXT NOT NULL,
+    purchase_notice_consent INTEGER NOT NULL CHECK (purchase_notice_consent IN (0, 1)),
+    digital_content_consent INTEGER NOT NULL CHECK (digital_content_consent IN (0, 1)),
+    ip TEXT NOT NULL,
+    user_agent TEXT NOT NULL,
+    accepted_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS activation_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL REFERENCES orders(id),
+    code_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    revoked_at TEXT,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    delivery_status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (delivery_status IN ('pending', 'sent', 'failed', 'development'))
+);
+
+CREATE TABLE IF NOT EXISTS customer_login_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_email TEXT NOT NULL,
+    code_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    revoked_at TEXT,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    requested_ip TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS customer_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_hash TEXT NOT NULL UNIQUE,
+    customer_email TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    revoked_at TEXT,
+    revoked_reason TEXT,
+    user_agent TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS email_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER REFERENCES orders(id),
+    email_kind TEXT NOT NULL,
+    recipient_masked TEXT NOT NULL,
+    status TEXT NOT NULL,
+    error_code TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS payment_events (
@@ -121,6 +180,11 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS idx_ideas_published_sort ON ideas (published, sort_order);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_activation_token ON orders (activation_token_hash);
+CREATE INDEX IF NOT EXISTS idx_activation_order_expiry ON activation_codes (order_id, expires_at DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_login_email_expiry ON customer_login_codes (customer_email, expires_at DESC);
+CREATE INDEX IF NOT EXISTS idx_customer_session_email_expiry ON customer_sessions (customer_email, expires_at DESC);
+CREATE INDEX IF NOT EXISTS idx_email_events_order_time ON email_events (order_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_name_created ON analytics_events (event_name, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_security_created ON security_events (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_login_ip_time ON admin_login_attempts (ip, attempted_at DESC);

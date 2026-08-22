@@ -30,6 +30,20 @@ def test_line_links_fall_back_to_request_origin(client, monkeypatch):
     assert all(card["url"].startswith("https://tianwai.example/") for card in response.get_json()["cards"])
 
 
+def test_ecpay_production_mode_requires_explicit_live_confirmation(client, monkeypatch):
+    monkeypatch.setenv("PAYMENT_PROVIDER", "ecpay")
+    monkeypatch.setenv("ECPAY_MODE", "production")
+    monkeypatch.setenv("ECPAY_MERCHANT_ID", "merchant")
+    monkeypatch.setenv("ECPAY_HASH_KEY", "hash-key")
+    monkeypatch.setenv("ECPAY_HASH_IV", "hash-iv")
+    monkeypatch.delenv("ECPAY_LIVE_CONFIRMED", raising=False)
+
+    response = client.get("/checkout/brand-world-forge")
+
+    assert response.status_code == 200
+    assert "正式付款尚未開放" in response.get_data(as_text=True)
+
+
 def _csrf_token(client, base_url):
     response = client.get("/dev/line", base_url=base_url)
     match = re.search(rb'<meta name="csrf-token" content="([^"]+)"', response.data)

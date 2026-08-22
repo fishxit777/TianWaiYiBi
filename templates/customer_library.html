@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}已購內容｜天外一筆{% endblock %}
+{% block body_class %}access-page{% endblock %}
+{% block content %}
+<section class="access-shell section-shell customer-library">
+  <header class="access-header reveal"><span class="access-seal"><img src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt=""></span><div><p class="section-index">客戶專區</p><h1>已購內容</h1><p>購買權限會保留；只有短效登入碼會失效。</p></div></header>
+  <div class="library-grid reveal delay-1">
+    {% for order in orders %}<article class="library-card"><span>{{ order['role'] }}</span><h2>{{ order['title'] }}</h2><p>{{ order['discipline'] }}</p><a class="button button-primary" href="{{ url_for('access.order_content', order_no=order['order_no']) }}">開啟內容</a></article>{% else %}<p class="plain-alert">目前帳號下沒有已付款內容。</p>{% endfor %}
+  </div>
+  <form class="library-logout" action="{{ url_for('access.customer_logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-ghost" type="submit">登出</button></form>
+</section>
+{% endblock %}

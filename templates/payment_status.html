@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}付款結果｜{{ order['title'] }}{% endblock %}
+{% block body_class %}payment-page{% endblock %}
+{% block content %}
+<section class="payment-shell section-shell">
+  <div class="payment-card payment-result-card reveal">
+    {% if order['status'] == 'paid' %}
+    <p class="plain-kicker">付款已確認</p>
+    <h1>下一步：完成開通</h1>
+    <div class="payment-order"><div><span>訂單 {{ order['order_no'] }}</span><strong>{{ order['title'] }}</strong></div><strong>NT${{ order['amount'] }}</strong></div>
+    <ol class="plain-steps">
+      <li>專屬開通連結與一次性 12 位開通碼已寄到購買時填寫的 Email。</li>
+      <li>開通碼有效 24 小時，成功使用後立即失效。</li>
+      <li>日後重新登入會使用另一組 7 分鐘登入碼；登入碼失效不會取消購買權限。</li>
+    </ol>
+    {% if development_code %}<div class="development-code"><span>本機測試開通碼</span><strong>{{ development_code }}</strong><small>正式環境不會在付款頁顯示開通碼。</small></div>{% endif %}
+    <a class="button button-primary button-wide" href="{{ url_for('access.activate_page', activation_token=activation_token) }}">前往專屬開通頁</a>
+    <dialog class="consumer-dialog" data-auto-modal open aria-labelledby="paid-notice-title">
+      <div class="consumer-dialog-card">
+        <p class="plain-kicker">付款成功</p>
+        <h2 id="paid-notice-title">你的付款已確認</h2>
+        <p>開通資料已寄到購買 Email。一次性開通碼使用後立即失效；日後登入碼會在 7 分鐘後失效，但不會影響已購買內容。</p>
+        <div class="dialog-actions"><button class="button button-ghost" type="button" data-dialog-close>留在本頁</button><a class="button button-primary" href="{{ url_for('access.activate_page', activation_token=activation_token) }}">立即開通</a></div>
+      </div>
+    </dialog>
+    {% else %}
+    <p class="plain-kicker">等待付款確認</p>
+    <h1>目前尚未開通</h1>
+    <p>系統尚未收到通過驗證的付款成功通知。請勿重複付款；可稍後重新整理此頁，或持付款紀錄聯絡客服。</p>
+    <a class="button button-primary button-wide" href="{{ request.path }}">重新檢查付款狀態</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

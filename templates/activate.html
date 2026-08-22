@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}專屬開通｜{{ order['title'] }}{% endblock %}
+{% block body_class %}payment-page{% endblock %}
+{% block content %}
+<section class="payment-shell section-shell">
+  <div class="payment-card activation-card reveal">
+    <p class="plain-kicker">專屬開通頁</p>
+    <h1>{{ order['title'] }}</h1>
+    <dl><div><dt>訂單編號</dt><dd>{{ order['order_no'] }}</dd></div><div><dt>付款狀態</dt><dd>{% if order['status'] == 'paid' %}已確認{% else %}等待確認{% endif %}</dd></div></dl>
+    {% if order['status'] != 'paid' %}
+      <p class="plain-alert">尚未收到付款成功通知，因此不會提供或開通內容。請勿重複付款。</p>
+    {% elif activated %}
+      <p class="plain-alert">此訂單已完成首次開通。原開通碼已作廢，請使用購買 Email 重新登入。</p>
+      <a class="button button-primary button-wide" href="{{ url_for('access.customer_login_page') }}">前往客戶登入</a>
+    {% else %}
+      <p>請輸入 Email 中的一次性 12 位開通碼。開通碼有效 24 小時，成功後立即失效。</p>
+      {% if resent %}<p class="plain-success">若訂單與寄信服務正常，新的開通資料已寄出。請同時檢查垃圾郵件匣。</p>{% endif %}
+      {% if error %}<p class="plain-error" role="alert">{{ error }}</p>{% endif %}
+      <form action="{{ url_for('access.activate_order', activation_token=activation_token) }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>12 位開通碼<input name="activation_code" type="text" inputmode="text" autocomplete="one-time-code" maxlength="14" placeholder="ABCD-EFGH-JKLM" required></label>
+        <button class="button button-primary button-wide" type="submit">驗證並開通</button>
+      </form>
+      <form class="secondary-action-form" action="{{ url_for('access.resend_activation', activation_token=activation_token) }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="text-button" type="submit">沒有收到或已過期？重新寄送開通資料</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

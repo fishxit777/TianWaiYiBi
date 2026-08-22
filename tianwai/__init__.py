@@ -48,12 +48,14 @@ def create_app(test_config=None):
         db.init_db()
 
     from .admin import admin_bp
+    from .access import access_bp
     from .line_bot import line_bp
     from .payments import payments_bp
     from .public import public_bp
 
     app.register_blueprint(public_bp)
     app.register_blueprint(payments_bp)
+    app.register_blueprint(access_bp)
     app.register_blueprint(line_bp)
     app.register_blueprint(admin_bp)
 
