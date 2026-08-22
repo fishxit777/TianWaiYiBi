@@ -16,6 +16,8 @@ services:
         value: "true"
       - key: ENABLE_DEV_TOOLS
         value: "false"
+      - key: BASE_URL
+        value: https://tianwai-yibi.onrender.com
       - key: DATABASE_PATH
         value: /opt/render/project/src/data/tianwai.db
       - key: APP_SECRET_KEY

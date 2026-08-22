@@ -4,7 +4,7 @@
 
 ## 目前狀態
 
-本機初版與正式部署設定已完成，尚未 commit、push 或建立 Render 服務。獨立 LINE 官方帳號已建立，但 Messaging API、頭像與 webhook 尚未完成。
+本機初版已 commit 並推送至獨立私人 GitHub 儲存庫，Render 免費 HTTPS 服務與 LINE Messaging API 已完成接線。
 
 已完成：
 
@@ -19,6 +19,11 @@
 - 自動測試、Python 語法檢查與 JavaScript 語法檢查。
 - Render Blueprint、Gunicorn 啟動命令、可設定資料庫路徑與依公開請求自動產生 LINE 卡片連結。
 - 獨立 LINE 官方帳號：`天外一筆｜仙策靈使`，Basic ID `@279plitu`。
+- GitHub 私人儲存庫：`fishxit777/TianWaiYiBi`，`main` 由 Render Blueprint 自動部署。
+- 正式官網：`https://tianwai-yibi.onrender.com/`；健康檢查、官網與管理登入頁皆回 200。
+- 正式 webhook：`https://tianwai-yibi.onrender.com/line/webhook`，LINE 驗證成功並已啟用。
+- LINE Provider：`天外一筆工作室`；長期 Access Token 與 Channel Secret 僅存在 Render 環境變數。
+- LINE V13 頭像、狀態消息與官網連結已公開；內建歡迎訊息與自動回應已關閉。
 
 ## 驗證結果
 

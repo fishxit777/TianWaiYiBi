@@ -14,7 +14,13 @@
 - 使用者可建立訂單、執行本機模擬付款、測試 webhook 防重送，並取得專屬內容連結。
 - LINE Bot 支援好友加入、靈感目錄、價格、說明與 1～6 導覽；目錄使用六張 LINE Flex Carousel 商品卡，正式憑證未設定時可用本機模擬器完整預覽。
 - 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項仙策內容、單品價格、排序與上下架。
-- V13 Logo 已整合本機官網、LINE 模擬頭像、favicon 與後台；正式 LINE 官方帳號已建立，頭像與 Messaging API 仍待完成接線。
+- V13 Logo 已整合官網、LINE 頭像、favicon 與後台；正式 LINE 官方帳號、Messaging API 與公開 webhook 已完成接線。
+
+正式入口：
+
+- 官網：`https://tianwai-yibi.onrender.com/`
+- 管理後台：`https://tianwai-yibi.onrender.com/admin/login`
+- LINE 官方帳號：`@279plitu`（天外一筆｜仙策靈使）
 
 ## 一鍵啟動
 
@@ -60,7 +66,7 @@ python -m pytest -q
 
 ## 公開部署
 
-專案根目錄的 `render.yaml` 可建立獨立 Render Web Service，正式程序使用 Gunicorn，健康檢查為 `/healthz`。機密值只放在 Render 環境變數，不得提交到 Git：
+專案根目錄的 `render.yaml` 已建立獨立 Render Web Service，正式程序使用 Gunicorn，健康檢查為 `/healthz`。機密值只放在 Render 環境變數，不得提交到 Git：
 
 - `ADMIN_PASSWORD`
 - `LINE_CHANNEL_SECRET`
@@ -95,12 +101,20 @@ python -m pytest -q
 
 這些措施能降低常見風險，但不能宣稱「絕對防駭」。正式公開前仍需 HTTPS、Cloudflare／WAF、依賴掃描、資料備份、金流供應商正式驗證、真實退款流程與外部滲透測試。
 
-## 尚未接入／待完成
+## 已接入
 
-- 已建立獨立 LINE 官方帳號 `天外一筆｜仙策靈使`（Basic ID：`@279plitu`）；Messaging API、公開 webhook 與正式頭像尚待完成。
+- 獨立 LINE 官方帳號 `天外一筆｜仙策靈使`，Basic ID `@279plitu`。
+- 獨立 LINE Provider `天外一筆工作室`、Messaging API、長期 Channel Access Token。
+- Render 免費 Web Service 與 HTTPS webhook：`https://tianwai-yibi.onrender.com/line/webhook`。
+- LINE Developers webhook 驗證成功，`Use webhook` 已開啟。
+- LINE 內建歡迎訊息與自動回應已關閉，避免與程式回覆重複。
+- V13 圓形安全區頭像、狀態消息與正式官網連結已公開。
+
+## 待完成
+
 - 綠界、LINE Pay 或其他正式金流商店資料。
 - 電子發票、退款、付款失敗補單與 Email 交付。
-- PostgreSQL、持久化備份與監控；Render Blueprint 已備妥但尚未建立正式服務。
+- PostgreSQL、持久化備份與監控；目前 Render 免費執行個體使用非持久化 SQLite。
 - 會員帳號與跨裝置訂單查詢。
 
 正式接線前先決定支付供應商、單次購買／訂閱模式、退款規則、電子發票與正式網域。這些選擇會影響資料模型與法務文案，不應在沒有帳號與政策確認時假設。
