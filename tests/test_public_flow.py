@@ -26,7 +26,9 @@ def test_home_lists_six_distinct_cultivators(client):
     assert "仙策閣" in response.get_data(as_text=True)
     assert "brand/home-title-xianxia-v14.webp" in response.get_data(as_text=True)
     assert "brand/wordmark-xianxia-v14.webp" in response.get_data(as_text=True)
-    assert response.get_data(as_text=True).count('fetchpriority="high"') >= 4
+    assert "brand/website-hero-v15.webp" in response.get_data(as_text=True)
+    assert "static/v15.css" in response.get_data(as_text=True)
+    assert response.get_data(as_text=True).count('fetchpriority="high"') >= 5
     assert response.get_data(as_text=True).count("idea-card") >= 6
     for role in ("破局劍修", "造境符師", "增長丹師", "機關偃師", "回聲樂修", "觀星策士"):
         assert role in response.get_data(as_text=True)
@@ -138,6 +140,18 @@ def test_xianxia_title_art_is_web_optimized_and_versioned():
         assert data[:4] == b"RIFF"
         assert data[8:12] == b"WEBP"
         assert len(data) < 650_000
+
+    v15_hero = project_root / "static" / "brand" / "website-hero-v15.webp"
+    hero_data = v15_hero.read_bytes()
+    assert hero_data[:4] == b"RIFF"
+    assert hero_data[8:12] == b"WEBP"
+    assert len(hero_data) < 300_000
+
+    v15_stylesheet = (project_root / "static" / "v15.css").read_text(encoding="utf-8")
+    assert "One cinematic scene" in v15_stylesheet
+    assert ".home-page .hero-art" in v15_stylesheet
+    assert "grid-template-columns: repeat(12" in v15_stylesheet
+    assert "@media (max-width: 480px)" in v15_stylesheet
 
 
 def test_logo_review_is_not_a_public_route(client):
