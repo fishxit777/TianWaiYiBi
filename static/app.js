@@ -29,6 +29,21 @@
     });
   });
 
+  const copyLineId = document.querySelector('[data-copy-line-id]');
+  if (copyLineId) {
+    copyLineId.addEventListener('click', async () => {
+      const accountId = copyLineId.dataset.copyLineId || '@279plitu';
+      const status = document.querySelector('#copy-line-status');
+      try {
+        await navigator.clipboard.writeText(accountId);
+        status.textContent = `${accountId} 已抄錄，可到 LINE 搜尋仙策靈使。`;
+        copyLineId.textContent = '名號已抄錄';
+      } catch (_error) {
+        status.textContent = `請手動抄錄仙策靈使名號：${accountId}`;
+      }
+    });
+  }
+
   const orderForm = document.querySelector('#order-form');
   if (orderForm) {
     orderForm.addEventListener('submit', async (event) => {

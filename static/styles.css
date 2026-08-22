@@ -645,3 +645,154 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .idea-admin-row { grid-template-columns: 34px 1fr; }
   .idea-admin-row .idea-admin-actions { grid-column: 1 / -1; }
 }
+
+/* Transmission landing: a moonlit ritual space around a deliberately untouched QR safe zone. */
+.transmission-page {
+  background:
+    radial-gradient(circle at 72% 20%, rgba(205, 187, 255, .25), transparent 24rem),
+    radial-gradient(circle at 14% 72%, rgba(70, 190, 178, .14), transparent 28rem),
+    linear-gradient(145deg, #0b0b25 0%, #15133a 46%, #080a22 100%);
+}
+
+.transmission-landing {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 86px 0 112px;
+}
+
+.transmission-landing::before {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  content: "";
+  opacity: .11;
+  background: url("brand/website-hero-dark.png") center 16% / 112% auto no-repeat;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+}
+
+.transmission-sky {
+  position: absolute;
+  z-index: -1;
+  inset: 7% 3% auto auto;
+  width: min(42vw, 520px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(229, 195, 110, .1);
+  border-radius: 50%;
+  box-shadow: 0 0 110px rgba(173, 146, 197, .13), inset 0 0 90px rgba(229, 195, 110, .04);
+}
+
+.transmission-hero {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(420px, 1.1fr);
+  gap: clamp(42px, 7vw, 92px);
+  align-items: center;
+}
+
+.transmission-copy { padding-left: clamp(0px, 2vw, 28px); }
+.transmission-copy h1 {
+  margin: 0;
+  color: #fff4d6;
+  font: 400 clamp(64px, 7.5vw, 108px)/.98 var(--display);
+  letter-spacing: -.045em;
+  text-shadow: 0 0 42px rgba(229, 195, 110, .13);
+}
+.transmission-copy h1 span { color: #a9e5d6; }
+.transmission-copy h1::after {
+  display: block;
+  width: min(300px, 70%);
+  height: 10px;
+  margin: 28px 0 0;
+  content: "";
+  background: linear-gradient(90deg, #c95245, rgba(201,82,69,0));
+  clip-path: polygon(0 42%, 100% 0, 74% 62%, 88% 100%, 0 70%);
+  transform: rotate(-3deg);
+}
+.transmission-lead { max-width: 620px; margin: 30px 0 0; color: #d9d1c6; font-size: 16px; }
+.transmission-vows { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 25px; }
+.transmission-vows span { padding: 7px 10px; color: #9fe0d2; border: 1px solid rgba(127,215,208,.24); font: 10px/1 var(--sans); letter-spacing: .1em; }
+.transmission-actions { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-top: 34px; }
+.mobile-line-action { display: none; }
+.copy-id-button { min-height: 48px; padding: 11px 19px; color: #edcf85; border: 1px solid rgba(229,195,110,.45); background: rgba(229,195,110,.05); cursor: pointer; font: 700 12px/1 var(--sans); letter-spacing: .08em; transition: transform .2s ease, background .2s ease; }
+.copy-id-button:hover, .copy-id-button:focus-visible { background: rgba(229,195,110,.12); transform: translateY(-2px); }
+.copy-line-status { min-height: 22px; margin: 13px 0 0; color: rgba(216,206,182,.56); font: 10px/1.6 var(--sans); letter-spacing: .09em; }
+
+.transmission-altar {
+  position: relative;
+  display: grid;
+  min-height: 650px;
+  margin: 0;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(229,195,110,.34);
+  border-radius: 44% 44% 24px 24px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(229,195,110,.17), transparent 13rem),
+    radial-gradient(circle at 50% 42%, rgba(127,215,208,.14), transparent 22rem),
+    linear-gradient(165deg, rgba(39,34,92,.82), rgba(11,12,39,.96));
+  box-shadow: 0 42px 120px rgba(2,3,22,.54), inset 0 0 80px rgba(103,91,200,.08);
+}
+.transmission-altar::before {
+  position: absolute;
+  inset: 18px;
+  content: "";
+  border: 1px solid rgba(127,215,208,.11);
+  border-radius: inherit;
+}
+.altar-avatar { position: absolute; z-index: 5; top: 29px; width: 76px; height: 76px; border: 2px solid rgba(229,195,110,.72); border-radius: 50%; object-fit: cover; box-shadow: 0 0 34px rgba(127,215,208,.28); }
+.altar-orbit { position: absolute; top: 13%; display: grid; width: min(86%, 490px); aspect-ratio: 1; place-items: center; border: 1px solid rgba(229,195,110,.22); border-radius: 50%; box-shadow: 0 0 54px rgba(173,146,197,.18); }
+.altar-orbit::before, .altar-orbit::after, .altar-orbit i, .altar-orbit b { position: absolute; content: ""; border-radius: 50%; }
+.altar-orbit::before { inset: 8%; border: 1px dashed rgba(127,215,208,.27); animation: orbit 28s linear infinite; }
+.altar-orbit::after { inset: 17%; border: 1px solid rgba(229,195,110,.2); box-shadow: inset 0 0 40px rgba(229,195,110,.06); }
+.altar-orbit i { inset: 2% 28%; border-top: 1px solid rgba(201,82,69,.55); border-bottom: 1px solid rgba(201,82,69,.16); animation: orbit 17s linear infinite reverse; }
+.altar-orbit b { inset: 25% 1%; border-left: 1px solid rgba(127,215,208,.42); border-right: 1px solid rgba(127,215,208,.12); animation: orbit 20s linear infinite; }
+.qr-sanctum { position: relative; z-index: 4; width: min(60%, 292px); margin-top: 6px; padding: 14px; background: #fff; border: 1px solid rgba(229,195,110,.76); box-shadow: 0 0 0 8px rgba(13,13,44,.88), 0 0 0 9px rgba(127,215,208,.22), 0 22px 70px rgba(0,0,0,.35); }
+.qr-sanctum > img { display: block; width: 100%; height: auto; }
+.qr-corner { position: absolute; z-index: 2; width: 24px; height: 24px; pointer-events: none; }
+.corner-a { top: -12px; left: -12px; border-top: 2px solid #e5c36e; border-left: 2px solid #e5c36e; }
+.corner-b { top: -12px; right: -12px; border-top: 2px solid #e5c36e; border-right: 2px solid #e5c36e; }
+.corner-c { bottom: -12px; left: -12px; border-bottom: 2px solid #e5c36e; border-left: 2px solid #e5c36e; }
+.corner-d { right: -12px; bottom: -12px; border-right: 2px solid #e5c36e; border-bottom: 2px solid #e5c36e; }
+.transmission-altar figcaption { position: absolute; z-index: 5; right: 24px; bottom: 22px; left: 24px; display: grid; gap: 4px; text-align: center; }
+.transmission-altar figcaption span { color: #ca5f50; font: 9px/1 var(--sans); letter-spacing: .18em; }
+.transmission-altar figcaption strong { color: #fff3d2; font: 400 19px/1.4 var(--display); }
+.transmission-altar figcaption small { color: rgba(216,206,182,.48); font: 9px/1.4 var(--sans); }
+
+.transmission-path { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 54px 0 0; padding: 1px; list-style: none; background: rgba(229,195,110,.18); }
+.transmission-path li { display: grid; grid-template-columns: 52px 1fr; gap: 16px; min-height: 158px; align-items: start; padding: 30px; background: rgba(17,17,52,.96); }
+.transmission-path li > span { display: grid; width: 46px; height: 46px; place-items: center; color: #cf6857; border: 1px solid rgba(201,82,69,.38); border-radius: 50%; font-family: var(--display); }
+.transmission-path strong { color: #fff0cc; font: 400 22px/1.3 var(--display); }
+.transmission-path p { margin: 8px 0 0; color: rgba(216,206,182,.62); font-size: 12px; }
+
+@media (max-width: 940px) {
+  .transmission-hero { grid-template-columns: 1fr; }
+  .transmission-copy { max-width: 720px; padding: 0; }
+  .transmission-altar { width: min(680px, 100%); margin-inline: auto; }
+}
+
+@media (max-width: 760px) {
+  .transmission-landing { width: min(100% - 28px, 1180px); padding: 58px 0 82px; }
+  .transmission-copy h1 { font-size: clamp(58px, 18vw, 82px); }
+  .transmission-lead { font-size: 14px; }
+  .mobile-line-action { display: inline-flex; }
+  .transmission-actions { align-items: flex-start; flex-direction: column; }
+  .copy-id-button { min-height: 44px; }
+  .transmission-altar { min-height: 540px; border-radius: 160px 160px 20px 20px; }
+  .altar-avatar { top: 22px; width: 66px; height: 66px; }
+  .altar-orbit { top: 15%; width: 96%; }
+  .qr-sanctum { width: min(64%, 270px); padding: 10px; }
+  .transmission-altar figcaption strong { font-size: 17px; }
+  .transmission-path { grid-template-columns: 1fr; }
+  .transmission-path li { min-height: 0; }
+}
+
+@media (max-width: 430px) {
+  .transmission-landing { padding-top: 46px; }
+  .transmission-copy h1 { font-size: 60px; }
+  .transmission-altar { min-height: 475px; }
+  .altar-orbit { top: 17%; }
+  .qr-sanctum { width: 68%; }
+  .transmission-altar figcaption { bottom: 16px; }
+  .transmission-altar figcaption small { display: none; }
+  .transmission-path li { grid-template-columns: 46px 1fr; padding: 24px 20px; }
+}

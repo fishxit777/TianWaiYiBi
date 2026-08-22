@@ -40,7 +40,23 @@ def test_home_hides_internal_tools_and_offers_human_transmission(client):
     assert "/admin" not in body
     assert "傳音給守閣者" in body
     assert "由守閣者本人親自接續" in body
-    assert "https://line.me/R/ti/p/@279plitu" in body
+    assert 'href="/transmission"' in body
+    assert "line.me/R/ti/p" not in body
+
+
+def test_transmission_landing_keeps_line_white_page_behind_branded_experience(client):
+    response = client.get("/transmission")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "一印傳音" in body
+    assert "守閣者本人親自接續" in body
+    assert "brand/line-add-qr.svg" in body
+    assert "https://line.me/R/ti/p/%40279plitu" in body
+    assert "啟動傳音法陣" in body
+    assert 'data-copy-line-id="@279plitu"' in body
+    for private_label in ("Logo 評估", "管理後台", "開啟本機模擬器", "LINE Bot"):
+        assert private_label not in body
 
 
 def test_logo_review_is_not_a_public_route(client):

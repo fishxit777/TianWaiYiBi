@@ -48,6 +48,12 @@ def home():
     return render_template("home.html", ideas=ideas, global_price=price)
 
 
+@public_bp.get("/transmission")
+def transmission():
+    _track("line_landing_viewed", source="web")
+    return render_template("transmission.html")
+
+
 @public_bp.get("/ideas/<slug>")
 def idea_detail(slug):
     idea = get_db().execute(

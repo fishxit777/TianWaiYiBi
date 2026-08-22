@@ -29,7 +29,7 @@ def create_app(test_config=None):
         SESSION_COOKIE_SECURE=secure_public_cookie,
         LINE_ADD_FRIEND_URL=(
             os.environ.get("LINE_ADD_FRIEND_URL", "").strip()
-            or "https://line.me/R/ti/p/@279plitu"
+            or "https://line.me/R/ti/p/%40279plitu"
         ),
     )
     if test_config:
