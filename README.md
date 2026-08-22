@@ -132,6 +132,7 @@ python -m pytest -q
 - `docs/plans/2026-08-22-transmission-v2-20-point-audit.md`
 - `docs/plans/2026-08-22-crisp-calligraphy-typography.md`
 - `docs/plans/2026-08-22-sitewide-ink-brush-typography.md`
+- `docs/plans/2026-08-23-logo-aligned-calligraphy.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`

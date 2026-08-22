@@ -1,4 +1,4 @@
-"""Build the two self-hosted Bakudai WOFF2 subsets used by the public site.
+"""Build the two self-hosted MasaFont WOFF2 subsets used by the public site.
 
 Install the optional build dependencies with:
     python -m pip install fonttools brotli
@@ -66,8 +66,8 @@ def main() -> None:
 
     codepoints = collect_codepoints()
     outputs = (
-        (arguments.regular, PROJECT_ROOT / "static/fonts/tianwai-bakudai-regular.woff2"),
-        (arguments.medium, PROJECT_ROOT / "static/fonts/tianwai-bakudai-medium.woff2"),
+        (arguments.regular, PROJECT_ROOT / "static/fonts/tianwai-masa-regular.woff2"),
+        (arguments.medium, PROJECT_ROOT / "static/fonts/tianwai-masa-medium.woff2"),
     )
 
     for source, destination in outputs:

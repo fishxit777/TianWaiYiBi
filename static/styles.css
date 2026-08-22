@@ -1,22 +1,22 @@
 @font-face {
-  font-family: "Tianwai Bakudai";
-  src: url("fonts/tianwai-bakudai-regular.woff2") format("woff2");
+  font-family: "Tianwai Masa";
+  src: url("fonts/tianwai-masa-regular.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;
 }
 
 @font-face {
-  font-family: "Tianwai Bakudai";
-  src: url("fonts/tianwai-bakudai-medium.woff2") format("woff2");
+  font-family: "Tianwai Masa";
+  src: url("fonts/tianwai-masa-medium.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 700;
 }
 
 @font-face {
-  font-family: "Tianwai Bakudai Display";
-  src: url("fonts/tianwai-bakudai-medium.woff2") format("woff2");
+  font-family: "Tianwai Masa Display";
+  src: url("fonts/tianwai-masa-medium.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;
@@ -58,13 +58,13 @@ body {
   overflow-x: hidden;
 }
 
-/* Public-site typography: a real ink-brush face throughout, with a heavier
-   companion cut for display copy. Internal tools and the admin keep their
+/* Public-site typography follows the semi-cursive brush construction of the
+   illustrated Tianwai Yibi wordmark. Internal tools and the admin keep their
    utilitarian system typography. */
 .public-site {
-  --display: "Tianwai Bakudai Display", "DFKai-SB", "BiauKai", "KaiTi", serif;
-  --serif: "Tianwai Bakudai", "DFKai-SB", "BiauKai", "KaiTi", serif;
-  --sans: "Tianwai Bakudai", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  --display: "Tianwai Masa Display", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  --serif: "Tianwai Masa", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  --sans: "Tianwai Masa", "DFKai-SB", "BiauKai", "KaiTi", serif;
   font-family: var(--serif);
   font-synthesis: none;
   text-rendering: optimizeLegibility;

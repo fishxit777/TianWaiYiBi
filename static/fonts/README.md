@@ -2,26 +2,26 @@
 
 The two WOFF2 files are glyph subsets used across every public customer-facing page: home, idea details, checkout, payment, delivery, message, and transmission. The admin console, hidden logo review, and local LINE simulator intentionally keep their utility typography.
 
-## Brush family
+## Logo-aligned brush family
 
-- Files: `tianwai-bakudai-regular.woff2`, `tianwai-bakudai-medium.woff2`
-- CSS families: `Tianwai Bakudai`, `Tianwai Bakudai Display`
-- Upstream: Bakudai Font（莫大毛筆字體）Regular and Medium, Taiwan set
-- Source: <https://github.com/max32002/bakudaifont>
-- License: SIL Open Font License 1.1 (`Bakudai-OFL.txt`)
-- Upstream Regular SHA-256: `19fad0c294f3d3013bdee7471cd5e79015ee7a03acb2c47d9955937fc3dc8e4e`
-- Upstream Medium SHA-256: `6c4a1be29e508fed588d8ec749ed8ae9e3b8325af0e0a973657739256dba9997`
-- Web Regular SHA-256: `3a6c51857e1d771ca6aa58ce8cccb9a42e023f614118d434ce7f237f60fd88a7`
-- Web Medium SHA-256: `ef44b10c057a82268b48e6b6a533179134f3598bf101b06e6fb427c06b38f392`
+- Files: `tianwai-masa-regular.woff2`, `tianwai-masa-medium.woff2`
+- CSS families: `Tianwai Masa`, `Tianwai Masa Display`
+- Upstream: MasaFont（正風毛筆字體）Regular and Medium, Taiwan set
+- Source: <https://github.com/max32002/masafont>
+- License: SIL Open Font License 1.1 (`MasaFont-OFL.txt`)
+- Upstream Regular SHA-256: `f5a449d3a9ce2170e404050cc2b44bfa16ae48ef8fb06aa5968383ed74e5ed4d`
+- Upstream Medium SHA-256: `24ddf16810c42a98b358776767b0e6be7ab171099d6c959aa7ad1accc1cd6bb3`
+- Web Regular SHA-256: `6f1cf0932b46b176f3b697731c28db92c07fb4ec59b9e22bcae185880e4f037b`
+- Web Medium SHA-256: `7af1fae22011706670fffc1033914b367ad153a8562842d73c7778b7f7dfe28f`
 
-The Regular cut carries paragraphs and controls. The Medium cut carries headings and bold emphasis. Both preserve real brush-edge variation and remain vector-sharp without glow or fake CSS strokes.
+The illustrated logo wordmark is raster artwork rather than a reusable font file. MasaFont is the closest complete Traditional Chinese family in the project: its semi-cursive construction, connected momentum, variable stroke pressure, and sharp finishing strokes track the logo more closely than the previous square brush-kaishu family. The Regular cut carries paragraphs and controls; Medium carries headings and bold emphasis. Both remain vector-sharp without glow or fake CSS strokes.
 
 ## Rebuild
 
-1. Download `tw/Bakudai-Regular.ttf` and `tw/Bakudai-Medium.ttf` from the upstream repository.
+1. Download `tw/MasaFont-Regular.ttf` and `tw/MasaFont-Medium.ttf` from the upstream repository.
 2. Install the optional build dependencies: `python -m pip install fonttools brotli`.
 3. Run:
 
-   `python scripts/build_webfonts.py --regular <Bakudai-Regular.ttf> --medium <Bakudai-Medium.ttf>`
+   `python scripts/build_webfonts.py --regular <MasaFont-Regular.ttf> --medium <MasaFont-Medium.ttf>`
 
 The build script collects visible glyphs from all public templates, public/payment copy, seed content, and public JavaScript. Rebuild whenever public-facing text adds new characters.
