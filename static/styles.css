@@ -1,14 +1,22 @@
 @font-face {
-  font-family: "Tianwai Brush";
-  src: url("fonts/tianwai-brush-display.woff2") format("woff2");
+  font-family: "Tianwai Bakudai";
+  src: url("fonts/tianwai-bakudai-regular.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;
 }
 
 @font-face {
-  font-family: "Tianwai WenKai";
-  src: url("fonts/tianwai-wenkai-body.woff2") format("woff2");
+  font-family: "Tianwai Bakudai";
+  src: url("fonts/tianwai-bakudai-medium.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Tianwai Bakudai Display";
+  src: url("fonts/tianwai-bakudai-medium.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;
@@ -49,6 +57,21 @@ body {
   line-height: 1.75;
   overflow-x: hidden;
 }
+
+/* Public-site typography: a real ink-brush face throughout, with a heavier
+   companion cut for display copy. Internal tools and the admin keep their
+   utilitarian system typography. */
+.public-site {
+  --display: "Tianwai Bakudai Display", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  --serif: "Tianwai Bakudai", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  --sans: "Tianwai Bakudai", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  font-family: var(--serif);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.public-site :where(button, input, textarea, select) { font-family: var(--sans); }
 
 body::before {
   position: fixed;
@@ -816,7 +839,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 /* Transmission V2 — 九霄月壇。書法字系貫穿所有可見文字，QR 安全區維持純白。 */
 .transmission-v2-page,
 .transmission-v2-page :where(a, button, small, strong, span, p, h1, h2, blockquote, li) {
-  font-family: "DFKai-SB", "BiauKai", "KaiTi", "STKaiti", "FZKai-Z03", serif;
+  font-family: var(--serif);
 }
 
 .transmission-v2-page {
@@ -871,8 +894,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .transmission-v2-page .brand-mark img { transform: none; }
 .transmission-v2-page .brand-copy strong { color: var(--moon-pale); font-size: 20px; font-weight: 400; }
-.transmission-v2-page .brand-copy small { color: rgba(156,228,210,.62); font: 9px/1.2 "DFKai-SB", "BiauKai", "KaiTi", serif; }
-.transmission-v2-page .main-nav { gap: 14px; font: 14px/1 "DFKai-SB", "BiauKai", "KaiTi", serif; letter-spacing: .12em; }
+.transmission-v2-page .brand-copy small { color: rgba(156,228,210,.62); font: 9px/1.2 var(--sans); }
+.transmission-v2-page .main-nav { gap: 14px; font: 14px/1 var(--sans); letter-spacing: .12em; }
 .transmission-v2-page .main-nav a { padding: 10px 13px; }
 .transmission-v2-page .main-nav .nav-seal {
   color: #201933;
@@ -1197,7 +1220,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .oath-rules li { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; padding: 10px 0; color: #514d5c; border-bottom: 1px solid rgba(68,83,72,.16); font-size: 14px; }
 .oath-rules span { color: #397b70; font-size: 17px; }
 
-.transmission-v2-page .site-footer { font-family: "DFKai-SB", "BiauKai", "KaiTi", "STKaiti", serif; }
+.transmission-v2-page .site-footer { font-family: var(--serif); }
 .transmission-v2-page .site-footer p { font-family: inherit; letter-spacing: .05em; }
 .transmission-v2-page :where(a, button):focus-visible { outline: 2px solid var(--spirit-jade); outline-offset: 4px; }
 
@@ -1299,10 +1322,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .transmission-v2-page *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
-/* Crisp calligraphy system: expressive display strokes + screen-readable Traditional Chinese body. */
+/* Transmission typography inherits the same site-wide brush system. */
 .transmission-v2-page {
-  --calligraphy-display: "Tianwai Brush", "DFKai-SB", "BiauKai", "KaiTi", serif;
-  --calligraphy-body: "Tianwai WenKai", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  --calligraphy-display: var(--display);
+  --calligraphy-body: var(--serif);
   font-family: var(--calligraphy-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -1339,19 +1362,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .transmission-v2-copy h1 span,
 .transmission-v2-copy h1 em {
   text-shadow: none;
-  -webkit-text-stroke: .55px currentColor;
-  paint-order: stroke fill;
-}
-
-.transmission-v2-page :is(
-  .transmission-legacy,
-  .three-breaths-heading h2,
-  .transmission-path-v2 strong,
-  .oath-copy h2,
-  .moon-altar figcaption strong
-) {
-  -webkit-text-stroke: .2px currentColor;
-  paint-order: stroke fill;
 }
 
 .mobile-title-break { display: none; }
@@ -1359,4 +1369,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 760px) {
   .transmission-v2-copy h1 { letter-spacing: .005em; }
   .mobile-title-break { display: block; }
+}
+
+/* The selected font already contains real brush texture. Avoid glow and fake
+   strokes, which make the outline look blurry at browser zoom levels. */
+.public-site * {
+  text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
 }

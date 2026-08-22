@@ -1,27 +1,27 @@
-# TianWaiYiBi self-hosted web fonts
+# TianWaiYiBi self-hosted public-site fonts
 
-These WOFF2 files are glyph subsets for the public transmission page. They are self-hosted so the intended Traditional Chinese typography is consistent across devices and does not depend on a third-party font CDN.
+The two WOFF2 files are glyph subsets used across every public customer-facing page: home, idea details, checkout, payment, delivery, message, and transmission. The admin console, hidden logo review, and local LINE simulator intentionally keep their utility typography.
 
-## Display font
+## Brush family
 
-- File: `tianwai-brush-display.woff2`
-- CSS family: `Tianwai Brush`
-- Upstream: ChenYuluoyan 2.0 Thin
-- Source: <https://github.com/Chenyu-otf/chenyuluoyan_thin>
-- License: SIL Open Font License 1.1 (`ChenYuluoyan-OFL.txt`)
-- Upstream SHA-256: `1289e42a6d1ec995d0cb23aee89efc69fc95749fbd54a610057a3e992dc453db`
-- Web subset SHA-256: `220fb1f6f6340243fbda46b8ccc1df6881eeace43841f715c01a6757dc11e742`
+- Files: `tianwai-bakudai-regular.woff2`, `tianwai-bakudai-medium.woff2`
+- CSS families: `Tianwai Bakudai`, `Tianwai Bakudai Display`
+- Upstream: Bakudai Font（莫大毛筆字體）Regular and Medium, Taiwan set
+- Source: <https://github.com/max32002/bakudaifont>
+- License: SIL Open Font License 1.1 (`Bakudai-OFL.txt`)
+- Upstream Regular SHA-256: `19fad0c294f3d3013bdee7471cd5e79015ee7a03acb2c47d9955937fc3dc8e4e`
+- Upstream Medium SHA-256: `6c4a1be29e508fed588d8ec749ed8ae9e3b8325af0e0a973657739256dba9997`
+- Web Regular SHA-256: `3a6c51857e1d771ca6aa58ce8cccb9a42e023f614118d434ce7f237f60fd88a7`
+- Web Medium SHA-256: `ef44b10c057a82268b48e6b6a533179134f3598bf101b06e6fb427c06b38f392`
 
-## Body font
+The Regular cut carries paragraphs and controls. The Medium cut carries headings and bold emphasis. Both preserve real brush-edge variation and remain vector-sharp without glow or fake CSS strokes.
 
-- File: `tianwai-wenkai-body.woff2`
-- CSS family: `Tianwai WenKai`
-- Upstream: LXGW WenKai TC Regular
-- Source: <https://github.com/lxgw/LxgwWenkaiTC>
-- License: SIL Open Font License 1.1 (`LXGWWenKaiTC-OFL.txt`)
-- Upstream SHA-256: `b1a0795862c1415bf3f393ea50b2a4ea6275012cf5bad3f94feeb1222f555731`
-- Web subset SHA-256: `209214d3ed7c83f4a24dc44770f7d1a0e21793a4af5f4f1514f5ada7e8a75778`
+## Rebuild
 
-## Build notes
+1. Download `tw/Bakudai-Regular.ttf` and `tw/Bakudai-Medium.ttf` from the upstream repository.
+2. Install the optional build dependencies: `python -m pip install fonttools brotli`.
+3. Run:
 
-The subsets contain the glyphs used by `templates/base.html`, `templates/transmission.html`, and the copy-status text in `static/app.js`, plus basic Latin and CJK punctuation. They preserve OpenType layout features and hinting, then use WOFF2 compression. Rebuild the subsets whenever visible transmission-page copy adds new characters.
+   `python scripts/build_webfonts.py --regular <Bakudai-Regular.ttf> --medium <Bakudai-Medium.ttf>`
+
+The build script collects visible glyphs from all public templates, public/payment copy, seed content, and public JavaScript. Rebuild whenever public-facing text adds new characters.

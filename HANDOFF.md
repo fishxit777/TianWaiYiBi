@@ -26,20 +26,20 @@
 - LINE V13 頭像、狀態消息與官網連結已公開；內建歡迎訊息與自動回應已關閉。
 - 公開官網已移除 Logo 審稿、管理後台與本機模擬器連結，改以「仙閣心訣」補足品牌理念，並以「傳音閣」連到真人守閣者客服。
 - `/transmission` 已重製為「九霄月壇・朱砂傳音詔」V2：全頁統一楷書／書法字系，加入滿月、雲海、浮峰、八方卦位、朱砂符線、三息入閣與守閣安全誓約；桌機掃描原始高對比 QR，手機才直接開啟 LINE 官方帳號。
-- 傳音頁字系已改為自架 WOFF2：題字使用 ChenYuluoyan 藝術手寫體，內文使用 LXGW WenKai TC 繁體文楷；移除題字光暈並保留向量 hinting，避免裝置缺字、遠端字型失效與模糊邊緣。
+- 公開官網字系已由「只改傳音頁」更正為全站自架 WOFF2：首頁、六脈商品、結帳、付款、交付、訊息與傳音頁全部使用莫大毛筆字體；正文為原筆 Regular，標題為同系 Medium。字型本身有墨邊與飛白，不再使用細手寫體、文字光暈或 CSS 假描邊。後台與本機工具不受影響。
 
 ## 驗證結果
 
 - `python -m py_compile ...`：通過。
 - `node --check static\app.js`：通過。
 - `node --check static\admin.js`：通過。
-- `python -m pytest -q`：30 passed，0 failed。
+- `python -m pytest -q`：32 passed，0 failed。
 - `python -m pip check`：No broken requirements found。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
 - 手機 390 × 844：官網、V13 主視覺、LINE 模擬器、後台與內容編輯 dialog 都沒有根頁面水平溢位。
 - 傳音頁 V2：桌機 1440 × 960 與手機 390 × 844 已分段檢視；手機根頁面寬度 390／內容寬度 390，無水平溢位；導覽、題字、內文、按鈕與頁尾的 computed font 均為書法字系。
-- 清晰藝術字 QA：兩套自架 WOFF2 均由 `document.fonts.check()` 確認載入，題字 computed font 為 `Tianwai Brush`、內文為 `Tianwai WenKai`，題字 `text-shadow: none`；桌機與手機均無水平溢位或孤字斷行。
+- 全站毛筆字 QA：兩套自架 WOFF2 均已載入；正文 computed font 為 `Tianwai Bakudai`、標題為 `Tianwai Bakudai Display`。桌機 1280 實測首頁、六脈、結帳與傳音頁；手機 430 × 900 再測相同四頁，全部無根頁面水平溢位，標題未超出安全邊界。
 - 瀏覽器 console：0 error、0 warning。
 - HTTP smoke：`/healthz`、`/` 回 200；`/logo-review` 與正式環境 `/dev/line` 回 404；健康狀態為 `ok`。
 
