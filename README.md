@@ -65,7 +65,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `32 passed`。
+目前自動驗證結果為 `33 passed`。
 
 ## 公開部署
 
@@ -134,6 +134,7 @@ python -m pytest -q
 - `docs/plans/2026-08-22-sitewide-ink-brush-typography.md`
 - `docs/plans/2026-08-23-logo-aligned-calligraphy.md`
 - `docs/plans/2026-08-23-white-gold-xianxia-type-treatment.md`
+- `docs/plans/2026-08-23-v14-illustrated-title-hierarchy.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`

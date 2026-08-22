@@ -1371,102 +1371,146 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .mobile-title-break { display: block; }
 }
 
-/* White-jade / moon-gold title craft inspired by classic xianxia cover art.
-   The type remains live HTML; layered strokes and shadows provide the carved
-   depth without replacing editable titles with raster images. */
+/* V14 title hierarchy: one large brand lockup, two illustrated hero titles,
+   one live section-title tier and one card-title tier. The expensive cover-art
+   treatment no longer repeats on every heading. */
 .public-site {
-  --title-ivory-top: #fffef5;
-  --title-ivory-mid: #f7eccb;
-  --title-ivory-low: #d8b96f;
-  --title-gold-top: #fff0b0;
-  --title-gold-mid: #d7a54e;
-  --title-gold-low: #8b4d25;
-  --title-wine-edge: #3a1118;
+  --title-live: #f3d98e;
+  --title-live-light: #fff4cf;
+  --title-page-size: clamp(42px, 5vw, 64px);
+  --title-section-size: clamp(32px, 3.8vw, 48px);
+  --title-card-size: clamp(23px, 2.1vw, 30px);
+}
+
+.public-site .site-header {
+  min-height: 104px;
+  padding-block: 13px;
+}
+
+.public-site .brand { gap: 18px; }
+
+.public-site .brand-mark {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  box-shadow: 0 0 34px rgba(127, 215, 208, .28), 0 0 0 1px rgba(229, 195, 110, .2);
+}
+
+.public-site .brand-copy {
+  width: 232px;
+  min-width: 0;
+}
+
+.public-site .brand-wordmark {
+  display: block;
+  width: 232px;
+  height: auto;
+  margin: -10px 0 -9px;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 6px 9px rgba(3, 2, 16, .5));
+}
+
+.public-site .brand-copy small {
+  margin-top: 0;
+  padding-left: 4px;
+  color: rgba(156, 228, 210, .72);
+  font: 9px/1 var(--sans);
+  letter-spacing: .2em;
+}
+
+.public-site .hero-title-image-heading {
+  display: block;
+  width: min(790px, 100%);
+  margin: 12px 0 24px;
+  padding: 0;
+  color: inherit;
+  background: none;
+  -webkit-text-fill-color: initial;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+.public-site .hero-title-image-heading img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 18px rgba(2, 2, 18, .34));
+}
+
+.public-site .hero-title-image-heading::after {
+  display: none;
+  content: none;
+}
+
+.public-site .home-title-art {
+  -webkit-mask-image: url("brand/home-title-xianxia-v14.webp");
+  mask-image: url("brand/home-title-xianxia-v14.webp");
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  mask-mode: luminance;
+}
+
+.public-site .transmission-title-image-heading {
+  width: min(760px, 100%);
+  margin: 16px 0 20px;
 }
 
 .public-site :is(
-  .hero h1,
+  .detail-copy h1,
+  .checkout-summary h1,
+  .payment-card h1,
+  .access-header h1,
+  .message-card h1
+) {
+  font-size: var(--title-page-size);
+}
+
+.public-site :is(
   .world-note h2,
   .section-heading h2,
   .how-intro h2,
   .creed-heading h2,
   .line-portal h2,
-  .detail-copy h1,
-  .checkout-summary h1,
-  .payment-card h1,
-  .access-header h1,
-  .message-card h1,
-  .transmission-v2-copy h1,
   .three-breaths-heading h2,
   .oath-copy h2
 ) {
-  color: var(--title-gold-top);
-  background-image:
-    linear-gradient(180deg,
-      var(--title-gold-top) 0%,
-      #f2d784 30%,
-      var(--title-gold-mid) 61%,
-      var(--title-gold-low) 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: .018em rgba(42, 12, 16, .96);
-  text-shadow:
-    0 .022em 0 rgba(255, 249, 221, .92),
-    .014em .052em 0 #c69347,
-    .031em .078em 0 #81502e,
-    .048em .108em 0 var(--title-wine-edge),
-    .062em .137em 0 rgba(18, 7, 12, .86),
-    0 .18em .2em rgba(0, 0, 0, .68),
-    0 0 .17em rgba(246, 205, 112, .2);
+  color: var(--title-live);
+  font-family: var(--display);
+  font-size: var(--title-section-size);
+  font-weight: 400;
+  line-height: 1.28;
+  letter-spacing: .025em;
+  -webkit-text-stroke: .01em rgba(34, 18, 34, .54);
+  text-shadow: 0 3px 0 rgba(79, 45, 35, .55), 0 10px 22px rgba(0, 0, 0, .28);
 }
 
-.public-site :is(.hero h1 > span, .transmission-v2-copy h1 > span) {
-  display: inline-block;
-  color: var(--title-ivory-top);
-  background-image:
-    linear-gradient(180deg,
-      #fffef8 0%,
-      var(--title-ivory-mid) 44%,
-      #e7d29e 72%,
-      var(--title-ivory-low) 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.public-site .transmission-v2-copy h1 > em {
-  color: var(--title-gold-top);
-  background-image:
-    linear-gradient(180deg,
-      #fff1b2 0%,
-      #e9c46f 43%,
-      #c1843d 73%,
-      #78401f 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.public-site :is(.world-note h2, .line-portal h2) {
+  color: #6b3d37;
+  -webkit-text-stroke-color: rgba(255, 244, 207, .4);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .45);
 }
 
 .public-site :is(
-  .brand-copy strong,
   .idea-card h3,
   .steps h3,
   .creed-grid h3,
   .character-plaque p,
-  .payment-order strong,
   .transmission-path-v2 strong,
-  .moon-altar figcaption strong,
-  .site-footer strong
+  .moon-altar figcaption strong
 ) {
+  color: var(--title-live-light);
   font-family: var(--display);
+  font-size: var(--title-card-size);
   font-weight: 400;
-  color: #f8e7b8;
-  -webkit-text-stroke: .012em rgba(50, 18, 19, .84);
-  text-shadow:
-    0 .04em 0 rgba(196, 139, 62, .8),
-    .025em .075em 0 rgba(57, 20, 22, .84),
-    0 .12em .18em rgba(0, 0, 0, .5);
+  line-height: 1.35;
+  -webkit-text-stroke: 0;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, .32);
 }
 
 .public-site :is(.main-nav a, .button, .filter-button, .text-link, .back-link) {
@@ -1476,10 +1520,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 
 .public-site :is(.main-nav .nav-seal, .button-ghost, .text-link) {
   color: #f0d28a;
-  text-shadow:
-    0 1px 0 rgba(255, 248, 218, .3),
-    1px 2px 0 rgba(68, 28, 24, .75),
-    0 5px 12px rgba(0, 0, 0, .4);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .36);
 }
 
 .public-site .button-primary {
@@ -1488,28 +1529,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 
 @media (max-width: 760px) {
-  .public-site :is(
-    .hero h1,
-    .world-note h2,
-    .section-heading h2,
-    .how-intro h2,
-    .creed-heading h2,
-    .line-portal h2,
-    .detail-copy h1,
-    .checkout-summary h1,
-    .payment-card h1,
-    .access-header h1,
-    .message-card h1,
-    .transmission-v2-copy h1,
-    .three-breaths-heading h2,
-    .oath-copy h2
-  ) {
-    -webkit-text-stroke-width: .014em;
-    text-shadow:
-      0 .02em 0 rgba(255, 249, 221, .9),
-      .013em .047em 0 #c69347,
-      .027em .071em 0 #81502e,
-      .04em .097em 0 var(--title-wine-edge),
-      0 .15em .17em rgba(0, 0, 0, .62);
-  }
+  .public-site .site-header { min-height: 80px; padding: 9px 10px; }
+  .public-site .brand { gap: 10px; }
+  .public-site .brand-mark { flex-basis: 56px; width: 56px; height: 56px; }
+  .public-site .brand-copy { width: min(42vw, 166px); }
+  .public-site .brand-wordmark { width: 100%; margin: -6px 0 -7px; }
+  .public-site .brand-copy small { display: none; }
+  .public-site .hero-title-image-heading { width: min(100%, 690px); margin: 6px 0 18px; }
+  .public-site .transmission-title-image-heading { margin-top: 12px; }
+}
+
+@media (max-width: 430px) {
+  .public-site .site-header { width: calc(100% - 8px); }
+  .public-site .brand-mark { flex-basis: 50px; width: 50px; height: 50px; }
+  .public-site .brand-copy { width: min(39vw, 145px); }
+  .public-site .main-nav .nav-seal { padding-inline: 8px; }
 }

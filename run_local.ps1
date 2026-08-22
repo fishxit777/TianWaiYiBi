@@ -12,7 +12,8 @@ function New-SecureHex([int]$ByteCount) {
     finally {
         $Generator.Dispose()
     }
-    return [Convert]::ToHexString($Buffer).ToLowerInvariant()
+    # Windows PowerShell 5.1 does not provide Convert.ToHexString().
+    return [BitConverter]::ToString($Buffer).Replace('-', '').ToLowerInvariant()
 }
 
 if (-not $env:APP_SECRET_KEY) {

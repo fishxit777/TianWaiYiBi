@@ -24,6 +24,8 @@ def test_home_lists_six_distinct_cultivators(client):
 
     assert response.status_code == 200
     assert "仙策閣" in response.get_data(as_text=True)
+    assert "brand/home-title-xianxia-v14.webp" in response.get_data(as_text=True)
+    assert "brand/wordmark-xianxia-v14.webp" in response.get_data(as_text=True)
     assert response.get_data(as_text=True).count("idea-card") >= 6
     for role in ("破局劍修", "造境符師", "增長丹師", "機關偃師", "回聲樂修", "觀星策士"):
         assert role in response.get_data(as_text=True)
@@ -52,6 +54,8 @@ def test_transmission_landing_keeps_line_white_page_behind_branded_experience(cl
     assert response.status_code == 200
     assert "一印傳音" in body
     assert "一筆啟月門" in body
+    assert "brand/transmission-title-xianxia-v14.webp" in body
+    assert "brand/wordmark-xianxia-v14.webp" in body
     assert "守閣之誓" in body
     assert "守閣者本人親自接續" in body
     assert "不索取密碼與驗證碼" in body
@@ -103,12 +107,29 @@ def test_public_site_self_hosts_vector_brush_fonts():
     stylesheet = (project_root / "static" / "styles.css").read_text(encoding="utf-8")
     assert 'font-family: "Tianwai Masa"' in stylesheet
     assert 'font-family: "Tianwai Masa Display"' in stylesheet
-    assert "--title-ivory-top" in stylesheet
-    assert "--title-gold-top" in stylesheet
-    assert "--title-wine-edge" in stylesheet
+    assert "--title-page-size" in stylesheet
+    assert "--title-section-size" in stylesheet
+    assert "--title-card-size" in stylesheet
+    assert ".public-site .brand-wordmark" in stylesheet
+    assert ".public-site .hero-title-image-heading" in stylesheet
     assert "-webkit-text-stroke" in stylesheet
     assert "tianwai-brush-display.woff2" not in stylesheet
     assert "tianwai-wenkai-body.woff2" not in stylesheet
+
+
+def test_xianxia_title_art_is_web_optimized_and_versioned():
+    project_root = Path(__file__).resolve().parents[1]
+    assets = (
+        project_root / "static" / "brand" / "wordmark-xianxia-v14.webp",
+        project_root / "static" / "brand" / "home-title-xianxia-v14.webp",
+        project_root / "static" / "brand" / "transmission-title-xianxia-v14.webp",
+    )
+
+    for asset in assets:
+        data = asset.read_bytes()
+        assert data[:4] == b"RIFF"
+        assert data[8:12] == b"WEBP"
+        assert len(data) < 650_000
 
 
 def test_logo_review_is_not_a_public_route(client):
