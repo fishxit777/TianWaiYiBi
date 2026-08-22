@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}九霄傳音詔｜天外一筆・仙策靈使{% endblock %}
 {% block body_class %}transmission-page transmission-v2-page{% endblock %}
+{% block font_preloads %}
+  <link rel="preload" href="{{ url_for('static', filename='fonts/tianwai-brush-display.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/tianwai-wenkai-body.woff2') }}" as="font" type="font/woff2" crossorigin>
+{% endblock %}
 
 {% block main_navigation %}
   <a href="{{ url_for('public.home') }}#ideas">翻閱六脈</a>
@@ -81,7 +85,7 @@
   <section class="three-breaths" aria-labelledby="three-breaths-title">
     <header class="three-breaths-heading reveal">
       <p>三息入閣</p>
-      <h2 id="three-breaths-title">月印一照，靈念便有歸處</h2>
+      <h2 id="three-breaths-title">月印一照，<br class="mobile-title-break">靈念便有歸處</h2>
       <span>不繞遠路，不問俗名，只問你真正想破的局。</span>
     </header>
     <ol class="transmission-path-v2" aria-label="傳音入閣三步">

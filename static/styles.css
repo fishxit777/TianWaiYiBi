@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "Tianwai Brush";
+  src: url("fonts/tianwai-brush-display.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Tianwai WenKai";
+  src: url("fonts/tianwai-wenkai-body.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
 :root {
   --ink: #07110f;
   --ink-soft: #10211d;
@@ -1281,4 +1297,66 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .transmission-v2-page *,
   .transmission-v2-page *::before,
   .transmission-v2-page *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Crisp calligraphy system: expressive display strokes + screen-readable Traditional Chinese body. */
+.transmission-v2-page {
+  --calligraphy-display: "Tianwai Brush", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  --calligraphy-body: "Tianwai WenKai", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  font-family: var(--calligraphy-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+.transmission-v2-page :where(a, button, small, strong, span, p, h1, h2, blockquote, li) {
+  font-family: var(--calligraphy-body);
+}
+
+.transmission-v2-page :is(
+  .transmission-v2-copy h1,
+  .transmission-v2-copy h1 span,
+  .transmission-v2-copy h1 em,
+  .ink-scroll > span,
+  .seal-cta span,
+  .desktop-scan-note > span,
+  .moon-altar figcaption strong,
+  .three-breaths-heading h2,
+  .step-seal,
+  .transmission-path-v2 strong,
+  .oath-seal span,
+  .oath-seal i,
+  .oath-copy h2,
+  .oath-rules span
+) {
+  font-family: var(--calligraphy-display);
+  font-weight: 400;
+}
+
+.transmission-v2-copy h1 {
+  letter-spacing: .015em;
+}
+
+.transmission-v2-copy h1 span,
+.transmission-v2-copy h1 em {
+  text-shadow: none;
+  -webkit-text-stroke: .55px currentColor;
+  paint-order: stroke fill;
+}
+
+.transmission-v2-page :is(
+  .transmission-legacy,
+  .three-breaths-heading h2,
+  .transmission-path-v2 strong,
+  .oath-copy h2,
+  .moon-altar figcaption strong
+) {
+  -webkit-text-stroke: .2px currentColor;
+  paint-order: stroke fill;
+}
+
+.mobile-title-break { display: none; }
+
+@media (max-width: 760px) {
+  .transmission-v2-copy h1 { letter-spacing: .005em; }
+  .mobile-title-break { display: block; }
 }

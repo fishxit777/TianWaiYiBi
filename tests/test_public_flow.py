@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 from conftest import set_public_csrf
 
@@ -58,8 +59,27 @@ def test_transmission_landing_keeps_line_white_page_behind_branded_experience(cl
     assert "https://line.me/R/ti/p/%40279plitu" in body
     assert "啟動傳音法陣" in body
     assert 'data-copy-line-id="@279plitu"' in body
+    assert "fonts/tianwai-brush-display.woff2" in body
+    assert "fonts/tianwai-wenkai-body.woff2" in body
     for private_label in ("Logo 評估", "管理後台", "開啟本機模擬器", "LINE Bot"):
         assert private_label not in body
+
+
+def test_transmission_self_hosts_crisp_calligraphy_fonts():
+    project_root = Path(__file__).resolve().parents[1]
+    font_paths = (
+        project_root / "static" / "fonts" / "tianwai-brush-display.woff2",
+        project_root / "static" / "fonts" / "tianwai-wenkai-body.woff2",
+    )
+
+    for font_path in font_paths:
+        data = font_path.read_bytes()
+        assert data[:4] == b"wOF2"
+        assert 50_000 < len(data) < 250_000
+
+    stylesheet = (project_root / "static" / "styles.css").read_text(encoding="utf-8")
+    assert 'font-family: "Tianwai Brush"' in stylesheet
+    assert 'font-family: "Tianwai WenKai"' in stylesheet
 
 
 def test_logo_review_is_not_a_public_route(client):

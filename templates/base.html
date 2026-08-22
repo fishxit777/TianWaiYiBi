@@ -9,6 +9,7 @@
   <title>{% block title %}天外一筆・仙策閣{% endblock %}</title>
   <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/favicon-192.png') }}">
+  {% block font_preloads %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body class="{% block body_class %}{% endblock %}">

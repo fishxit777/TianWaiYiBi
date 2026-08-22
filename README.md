@@ -16,7 +16,7 @@
 - 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項仙策內容、單品價格、排序與上下架。
 - V13 Logo 已整合官網、LINE 頭像、favicon 與後台；正式 LINE 官方帳號、Messaging API 與公開 webhook 已完成接線。
 - 公開官網只保留六脈仙策、仙閣心訣與真人客服傳音入口；Logo 審稿、本機模擬器與管理後台不出現在公開導覽或頁尾。
-- `/transmission` 是自有「九霄月壇・朱砂傳音詔」修仙轉場頁：全頁使用書法字系，桌機顯示八方月壇與高對比官方 QR 法印，手機才直接開啟 LINE，並清楚標示唯一名號與安全傳音守則。
+- `/transmission` 是自有「九霄月壇・朱砂傳音詔」修仙轉場頁：題字使用自架繁體手寫藝術字，內文使用自架繁體文楷，放大仍維持向量銳利；桌機顯示八方月壇與高對比官方 QR 法印，手機才直接開啟 LINE，並清楚標示唯一名號與安全傳音守則。
 
 正式入口：
 
@@ -64,7 +64,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `29 passed`。
+目前自動驗證結果為 `30 passed`。
 
 ## 公開部署
 
@@ -129,6 +129,7 @@ python -m pytest -q
 - `docs/plans/2026-08-22-xiance-pavilion-design.md`
 - `docs/plans/2026-08-22-xiance-pavilion-implementation.md`
 - `docs/plans/2026-08-22-transmission-v2-20-point-audit.md`
+- `docs/plans/2026-08-22-crisp-calligraphy-typography.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`
