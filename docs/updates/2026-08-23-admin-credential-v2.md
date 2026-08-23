@@ -35,6 +35,7 @@
 - `py -3 -m pytest -q`：63 passed。
 - `py -3 -m pip check`：無相依衝突。
 - `pip-audit -r requirements.txt`：No known vulnerabilities found。
+- 正式 Render：commit `577a049` 部署後 `/healthz` 回傳 `release=admin-credential-v2`；登入頁回 200、未登入 Dashboard API 回 401、正式 `admin.js` 已含 Argon2id 狀態、登入頁沒有 verifier 或環境變數名稱洩漏。
 
 ## 正式輪替邊界
 

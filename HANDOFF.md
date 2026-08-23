@@ -65,6 +65,7 @@
 - V16 正式 Render 部署已驗證：實作 commit `df2219a` 上線後 `/healthz` 回傳 `release=professional-ui-v16`；官網、`static/v16.css`、後台登入皆回 200，正式首頁含完整語意 H1 且沒有 `/admin` 公開連結；後台登入維持 `Cache-Control: no-store` 與 `X-Frame-Options: DENY`，`/logo-review`、正式 `/dev/line` 維持 404。
 - 管理通知 V1 正式 Render 部署已驗證：實作 commit `197740d` 上線後 `/healthz` 回傳 `release=admin-notifications-v1`；官網與後台登入回 200，未帶密鑰的摘要端點回 404，公開首頁沒有 `/admin` 或內部通知連結。GitHub 已正確載入 `Daily admin summary` workflow，沒有 invalid workflow；正式雙通道實際收件仍需先補 Render／GitHub 私密設定。
 - 手機卡片字型修正已正式部署：實作 commit `4872bbe` 上線後 `/healthz` 回傳 `release=mobile-card-type-v1`；正式 390×844 首頁六張主標皆載入 `Tianwai Masa Display`，角色名與技能分類皆為 `Tianwai Masa` 14px，`商機觀星盤` 實看無混字、無水平溢位，console 0 error／0 warning。
+- 管理員憑證 V2 已正式部署：實作 commit `577a049` 上線後 `/healthz` 回傳 `release=admin-credential-v2`；Argon2 套件成功載入、後台登入頁回 200、未登入 Dashboard API 回 401、安全狀態 UI 已上線且登入頁未洩漏 verifier。正式 `ADMIN_PASSWORD_HASH` 尚待擁有者在可信任終端產生新明文並保存到密碼管理器後設定；輪替前仍沿用舊密碼相容路徑，不能誤報為正式憑證已完成更換。
 - 管理通知外部排程已接通：Render 已設定獨立 `NOTIFICATION_CRON_SECRET` 與管理員收件地址，GitHub Actions 已設定同名加密 Secret；正式密鑰端點回 200 並建立兩通道佇列，手動 `Daily admin summary #1` 執行成功。Gmail 仍因 SMTP 未設定而為 `failed`，LINE 仍因 `LINE_ADMIN_USER_ID` 未設定而為 `skipped`，沒有沿用其他專案收件人。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
