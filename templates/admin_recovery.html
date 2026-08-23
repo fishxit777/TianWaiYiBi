@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>管理員緊急復原｜天外一筆</title>
+  <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css') }}">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body class="admin-login-page admin-recovery-page">
+  <main class="admin-login-shell">
+    <section class="admin-login-brand">
+      <img class="admin-login-logo" src="{{ url_for('static', filename='brand/logo-transparent-1254.png') }}" alt="天外一筆 Logo">
+      <p>天外一筆・管理安全</p>
+      <h1>緊急復原</h1>
+      <p>只在兩把 Passkey 都無法使用時啟動。成功後，既有管理工作階段與舊 Passkey 會全部撤銷。</p>
+    </section>
+    <form class="admin-login-card" action="{{ url_for('admin.recovery_submit') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <p class="section-index">BREAK GLASS</p>
+      <h2>三項驗證缺一不可</h2>
+      {% if error %}<p class="login-error" role="alert">{{ error }}</p>{% endif %}
+      <label>管理帳號<input name="username" type="text" maxlength="120" autocomplete="username" required></label>
+      <label>管理密碼<input name="password" type="password" maxlength="512" autocomplete="current-password" required></label>
+      <label>一次性復原碼<input name="recovery_code" type="text" maxlength="80" autocomplete="off" spellcheck="false" required></label>
+      <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-action="admin-recovery" data-theme="dark"></div>
+      <button class="button button-primary button-wide" type="submit">撤銷舊金鑰並開始復原</button>
+      <small>系統不會透過 LINE、Email 或日誌傳送或保存明文密碼與復原碼。</small>
+      <a class="inline-text-link" href="{{ url_for('admin.login_page') }}">返回 Passkey 登入</a>
+    </form>
+  </main>
+</body>
+</html>

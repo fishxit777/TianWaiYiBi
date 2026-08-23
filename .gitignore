@@ -5,4 +5,8 @@ __pycache__/
 data/*.db
 data/*.db-*
 *.log
+*.dump
+*.twybenc
+*backup-private*.pem
+*recovery-codes*.txt
 

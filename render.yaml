@@ -20,6 +20,8 @@ services:
         value: https://tianwai-yibi.onrender.com
       - key: DATABASE_PATH
         value: /opt/render/project/src/data/tianwai.db
+      - key: DATABASE_URL
+        sync: false
       - key: APP_SECRET_KEY
         generateValue: true
       - key: ADMIN_USERNAME
@@ -32,6 +34,18 @@ services:
         value: "true"
       - key: ADMIN_IP_ALLOWLIST_REQUIRED
         value: "false"
+      - key: ADMIN_ALLOWED_IPS
+        sync: false
+      - key: WEBAUTHN_RP_ID
+        value: tianwai-yibi.onrender.com
+      - key: WEBAUTHN_ORIGIN
+        value: https://tianwai-yibi.onrender.com
+      - key: ADMIN_RECOVERY_ENABLED
+        value: "false"
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
       - key: PAYMENT_WEBHOOK_SECRET
         generateValue: true
       - key: PAYMENT_PROVIDER

@@ -1,3 +1,5 @@
+import os
+import re
 import sqlite3
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -6,18 +8,110 @@ from pathlib import Path
 from flask import current_app, g
 
 
+def database_backend(database_url=None):
+    """Return the configured durable database backend without exposing its URL."""
+    configured = os.environ.get("DATABASE_URL", "") if database_url is None else database_url
+    return "postgresql" if str(configured).strip() else "sqlite"
+
+
+def _postgres_sql(statement):
+    """Translate the small SQLite-compatible SQL subset used by this application."""
+    converted = str(statement).replace("?", "%s")
+    if re.search(r"\bINSERT\s+OR\s+IGNORE\s+INTO\b", converted, flags=re.IGNORECASE):
+        converted = re.sub(
+            r"\bINSERT\s+OR\s+IGNORE\s+INTO\b",
+            "INSERT INTO",
+            converted,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+        converted = converted.rstrip()
+        if converted.endswith(";"):
+            converted = converted[:-1].rstrip()
+        converted = f"{converted} ON CONFLICT DO NOTHING"
+    return converted
+
+
+class PostgresCursor:
+    """Expose the cursor attributes used by the existing SQLite-oriented code."""
+
+    def __init__(self, cursor, connection):
+        self._cursor = cursor
+        self._connection = connection
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+    @property
+    def lastrowid(self):
+        row = self._connection.execute("SELECT LASTVAL() AS id").fetchone()
+        return int(row["id"])
+
+
+class PostgresConnection:
+    """Minimal connection adapter shared by the current query layer."""
+
+    backend = "postgresql"
+
+    def __init__(self, connection):
+        self._connection = connection
+
+    def execute(self, statement, parameters=()):
+        cursor = self._connection.execute(_postgres_sql(statement), tuple(parameters or ()))
+        return PostgresCursor(cursor, self._connection)
+
+    def executescript(self, script):
+        return self._connection.execute(str(script), prepare=False)
+
+    def commit(self):
+        self._connection.commit()
+
+    def rollback(self):
+        self._connection.rollback()
+
+    def close(self):
+        self._connection.close()
+
+
+def _connect_postgres(database_url):
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+    except ImportError as error:  # pragma: no cover - exercised only on a misbuilt deploy
+        raise RuntimeError("PostgreSQL 已啟用，但 psycopg 尚未安裝") from error
+
+    connection = psycopg.connect(
+        str(database_url),
+        row_factory=dict_row,
+        connect_timeout=10,
+        application_name="tianwai-yibi",
+    )
+    return PostgresConnection(connection)
+
+
 def utc_now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def get_db():
     if "db" not in g:
-        database = Path(current_app.config["DATABASE"])
-        database.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(database, timeout=10)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        connection.execute("PRAGMA journal_mode = WAL")
+        database_url = str(current_app.config.get("DATABASE_URL", "")).strip()
+        if database_url:
+            connection = _connect_postgres(database_url)
+        else:
+            database = Path(current_app.config["DATABASE"])
+            database.parent.mkdir(parents=True, exist_ok=True)
+            connection = sqlite3.connect(database, timeout=10)
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("PRAGMA journal_mode = WAL")
         g.db = connection
     return g.db
 
@@ -140,6 +234,18 @@ def seed_database(connection):
 
 
 def _column_names(connection, table):
+    if getattr(connection, "backend", "sqlite") == "postgresql":
+        return {
+            row["name"]
+            for row in connection.execute(
+                """
+                SELECT column_name AS name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema() AND table_name = ?
+                """,
+                (str(table),),
+            ).fetchall()
+        }
     return {row["name"] for row in connection.execute(f"PRAGMA table_info({table})").fetchall()}
 
 
@@ -163,6 +269,12 @@ def migrate_database(connection):
         connection.execute("ALTER TABLE customer_sessions ADD COLUMN replay_attempts INTEGER NOT NULL DEFAULT 0")
     if "last_replay_at" not in session_columns:
         connection.execute("ALTER TABLE customer_sessions ADD COLUMN last_replay_at TEXT")
+
+    admin_session_columns = _column_names(connection, "admin_sessions")
+    if "auth_method" not in admin_session_columns:
+        connection.execute("ALTER TABLE admin_sessions ADD COLUMN auth_method TEXT NOT NULL DEFAULT 'password'")
+    if "restricted" not in admin_session_columns:
+        connection.execute("ALTER TABLE admin_sessions ADD COLUMN restricted INTEGER NOT NULL DEFAULT 0")
 
     migration_now = utc_now()
     code_cap = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(timespec="seconds")
@@ -244,7 +356,8 @@ def migrate_database(connection):
 
 def init_db():
     connection = get_db()
-    schema_path = Path(__file__).with_name("schema.sql")
+    schema_name = "schema_postgres.sql" if getattr(connection, "backend", "sqlite") == "postgresql" else "schema.sql"
+    schema_path = Path(__file__).with_name(schema_name)
     connection.executescript(schema_path.read_text(encoding="utf-8"))
     migrate_database(connection)
     seed_database(connection)

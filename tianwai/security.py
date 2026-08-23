@@ -278,7 +278,7 @@ def admin_credentials_valid(username, password):
     return user_valid and password_valid
 
 
-def create_admin_session():
+def create_admin_session(auth_method="password", restricted=False):
     raw_token = secrets.token_urlsafe(32)
     csrf_token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
@@ -287,13 +287,15 @@ def create_admin_session():
     connection.execute(
         """
         INSERT INTO admin_sessions
-            (session_hash, csrf_token, ip, user_agent, created_at, last_seen_at, expires_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+            (session_hash, csrf_token, ip, user_agent, created_at, last_seen_at, expires_at,
+             auth_method, restricted)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             hash_token(raw_token), csrf_token, get_client_ip(), safe_user_agent(),
             now.isoformat(timespec="seconds"), now.isoformat(timespec="seconds"),
             expires.isoformat(timespec="seconds"),
+            str(auth_method)[:32], 1 if restricted else 0,
         ),
     )
     connection.commit()
@@ -361,6 +363,16 @@ def admin_required(view):
             if request.path.startswith("/admin/api/"):
                 return jsonify({"error": "請先登入"}), 401
             return redirect(url_for("admin.login_page"))
+        if bool(admin_session["restricted"]):
+            allowed = (
+                request.path == "/admin/passkeys/setup"
+                or request.path == "/admin/logout"
+                or request.path.startswith("/admin/api/passkeys/")
+            )
+            if not allowed:
+                if request.path.startswith("/admin/api/"):
+                    return jsonify({"error": "請先完成兩把 Passkey 的重新登記"}), 403
+                return redirect(url_for("admin.passkey_setup"))
         return view(*args, **kwargs)
 
     return wrapped
@@ -419,6 +431,12 @@ def add_security_headers(response):
         response.headers["Content-Security-Policy"] = response.headers["Content-Security-Policy"].replace(
             "frame-ancestors 'self'", "frame-ancestors 'none'"
         )
+    if request.path.startswith("/admin/recovery"):
+        policy = response.headers["Content-Security-Policy"]
+        policy = policy.replace("script-src 'self'", "script-src 'self' https://challenges.cloudflare.com")
+        policy = policy.replace("connect-src 'self'", "connect-src 'self' https://challenges.cloudflare.com")
+        policy = policy.replace("object-src 'none'", "frame-src https://challenges.cloudflare.com; object-src 'none'")
+        response.headers["Content-Security-Policy"] = policy
     if request.is_secure or request.headers.get("X-Forwarded-Proto", "").lower() == "https":
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
