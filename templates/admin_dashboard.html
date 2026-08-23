@@ -7,6 +7,7 @@
   <title>營運後台｜天外一筆</title>
   <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css') }}">
 </head>
 <body class="admin-page admin-ops-page">
   <a class="skip-link" href="#admin-root">跳至主要內容</a>
@@ -34,8 +35,10 @@
 
   <main id="admin-root" class="admin-main" tabindex="-1">
     <header class="admin-topbar">
-      <div><p>天外一筆・營運中樞</p><h1 id="workspace-title">今日總覽</h1></div>
+      <div class="admin-breadcrumb"><span>營運中樞</span><i aria-hidden="true">/</i><h1 id="workspace-title">今日總覽</h1></div>
       <div class="admin-topbar-actions">
+        <span class="admin-environment"><i aria-hidden="true"></i>正式站</span>
+        <span id="last-sync" class="last-sync">尚未同步</span>
         <span class="admin-account"><i aria-hidden="true"></i>{{ username }}</span>
         <button id="refresh-dashboard" class="admin-refresh" type="button"><span aria-hidden="true">↻</span>重新整理</button>
       </div>
@@ -44,10 +47,12 @@
 
     <section id="overview" class="admin-workspace is-active" data-admin-panel="overview">
       <div class="overview-intro">
-        <div><span class="workspace-kicker">TODAY</span><h2>先看要處理的事，再看數字。</h2><p>付款、開通與系統異常會集中在這裡，不必逐頁尋找。</p></div>
+        <div><span class="workspace-kicker">TODAY</span><h2>先處理異常，再看成長。</h2><p>付款、開通與安全事件已依優先級集中；紅色先處理，綠色代表正常。</p></div>
         <div class="overview-date"><span id="today-weekday">—</span><strong id="today-date">—</strong><small>營運日誌</small></div>
       </div>
-      <div id="metric-grid" class="metric-grid"></div>
+      <div id="metric-grid" class="metric-grid" aria-live="polite">
+        {% for _ in range(4) %}<article class="metric-card metric-skeleton" aria-hidden="true"><span></span><strong></strong><small></small></article>{% endfor %}
+      </div>
       <div class="overview-layout">
         <section class="admin-panel attention-panel" aria-labelledby="attention-title">
           <div class="panel-heading"><div><span>ACTION REQUIRED</span><h3 id="attention-title">今日需要處理</h3></div><strong id="attention-total" class="panel-count">0</strong></div>
@@ -69,10 +74,10 @@
       <div class="order-toolbar admin-panel">
         <label class="order-search"><span class="sr-only">搜尋訂單</span><i aria-hidden="true">⌕</i><input id="order-search" type="search" placeholder="搜尋訂單編號、仙策、客戶或 Email" autocomplete="off"></label>
         <div id="order-filters" class="order-filters" role="group" aria-label="訂單狀態篩選">
-          <button class="is-active" type="button" data-order-filter="all">全部 <b id="order-count-all">0</b></button>
-          <button type="button" data-order-filter="pending">待付款 <b id="order-count-pending">0</b></button>
-          <button type="button" data-order-filter="paid">已付款 <b id="order-count-paid">0</b></button>
-          <button type="button" data-order-filter="closed">已取消／退款 <b id="order-count-closed">0</b></button>
+          <button class="is-active" type="button" data-order-filter="all" aria-pressed="true">全部 <b id="order-count-all">0</b></button>
+          <button type="button" data-order-filter="pending" aria-pressed="false">待付款 <b id="order-count-pending">0</b></button>
+          <button type="button" data-order-filter="paid" aria-pressed="false">已付款 <b id="order-count-paid">0</b></button>
+          <button type="button" data-order-filter="closed" aria-pressed="false">已取消／退款 <b id="order-count-closed">0</b></button>
         </div>
       </div>
       <div class="admin-panel table-panel orders-panel">

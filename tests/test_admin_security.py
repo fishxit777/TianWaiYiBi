@@ -16,6 +16,13 @@ def test_admin_login_failure_is_generic(client):
     assert "unknown" not in response.get_data(as_text=True)
 
 
+def test_admin_login_uses_professional_v16_design_layer(client):
+    body = client.get("/admin/login").get_data(as_text=True)
+
+    assert "static/v16.css" in body
+    assert "管理員安全登入" in body
+
+
 def test_admin_session_is_hashed_in_database(app, client):
     login_admin(client)
     cookie = client.get_cookie("twyb_admin", path="/admin")
@@ -46,6 +53,11 @@ def test_admin_dashboard_uses_six_separate_operational_workspaces(client):
     assert "今日需要處理" in body
     assert "開通碼、登入碼與私密連結不會在後台曝光" in body
     assert 'data-admin-panel="orders" hidden' in body
+    assert "static/v16.css" in body
+    assert 'class="admin-environment"' in body
+    assert 'id="last-sync"' in body
+    assert 'aria-pressed="true">全部' in body
+    assert "metric-skeleton" in body
 
 
 def test_admin_customer_access_summary_tracks_paid_then_activated(client):

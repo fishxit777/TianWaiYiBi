@@ -30,8 +30,14 @@ def test_home_lists_six_distinct_cultivators(client):
     assert "brand/wordmark-xianxia-v14.webp" in response.get_data(as_text=True)
     assert "brand/website-hero-v15.webp" in response.get_data(as_text=True)
     assert "static/v15.css" in response.get_data(as_text=True)
+    assert "static/v16.css" in response.get_data(as_text=True)
     assert "world-chapter-mark" in response.get_data(as_text=True)
     assert "續入下一卷" in response.get_data(as_text=True)
+    assert "一筆開天，靈感成案｜天外一筆原創想法交易所" in response.get_data(as_text=True)
+    assert 'id="idea-result-count"' in response.get_data(as_text=True)
+    assert 'aria-pressed="true">全部' in response.get_data(as_text=True)
+    assert "適合解決" in response.get_data(as_text=True)
+    assert "付款後開通" in response.get_data(as_text=True)
     assert response.get_data(as_text=True).count('fetchpriority="high"') >= 5
     assert response.get_data(as_text=True).count("idea-card") >= 6
     for role in ("破局劍修", "造境符師", "增長丹師", "機關偃師", "回聲樂修", "觀星策士"):
@@ -158,6 +164,13 @@ def test_xianxia_title_art_is_web_optimized_and_versioned():
     assert "@media (max-width: 480px)" in v15_stylesheet
     for creed_color in ("#a5433a", "#2f8177", "#685493", "#a5782f"):
         assert creed_color in v15_stylesheet
+
+    v16_stylesheet = (project_root / "static" / "v16.css").read_text(encoding="utf-8")
+    assert "V16 professional refinement" in v16_stylesheet
+    assert ".home-page .idea-fit" in v16_stylesheet
+    assert ".home-page .filter-console" in v16_stylesheet
+    assert ".public-site .footer-trust" in v16_stylesheet
+    assert "@media (prefers-reduced-motion: reduce)" in v16_stylesheet
 
 
 def test_logo_review_is_not_a_public_route(client):

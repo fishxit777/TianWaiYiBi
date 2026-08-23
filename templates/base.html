@@ -17,6 +17,7 @@
   {% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v15.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css') }}">
 </head>
 <body class="{% block site_scope_class %}public-site{% endblock %} {% block body_class %}{% endblock %}">
   <a class="skip-link" href="#main">跳至主要內容</a>
@@ -44,11 +45,16 @@
   </main>
 
   <footer class="site-footer">
-    <div>
+    <div class="footer-identity">
       <span class="footer-brand"><img src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt="" width="40" height="40"><strong>天外一筆工作室</strong></span>
       <p>{% block footer_tagline %}一筆開天・萬念成策・有問便傳音{% endblock %}</p>
     </div>
-    <p class="footer-note">{% block footer_note %}付款完成後才會開通內容。已購買的客戶可至 <a href="{{ url_for('access.customer_login_page') }}">客戶登入</a> 取回內容。{% endblock %}</p>
+    <ul class="footer-trust" aria-label="交易與取用說明">
+      <li><strong>付款後開通</strong><span>付款確認前不提供付費內容</span></li>
+      <li><strong>專屬權限</strong><span>每位客戶使用自己的登入驗證</span></li>
+      <li><strong>內容可取回</strong><span>已購內容可回到客戶入口登入</span></li>
+    </ul>
+    <p class="footer-note">{% block footer_note %}已購買的客戶可至 <a href="{{ url_for('access.customer_login_page') }}">客戶登入</a> 取回內容；需要協助時，請由傳音閣聯繫客服。{% endblock %}</p>
   </footer>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>

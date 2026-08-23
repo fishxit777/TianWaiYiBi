@@ -23,6 +23,7 @@
 - 公開官網只保留六脈仙策、仙閣心訣與真人客服傳音入口；Logo 審稿、本機模擬器與管理後台不出現在公開導覽或頁尾。
 - 整個公開官網已統一使用自架「莫大毛筆」繁體書法字系：正文用原筆、主標用同系加粗，保留真實墨邊與飛白；首頁、六脈、結帳、付款、交付、訊息與傳音頁皆一致，放大仍維持向量銳利。後台與開發工具維持清楚的操作字體。
 - `/transmission` 是自有「九霄月壇・朱砂傳音詔」修仙轉場頁：桌機顯示八方月壇與高對比官方 QR 法印，手機才直接開啟 LINE，並清楚標示唯一名號與安全傳音守則。
+- V16 已完成官網與後台各 20 點專業化重整：官網補齊語意 H1、難題篩選結果、用途層級、交易信任頁尾與 390px 首屏；後台改成高密度營運介面，加入正式站／同步狀態、骨架載入、六欄客戶指標、3＋3 安全旗標、表格 sticky header 與串接下一步。
 
 正式入口：
 
@@ -70,7 +71,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `51 passed`。
+目前自動驗證結果為 `52 passed`。
 
 ## 公開部署
 
@@ -158,7 +159,9 @@ python -m pytest -q
 - `docs/plans/2026-08-23-readable-public-typography.md`
 - `docs/plans/2026-08-23-v15-xianxia-site-audit-and-design.md`
 - `docs/plans/2026-08-23-device-trust-risk-access.md`
+- `docs/plans/2026-08-23-public-admin-40-point-professionalization.md`
 - `docs/updates/2026-08-23-device-trust-risk-access-update.md`
+- `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`

@@ -76,7 +76,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "trusted-device-risk-v1",
+                "release": "professional-ui-v16",
             }
         )
 

@@ -4,12 +4,21 @@
   document.querySelectorAll('[data-filter]').forEach((button) => {
     button.addEventListener('click', () => {
       const filter = button.dataset.filter || 'all';
-      document.querySelectorAll('[data-filter]').forEach((item) => item.classList.remove('is-active'));
+      document.querySelectorAll('[data-filter]').forEach((item) => {
+        item.classList.remove('is-active');
+        item.setAttribute('aria-pressed', 'false');
+      });
       button.classList.add('is-active');
+      button.setAttribute('aria-pressed', 'true');
+      let visibleCount = 0;
       document.querySelectorAll('.idea-card').forEach((card) => {
         const visible = filter === 'all' || (card.dataset.tags || '').includes(filter);
         card.classList.toggle('is-hidden', !visible);
+        card.setAttribute('aria-hidden', String(!visible));
+        if (visible) visibleCount += 1;
       });
+      const result = document.querySelector('#idea-result-count');
+      if (result) result.textContent = filter === 'all' ? `目前顯示全部 ${visibleCount} 脈仙策` : `${filter}難題・找到 ${visibleCount} 脈仙策`;
       fetch('/api/events', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},

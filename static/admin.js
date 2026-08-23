@@ -77,17 +77,20 @@
       ['瀏覽轉換率', `${metrics.conversion}%`, `${metrics.views} 次有效瀏覽`, 'conversion']
     ].forEach(([label, value, detail, tone]) => {
       const card = node('article', `metric-card tone-${tone}`);
-      card.append(node('span', 'metric-label', label), node('strong', '', value), node('small', '', detail));
+      card.dataset.tone = tone;
+      const header = node('div', 'metric-card-head');
+      header.append(node('span', 'metric-label', label), node('i', '', tone === 'attention' ? '需處理' : '即時'));
+      card.append(header, node('strong', '', value), node('small', '', detail));
       target.appendChild(card);
     });
   }
 
   function integrationItems(config) {
     return [
-      {label: '公開官網', value: config.public_https ? '正式 HTTPS' : '尚未使用 HTTPS', ready: config.public_https, detail: config.base_url, key: 'WEB'},
-      {label: 'LINE 客服', value: config.line_channel ? '正式頻道已連線' : '尚未設定頻道', ready: config.line_channel, detail: `已接收 ${config.line_events || 0} 筆事件`, key: 'LINE'},
-      {label: '付款服務', value: config.payment_label || config.payment_provider, ready: !['mock', 'unavailable'].includes(config.payment_provider), detail: config.payment_provider === 'unavailable' ? '缺少特店憑證或交付設定' : '以伺服器付款通知為準', key: 'PAY'},
-      {label: 'Email 交付', value: config.email_delivery ? '寄送服務已啟用' : '尚未啟用寄送', ready: config.email_delivery, detail: '付款後寄送專屬開通資料', key: 'MAIL'}
+      {label: '公開官網', value: config.public_https ? '正式 HTTPS' : '尚未使用 HTTPS', ready: config.public_https, detail: config.base_url, next: config.public_https ? '定期確認憑證與健康狀態' : '設定正式 HTTPS 網址', key: 'WEB'},
+      {label: 'LINE 客服', value: config.line_channel ? '正式頻道已連線' : '尚未設定頻道', ready: config.line_channel, detail: `已接收 ${config.line_events || 0} 筆事件`, next: config.line_channel ? '確認傳音與私下告警可送達' : '補上頻道憑證並驗簽', key: 'LINE'},
+      {label: '付款服務', value: config.payment_label || config.payment_provider, ready: !['mock', 'unavailable'].includes(config.payment_provider), detail: config.payment_provider === 'unavailable' ? '缺少特店憑證或交付設定' : '以伺服器付款通知為準', next: !['mock', 'unavailable'].includes(config.payment_provider) ? '定期核對回呼與訂單金額' : '完成特店憑證與回呼驗收', key: 'PAY'},
+      {label: 'Email 交付', value: config.email_delivery ? '寄送服務已啟用' : '尚未啟用寄送', ready: config.email_delivery, detail: '付款後寄送專屬開通資料', next: config.email_delivery ? '監看交付失敗與退信' : '設定寄送服務並測試交付', key: 'MAIL'}
     ];
   }
 
@@ -201,7 +204,9 @@
       const card = node('article', `integration-card ${item.ready ? 'ready' : 'pending'}`);
       const head = node('div', 'integration-card-head');
       head.append(node('i', '', item.key), node('span', `integration-dot ${item.ready ? 'good' : 'warn'}`, item.ready ? '已就緒' : '待設定'));
-      card.append(head, node('h3', '', item.label), node('strong', '', item.value), node('small', '', item.detail));
+      const next = node('p', 'integration-next');
+      next.append(node('b', '', '下一步'), node('span', '', item.next));
+      card.append(head, node('h3', '', item.label), node('strong', '', item.value), node('small', '', item.detail), next);
       target.appendChild(card);
     });
   }
@@ -312,7 +317,7 @@
       ['目前登入', summary.active_sessions || 0, '單一有效工作階段'],
       ['可信裝置', summary.trusted_devices || 0, '每位客戶最多 2 台']
     ].forEach(([label, value, detail], index) => {
-      const card = node('article', `customer-metric ${index === 3 && value ? 'needs-attention' : ''}`);
+      const card = node('article', `customer-metric tone-${index} ${index === 3 && value ? 'needs-attention' : ''}`);
       card.append(node('span', '', label), node('strong', '', value), node('small', '', detail));
       target.appendChild(card);
     });
@@ -355,7 +360,7 @@
       const status = device.revoked_at ? `已撤銷・${device.revoked_reason || '未註明'}` : '可信任';
       const action = node('td');
       if (!device.revoked_at) {
-        const button = node('button', '', '撤銷裝置');
+        const button = node('button', 'danger-action', '撤銷裝置');
         button.type = 'button';
         button.addEventListener('click', async () => {
           try {
@@ -529,10 +534,14 @@
   async function loadDashboard(message = '') {
     status.textContent = message || '正在讀取營運資料…';
     status.classList.remove('is-error');
+    root.classList.add('is-loading');
     try {
       render(await api('/admin/api/dashboard'));
-      status.textContent = message || `資料已更新・${new Date().toLocaleTimeString('zh-TW', {hour12: false})}`;
+      const syncedAt = new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit', hour12: false});
+      status.textContent = message || `資料已更新・${syncedAt}`;
+      document.querySelector('#last-sync').textContent = `同步 ${syncedAt}`;
     } catch (error) { showError(error); }
+    finally { root.classList.remove('is-loading'); }
   }
 
   document.querySelectorAll('[data-admin-view]').forEach((button) => button.addEventListener('click', () => setWorkspace(button.dataset.adminView)));
@@ -543,7 +552,11 @@
   document.querySelectorAll('[data-order-filter]').forEach((button) => {
     button.addEventListener('click', () => {
       orderFilter = button.dataset.orderFilter;
-      document.querySelectorAll('[data-order-filter]').forEach((item) => item.classList.toggle('is-active', item === button));
+      document.querySelectorAll('[data-order-filter]').forEach((item) => {
+        const active = item === button;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
       renderOrders();
     });
   });
