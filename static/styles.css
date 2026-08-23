@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Tianwai Masa";
-  src: url("fonts/tianwai-masa-regular.woff2") format("woff2");
+  src: url("fonts/tianwai-masa-regular.woff2?v=mobile-card-type-v1") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;
@@ -402,7 +402,7 @@
 
 @font-face {
   font-family: "Tianwai Masa";
-  src: url("fonts/tianwai-masa-bold.woff2") format("woff2");
+  src: url("fonts/tianwai-masa-bold.woff2?v=mobile-card-type-v1") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 700;
@@ -410,7 +410,7 @@
 
 @font-face {
   font-family: "Tianwai Masa Display";
-  src: url("fonts/tianwai-masa-bold.woff2") format("woff2");
+  src: url("fonts/tianwai-masa-bold.woff2?v=mobile-card-type-v1") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 400;

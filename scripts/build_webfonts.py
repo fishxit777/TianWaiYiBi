@@ -9,20 +9,24 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from fontTools import subset
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_TEXT_SOURCES = (
     "templates/base.html",
+    "templates/activate.html",
     "templates/home.html",
     "templates/idea_detail.html",
     "templates/checkout.html",
+    "templates/customer_library.html",
+    "templates/customer_login.html",
+    "templates/ecpay_redirect.html",
     "templates/mock_payment.html",
     "templates/order_access.html",
+    "templates/payment_status.html",
     "templates/message.html",
     "templates/transmission.html",
     "static/app.js",
+    "tianwai/access.py",
+    "tianwai/db.py",
     "tianwai/public.py",
     "tianwai/payments.py",
     "tianwai/schema.sql",
@@ -41,6 +45,8 @@ def collect_codepoints() -> set[int]:
 
 
 def subset_font(source: Path, destination: Path, codepoints: set[int]) -> None:
+    from fontTools import subset
+
     options = subset.Options()
     options.flavor = "woff2"
     options.layout_features = ["*"]

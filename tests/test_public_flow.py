@@ -2,6 +2,8 @@ import re
 from pathlib import Path
 
 from conftest import set_public_csrf
+from scripts.build_webfonts import collect_codepoints
+from tianwai.db import IDEA_SEEDS
 
 
 def create_order(client, slug="brand-world-forge"):
@@ -114,7 +116,7 @@ def test_public_site_self_hosts_vector_brush_fonts():
     for font_path in font_paths:
         data = font_path.read_bytes()
         assert data[:4] == b"wOF2"
-        assert 100_000 < len(data) < 350_000
+        assert 100_000 < len(data) < 500_000
 
     assert not (project_root / "static" / "fonts" / "tianwai-masa-medium.woff2").exists()
 
@@ -135,6 +137,28 @@ def test_public_site_self_hosts_vector_brush_fonts():
     assert "-webkit-text-stroke" in stylesheet
     assert "tianwai-brush-display.woff2" not in stylesheet
     assert "tianwai-wenkai-body.woff2" not in stylesheet
+    assert stylesheet.count("?v=mobile-card-type-v1") == 3
+
+
+def test_webfont_subset_includes_all_dynamic_idea_card_copy():
+    codepoints = collect_codepoints()
+
+    for idea in IDEA_SEEDS:
+        visible_card_copy = f"{idea['role']}{idea['title']}{idea['discipline']}"
+        missing_characters = {
+            character for character in visible_card_copy if ord(character) not in codepoints
+        }
+        assert not missing_characters, (
+            f"Web font subset is missing card characters for {idea['slug']}: "
+            f"{''.join(sorted(missing_characters))}"
+        )
+
+    v16_stylesheet = (
+        Path(__file__).resolve().parents[1] / "static" / "v16.css"
+    ).read_text(encoding="utf-8")
+    assert '.home-page .idea-card h3 {' in v16_stylesheet
+    assert 'font-family: "Tianwai Masa Display"' in v16_stylesheet
+    assert '.home-page .idea-card h3 { font-size: 29px; }' in v16_stylesheet
 
 
 def test_xianxia_title_art_is_web_optimized_and_versioned():

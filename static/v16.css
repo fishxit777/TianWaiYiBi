@@ -110,9 +110,32 @@
 .home-page .idea-card:nth-child(6) .idea-summary { margin-top: 14px; }
 .home-page .idea-card:nth-child(6) .idea-tags { align-self: auto; }
 .home-page .idea-card:hover { transform: translateY(-5px); }
-.home-page .idea-role { margin-top: 25px; color: var(--accent); font-size: 13px; font-weight: 800; letter-spacing: .14em; }
-.home-page .idea-card h3 { margin-top: 5px; font-size: clamp(27px, 2vw, 32px); line-height: 1.2; }
-.home-page .idea-discipline { margin-top: 7px; color: rgba(182, 237, 226, .8); font-size: 13px; }
+.home-page .idea-card .idea-role {
+  margin-top: 25px;
+  color: var(--accent);
+  font-family: "Tianwai Masa", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: .14em;
+}
+.home-page .idea-card h3 {
+  margin-top: 5px;
+  font-family: "Tianwai Masa Display", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  font-size: clamp(28px, 2vw, 32px);
+  font-style: normal;
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.24;
+  letter-spacing: .035em;
+}
+.home-page .idea-card .idea-discipline {
+  margin-top: 7px;
+  color: rgba(182, 237, 226, .88);
+  font-family: "Tianwai Masa", "DFKai-SB", "BiauKai", "KaiTi", serif;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: .035em;
+}
 .home-page .idea-summary {
   display: -webkit-box;
   overflow: hidden;
@@ -492,7 +515,7 @@
   .home-page .idea-card:nth-child(2),
   .home-page .idea-card:nth-child(6) { min-height: 0; }
   .home-page .idea-role, .home-page .idea-card:nth-child(6) .idea-role { margin-top: 20px; }
-  .home-page .idea-card h3 { font-size: 27px; }
+  .home-page .idea-card h3 { font-size: 29px; }
   .home-page .idea-summary { font-size: 14px; -webkit-line-clamp: 3; }
   .home-page .idea-fit { margin-top: 12px; }
   .home-page .idea-tags { display: none; }

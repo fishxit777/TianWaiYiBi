@@ -78,7 +78,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "admin-notifications-v1",
+                "release": "mobile-card-type-v1",
             }
         )
 
