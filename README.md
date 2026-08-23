@@ -101,6 +101,15 @@ py -3 scripts\generate_admin_credential.py
 
 產生器只在終端顯示一次 43 位 Base64url 明文與 Argon2id verifier，不會寫檔。請先將明文保存到密碼管理器，再把 verifier 設為 Render `ADMIN_PASSWORD_HASH`；確認新密碼登入成功後，移除舊 `ADMIN_PASSWORD`。不要把任何一個值貼進 Git、文件、Email、LINE 或對話紀錄。
 
+不希望明文出現在終端時，改用本機一次性交接視窗：
+
+```powershell
+py -3 scripts\admin_credential_handoff.py
+```
+
+視窗會要求先複製並保存密碼；確認後會清除畫面上的明文，並把剪貼簿改成
+Render 所需的 Argon2id verifier。視窗 10 分鐘後自動失效，不會把明文寫入磁碟。
+
 免費 Render 初版的 SQLite 檔案不是正式持久化資料庫，重新部署或重建執行個體時可能重建。可用於真人 LINE Bot、官網與需求驗證，但正式收款前必須換成持久化 PostgreSQL 或付費磁碟並建立備份。
 
 ## 資料與價格
