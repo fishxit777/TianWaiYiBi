@@ -79,6 +79,7 @@ python -m pytest -q
 專案根目錄的 `render.yaml` 已建立獨立 Render Web Service，正式程序使用 Gunicorn，健康檢查為 `/healthz`。機密值只放在 Render 環境變數，不得提交到 Git：
 
 - `ADMIN_PASSWORD_HASH`（正式建議；由 `scripts/generate_admin_credential.py` 產生的 Argon2id verifier）
+- `DATABASE_URL`（Neon PostgreSQL pooled connection string；不得輸出到日誌或命令列）
 - `ADMIN_PASSWORD`（只作首次輪替前或本機臨時相容；Hash 驗收後應從正式環境移除）
 - `LINE_CHANNEL_SECRET`
 - `LINE_CHANNEL_ACCESS_TOKEN`
@@ -91,7 +92,16 @@ python -m pytest -q
 - `ECPAY_STORE_ID`（固定使用 `TWYB`，供綠界後台對帳及 callback 隔離）
 - `SMTP_PASSWORD`
 
-`APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。`DATABASE_PATH` 可指定資料庫檔案位置；未設定 `BASE_URL` 時，LINE 卡片連結會自動使用目前公開請求的 HTTPS 網域。
+`APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。設定 `DATABASE_URL` 時正式服務改用 PostgreSQL；未設定時才使用 `DATABASE_PATH` 指定的 SQLite。未設定 `BASE_URL` 時，LINE 卡片連結會自動使用目前公開請求的 HTTPS 網域。
+
+SQLite 遷移到 PostgreSQL 時，不要把連線網址放在指令參數。先在目前 PowerShell 程序設定 `DATABASE_URL`，再執行：
+
+```powershell
+python -m scripts.migrate_sqlite_to_postgres --source data\tianwai.db --report migration-report.json
+python -m scripts.verify_postgres_migration --source data\tianwai.db --report verification-report.json
+```
+
+兩份報告只包含各表筆數與 SHA-256 校驗碼，不包含 Email、訂單內容、Token 或連線字串。目的端若已有訂單、權益、工作階段或稽核資料，遷移預設拒絕覆寫。
 
 正式管理憑證輪替請在可信任的本機終端執行：
 
