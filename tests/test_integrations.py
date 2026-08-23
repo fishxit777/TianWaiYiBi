@@ -113,10 +113,14 @@ def test_ecpay_server_callback_unlocks_only_after_valid_signed_paid_notice(clien
     order = create_order(client)
     assert order["payment_provider"] == "ecpay"
     assert order["checkout_url"].startswith("/pay/ecpay/")
+    redirect_page = client.get(order["checkout_url"])
+    assert redirect_page.status_code == 200
+    assert b'name="StoreID" value="TWYB"' in redirect_page.data
 
     parameters = {
         "MerchantID": "3002607",
         "MerchantTradeNo": order["order_no"],
+        "StoreID": "TWYB",
         "RtnCode": "1",
         "RtnMsg": "交易成功",
         "TradeNo": "2608231234567890",
@@ -137,6 +141,38 @@ def test_ecpay_server_callback_unlocks_only_after_valid_signed_paid_notice(clien
     assert response.status_code == 200
     assert response.get_data(as_text=True) == "1|OK"
     assert len(client.application.extensions["mail_outbox"]) == 1
+
+
+def test_ecpay_rejects_callback_from_another_store(client, monkeypatch, app):
+    monkeypatch.setenv("PAYMENT_PROVIDER", "ecpay")
+    monkeypatch.setenv("ECPAY_MODE", "stage")
+    monkeypatch.setenv("ECPAY_MERCHANT_ID", "3002607")
+    monkeypatch.setenv("ECPAY_HASH_KEY", "pwFHCqoQZGmho4w6")
+    monkeypatch.setenv("ECPAY_HASH_IV", "EkRm7iFT261dpevs")
+    order = create_order(client)
+    parameters = {
+        "MerchantID": "3002607",
+        "MerchantTradeNo": order["order_no"],
+        "StoreID": "NESTFM",
+        "RtnCode": "1",
+        "TradeNo": "2608235555555555",
+        "TradeAmt": "199",
+        "SimulatePaid": "0",
+    }
+    parameters["CheckMacValue"] = ecpay_check_mac_value(
+        parameters,
+        "pwFHCqoQZGmho4w6",
+        "EkRm7iFT261dpevs",
+    )
+
+    response = client.post("/payments/ecpay/notify", data=parameters)
+
+    assert response.status_code == 400
+    with app.app_context():
+        row = get_db().execute(
+            "SELECT status FROM orders WHERE order_no = ?", (order["order_no"],)
+        ).fetchone()
+        assert row["status"] == "pending"
 
 
 def test_ecpay_rejects_bad_check_mac_without_granting_access(client, monkeypatch, app):

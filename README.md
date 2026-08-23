@@ -4,7 +4,7 @@
 
 專案位置：`C:\Users\bao58\Projects\TianWaiYiBi`
 
-本專案與萬語通、辰新數位、NOWELYO、SoundBank、商機雷達及其他既有專案完全分離。沒有共用 Token、資料庫、管理員收件人、金流帳號或部署服務。
+本專案與萬語通、辰新數位、NOWELYO、SoundBank、商機雷達及其他既有專案維持應用層隔離：不共用 LINE Token、資料庫、管理員收件人或部署服務。綠界可沿用同一合法特店的 MerchantID／HashKey／HashIV，但憑證只存放在本專案自己的 Render 環境變數；訂單使用 `TWYB` 前綴、`StoreID=TWYB`、獨立 callback 與獨立權益資料，做法與 NestFM 的多專案共用特店模式一致。
 
 ## 目前能做什麼
 
@@ -79,6 +79,7 @@ python -m pytest -q
 - `ECPAY_MERCHANT_ID`
 - `ECPAY_HASH_KEY`
 - `ECPAY_HASH_IV`
+- `ECPAY_STORE_ID`（固定使用 `TWYB`，供綠界後台對帳及 callback 隔離）
 - `SMTP_PASSWORD`
 
 `APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。`DATABASE_PATH` 可指定資料庫檔案位置；未設定 `BASE_URL` 時，LINE 卡片連結會自動使用目前公開請求的 HTTPS 網域。

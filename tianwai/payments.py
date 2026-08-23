@@ -31,11 +31,14 @@ def _ecpay_config():
     mode = os.environ.get("ECPAY_MODE", "stage").strip().lower()
     if mode not in {"stage", "production"}:
         mode = "stage"
+    raw_store_id = os.environ.get("ECPAY_STORE_ID", "TWYB").strip()
+    store_id = raw_store_id if raw_store_id.isalnum() and len(raw_store_id) <= 10 else ""
     return {
         "mode": mode,
         "merchant_id": os.environ.get("ECPAY_MERCHANT_ID", "").strip(),
         "hash_key": os.environ.get("ECPAY_HASH_KEY", "").strip(),
         "hash_iv": os.environ.get("ECPAY_HASH_IV", "").strip(),
+        "store_id": store_id,
         "endpoint": ECPAY_PRODUCTION_URL if mode == "production" else ECPAY_STAGE_URL,
     }
 
@@ -45,7 +48,12 @@ def payment_checkout_status():
     if requested == "ecpay":
         config = _ecpay_config()
         credentials_ready = all(
-            (config["merchant_id"], config["hash_key"], config["hash_iv"])
+            (
+                config["merchant_id"],
+                config["hash_key"],
+                config["hash_iv"],
+                config["store_id"],
+            )
         )
         base_url = os.environ.get("BASE_URL", "").strip().lower()
         callback_ready = base_url.startswith("https://") or bool(current_app.config.get("TESTING"))
@@ -98,7 +106,11 @@ def ecpay_check_mac_value(parameters, hash_key, hash_iv):
 def _ecpay_callback_valid(parameters):
     config = _ecpay_config()
     supplied = str(parameters.get("CheckMacValue", ""))
-    if not supplied or str(parameters.get("MerchantID", "")) != config["merchant_id"]:
+    if (
+        not supplied
+        or str(parameters.get("MerchantID", "")) != config["merchant_id"]
+        or str(parameters.get("StoreID", "")) != config["store_id"]
+    ):
         return False
     expected = ecpay_check_mac_value(parameters, config["hash_key"], config["hash_iv"])
     return hmac.compare_digest(expected, supplied.upper())
@@ -352,6 +364,7 @@ def ecpay_payment_page(payment_token):
         "OrderResultURL": f"{base_url}/payments/ecpay/result",
         "ClientBackURL": f"{base_url}/",
         "NeedExtraPaidInfo": "N",
+        "StoreID": config["store_id"],
     }
     parameters["CheckMacValue"] = ecpay_check_mac_value(
         parameters, config["hash_key"], config["hash_iv"]

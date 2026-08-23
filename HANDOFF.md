@@ -16,7 +16,7 @@
 - 付款成功後才寄送專屬開通連結與 12 位一次性開通碼；首次碼 24 小時有效、成功後立即作廢，最多嘗試 5 次。
 - 重新登入採另一組 12 位碼，伺服器端 7 分鐘失效且可重寄；已付款權益不會因驗證碼失效而刪除。
 - 30 天 HttpOnly 客戶 session、已購內容庫、跨裝置 Email 無密碼登入與登出撤銷。
-- 綠界 AioCheckOut V5 已完成表單轉送、官方 CheckMacValue 算法、ReturnURL／OrderResultURL、金額核對、防重送與正式啟用閘門。
+- 綠界 AioCheckOut V5 已完成表單轉送、官方 CheckMacValue 算法、ReturnURL／OrderResultURL、金額核對、防重送與正式啟用閘門；可沿用與 NestFM 相同的合法特店憑證，但固定使用 `TWYB` 訂單前綴及 `StoreID=TWYB` 隔離對帳與 callback。
 - SMTP 交易信介面已完成；本機使用不外寄的 outbox 預覽，正式環境需補 SMTP 設定。
 - LINE webhook 簽章、防重送、好友加入、文字指令、六脈 Flex Carousel 與共用訊息模型的本機模擬器。
 - 管理後台登入、server-side session、CSRF、全站／單品價格、仙策完整內容編輯、排序、上下架、訂單、營收、流量來源、串接狀態、安全事件、封鎖與稽核。
@@ -94,9 +94,9 @@
 1. 用目前 V13 與六脈頁面做 10～20 人需求驗證，選出首發 1～2 個仙策。
 2. 把首發仙策內容補強到正式可交付品質，定案價格、退款、授權與電子發票規則。
 3. 為既有的獨立 LINE 官方帳號啟用 Messaging API，部署公開 HTTPS，填入本專案自己的 Channel Secret／Access Token。
-4. 提供本專案獨立的綠界 MerchantID／HashKey／HashIV 與 SMTP 設定，先做 stage 驗收。
+4. 將既有合法綠界特店的 MerchantID／HashKey／HashIV 分別存入本專案自己的 Render 環境變數，保留 `ECPAY_STORE_ID=TWYB`，並補 SMTP 設定後先做 stage／非扣款驗收。
 5. 正式公開前換 PostgreSQL 或 Render 持久化磁碟，補退款撤銷權益、電子發票、備份、監控、WAF、管理員 2FA 與部署檢查。
 
 ## 禁止混用
 
-不得沿用萬語通的 LINE token、管理員 LINE ID、資料庫、支付商店資料、Render 服務或網域。也不得把本專案併入辰新數位、SoundBank、NOWELYO 或其他專案目錄。
+不得沿用萬語通的 LINE token、管理員 LINE ID、資料庫、Render 服務或網域。綠界特店憑證可依法沿用同一組，但不得寫入程式庫或互相共用訂單／權益資料；天外一筆固定使用 `TWYB` 訂單前綴、`StoreID=TWYB` 與自己的 callback。也不得把本專案併入辰新數位、SoundBank、NOWELYO 或其他專案目錄。
