@@ -50,6 +50,7 @@
 | 結帳頁 | 消費者明確說明裝置、session、IP 概略與事件記錄 | 同意版本 `2026-08-23-v2-device-risk` |
 | 管理後台 | 可信裝置表、撤銷、風險事件、證據鏈、案件處理、LINE 佇列重試 | 管理 session＋CSRF 測試 |
 | 私下 LINE | 新環境變數 `LINE_ADMIN_USER_ID`，只對高／重大推播 | 設定後以測試案件驗收 |
+| 部署識別 | `/healthz` 回傳 `release=trusted-device-risk-v1` | 公開部署可明確核對新版本 |
 
 ## 後台處置流程
 

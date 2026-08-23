@@ -72,7 +72,13 @@ def create_app(test_config=None):
     @app.get("/healthz")
     def healthz():
         db.get_db().execute("SELECT 1").fetchone()
-        return jsonify({"status": "ok", "service": "tianwai-yibi-xiance"})
+        return jsonify(
+            {
+                "status": "ok",
+                "service": "tianwai-yibi-xiance",
+                "release": "trusted-device-risk-v1",
+            }
+        )
 
     @app.errorhandler(404)
     def not_found(_error):
