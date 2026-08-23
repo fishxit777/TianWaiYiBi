@@ -47,6 +47,9 @@
 - JavaScript syntax check：通過。
 - `pip check`：無相依問題。
 - pytest：58 passed。
+- 正式 Render：commit `197740d` 已上線，`/healthz` 回傳 `release=admin-notifications-v1`。
+- 正式安全檢查：官網與後台登入回 200；未帶排程密鑰的 POST 回 404；後台登入維持 `no-store` 與 `X-Frame-Options: DENY`；公開頁沒有後台或內部排程連結。
+- GitHub Actions：`Daily admin summary` workflow 已被 GitHub 正確載入，沒有 invalid workflow。
 
 ## 正式環境仍需驗收的外部設定
 
@@ -59,3 +62,5 @@
 - GitHub Actions Secret：同值的 `NOTIFICATION_CRON_SECRET`
 
 設定完成後手動執行一次 workflow，確認本人 LINE 與 Gmail 均收到相同時段摘要，再於後台檢查兩筆佇列狀態為 `sent`。
+
+2026-08-23 正式部署後只核對變數名稱、不讀取密鑰值：Render 尚未出現 `ADMIN_ALERT_EMAIL`、`NOTIFICATION_CRON_SECRET`、`LINE_ADMIN_USER_ID` 與 SMTP 寄送組態；GitHub Actions 尚未建立 `NOTIFICATION_CRON_SECRET`。因此程式與排程檔已上線，但在外部私密設定完成前，不宣稱 LINE＋Gmail 已實際送達。
