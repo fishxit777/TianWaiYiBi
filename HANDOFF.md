@@ -6,6 +6,8 @@
 
 本機初版已 commit 並推送至獨立私人 GitHub 儲存庫，Render 免費 HTTPS 服務與 LINE Messaging API 已完成接線。
 
+2026-08-23 最新安全升級目前位於隔離分支 `feature/free-passkey-postgres`；主線與正式站仍停在部署前版本，尚未切換資料庫、尚未啟用 Passkey-only，也沒有把測試中的環境值寫進正式站。必須等 Neon 遷移、兩把實機 Passkey 與還原演練都通過後才可合併部署。
+
 已完成：
 
 - Flask 應用工廠與 SQLite 自動建表／種子資料。
@@ -50,10 +52,15 @@
 - 管理員憑證 V2 已完成：本機與正式輪替工具可產生 32 bytes／43 位 Base64url／256-bit 密碼；伺服器支援 Argon2id（19 MiB、2 次、p=1）且 Hash 存在時禁止降級使用舊明文。後台安全稽核新增 Argon2id 狀態；正式新明文不得進 Git、文件或對話，需由擁有者在可信任終端產生並直接保存到密碼管理器後，再設定 Render `ADMIN_PASSWORD_HASH`、驗收並移除 `ADMIN_PASSWORD`。
 - 管理員憑證本機交接 V2 已完成：`scripts/admin_credential_handoff.py` 以一次性 Windows 視窗顯示 43 位密碼；複製 Argon2id verifier 後視窗仍保持開啟，可在 Render 部署完成後再次複製真正登入密碼，直到正式登入成功才銷毀，避免密碼管理器未保存時鎖死。明文不寫入磁碟、終端、Git、LINE、Gmail 或 Chat。
 - 客戶交易郵件寄送失敗已接入即時管理告警；管理 Gmail 故障時不會遞迴產生無限告警，LINE 仍獨立送達。後台已顯示雙通道、通知類型及每日排程就緒狀態。
+- 免費 PostgreSQL 基礎完成：SQLite／PostgreSQL 雙後端、完整 PostgreSQL schema、additive migration、SQLite→PostgreSQL checksum 遷移／核對工具與 PostgreSQL 17 CI；健康回應不揭露後端或連線值。
+- 管理 Passkey 完成：32-byte／五分鐘／一次性 WebAuthn challenge，精確 RP／HTTPS origin、user verification、兩把金鑰門檻、Passkey-only 登入、憑證盤點與最後一把撤銷保護。
+- 緊急復原完成：10 組 128-bit 一次性碼只存 Argon2id；必須密碼＋復原碼＋Turnstile 全部正確。成功會撤銷全部舊 session／Passkey、即時告警，並限制只能重建兩把 Passkey。
+- 免費加密備份完成：每日 `pg_dump` 先由 `pg_restore --list` 驗證，再以 AES-256-GCM 加密與離線 RSA-4096 公鑰包裝；GitHub 只上傳 14 天加密檔，單份 25 MB 零費用上限。
 - 完整 40 點問題、影響與對應修正記錄於 `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`；本次只改呈現層與互動狀態，沒有改動付款、開通、可信裝置、風險分級或資料庫規則。
 
 ## 驗證結果
 
+- 最新隔離分支：`python -m pytest -q` 為 103 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 執行。Passkey／復原／加密備份專項、Python compile、JavaScript syntax、`pip check` 與 `git diff --check` 均通過。
 - `python -m py_compile ...`：通過。
 - `node --check static\app.js`：通過。
 - `node --check static\admin.js`：通過。
@@ -105,22 +112,24 @@
 - `/line/webhook`：正式 LINE webhook 入口
 - `/payments/webhook/mock`：支付 webhook 範例
 - `/admin`：管理後台
+- `/admin/passkeys/setup`：登入後的 Passkey、雙金鑰與一次性復原碼設定（不得公開連結）
+- `/admin/recovery`：只在 Passkey-only 且復原三因素已完整配置時存在；一般情況回 404
 - `/internal/notifications/daily-summary`：GitHub Actions 專用的密鑰保護排程端點，不得公開連結
 
 `/dev/line` 與 `/admin` 為非公開營運入口，不得從公開頁面連結；Logo 評估路由已撤除。
 
 ## 下一個最高 ROI 決策
 
-先讓 10～20 位目標客戶看六脈仙策，記錄哪一脈被點擊、哪一脈進入結帳，以及客戶是否願意為「想法＋模板」付款。若沒有付費訊號，不應先投入正式支付、會員系統或更多角色。
+目前最大限制是正式 Render 仍使用非持久化 SQLite。最高 ROI 下一步不是再增加功能，而是先完成免費 Neon 遷移、加密備份實際還原與兩把 Passkey 實機驗收；在這三項完成前，不應讓正式站承接不可遺失的真實付款資料。
 
-需求有訊號後，建議依序：
+安全切換與需求驗證建議依序：
 
-1. 用目前 V13 與六脈頁面做 10～20 人需求驗證，選出首發 1～2 個仙策。
-2. 把首發仙策內容補強到正式可交付品質，定案價格、退款、授權與電子發票規則。
-3. 為既有的獨立 LINE 官方帳號啟用 Messaging API，部署公開 HTTPS，填入本專案自己的 Channel Secret／Access Token。
-4. 將既有合法綠界特店的 MerchantID／HashKey／HashIV 分別存入本專案自己的 Render 環境變數，保留 `ECPAY_STORE_ID=TWYB`，並補 SMTP 設定後先做 stage／非扣款驗收。
-5. 正式公開前換 PostgreSQL 或 Render 持久化磁碟，補退款撤銷權益、電子發票、備份、監控、WAF、管理員 2FA 與部署檢查。
-6. Render／GitHub 排程密鑰與管理員收件地址已設定；下一步只需補天外一筆專屬 SMTP 與 `LINE_ADMIN_USER_ID`，再驗收 LINE＋Gmail 實際收件。不得填入萬語通或其他專案收件人。
+1. 建立 Neon Free 與 Turnstile，完成 SQLite checksum 遷移及加密備份還原演練。
+2. 先部署但保留 Argon2id 正常登入，由持有人登記 Windows Hello＋手機 Passkey，兩把各實測一次。
+3. 產生／離線保存復原碼，實測一次受限復原，再啟用 Passkey-only 與 `ADMIN_RECOVERY_ENABLED=true`。
+4. 用目前 V16 與六脈頁面做 10～20 人需求驗證，選出首發 1～2 個仙策。
+5. 把首發仙策補強到正式可交付品質，定案價格、退款、授權與電子發票規則。
+6. 將合法綠界特店憑證只存本專案 Render，保留 `ECPAY_STORE_ID=TWYB`，補 SMTP 與 `LINE_ADMIN_USER_ID` 後做 stage／小額／退款驗收；不得沿用其他專案收件人。
 
 ## 禁止混用
 

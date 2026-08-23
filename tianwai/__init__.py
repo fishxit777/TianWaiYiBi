@@ -81,7 +81,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "admin-credential-v2",
+                "release": "free-postgres-passkey-v1",
             }
         )
 

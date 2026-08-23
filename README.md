@@ -20,6 +20,9 @@
 - 通知含訂單營收、開通存取、安全風險、串接狀態、需處理與正常但值得知道等內容；完整客戶 Email、完整 IP、驗證碼、Token 與密鑰不會出現在外部通知，任一通道失敗也不會回滾付款或權益。
 - LINE Bot 支援好友加入、靈感目錄、價格、說明與 1～6 導覽；目錄使用六張 LINE Flex Carousel 商品卡，正式憑證未設定時可用本機模擬器完整預覽。
 - 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項仙策內容、單品價格、排序與上下架。
+- 正式資料層已具備 PostgreSQL 相容 schema、SQLite 完整性遷移／核對工具與 PostgreSQL 17 CI；未設定 `DATABASE_URL` 時才退回本機 SQLite。
+- 管理後台已具備 WebAuthn Passkey：至少兩把金鑰就緒才可停用密碼；緊急復原需 Argon2id 密碼＋一次性復原碼＋Turnstile，成功後仍須重建兩把 Passkey。
+- 每日 PostgreSQL 備份先驗證再以 AES-256-GCM／RSA-OAEP 加密；GitHub 只保存 14 天加密 Artifact，離線私鑰不進雲端。
 - V13 Logo 已整合官網、LINE 頭像、favicon 與後台；正式 LINE 官方帳號、Messaging API 與公開 webhook 已完成接線。
 - 公開官網只保留六脈仙策、仙閣心訣與真人客服傳音入口；Logo 審稿、本機模擬器與管理後台不出現在公開導覽或頁尾。
 - 整個公開官網已統一使用自架「莫大毛筆」繁體書法字系：正文用原筆、主標用同系加粗，保留真實墨邊與飛白；首頁、六脈、結帳、付款、交付、訊息與傳音頁皆一致，放大仍維持向量銳利。後台與開發工具維持清楚的操作字體。
@@ -72,7 +75,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `67 passed`。
+目前本機自動驗證結果為 `103 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
 
 ## 公開部署
 
@@ -80,6 +83,10 @@ python -m pytest -q
 
 - `ADMIN_PASSWORD_HASH`（正式建議；由 `scripts/generate_admin_credential.py` 產生的 Argon2id verifier）
 - `DATABASE_URL`（Neon PostgreSQL pooled connection string；不得輸出到日誌或命令列）
+- `WEBAUTHN_RP_ID=tianwai-yibi.onrender.com`
+- `WEBAUTHN_ORIGIN=https://tianwai-yibi.onrender.com`
+- `TURNSTILE_SITE_KEY`、`TURNSTILE_SECRET_KEY`（只供管理緊急復原，正式 hostname 限制為官網）
+- `ADMIN_RECOVERY_ENABLED`（完成兩把 Passkey、離線復原碼與實際演練前保持 `false`）
 - `ADMIN_PASSWORD`（只作首次輪替前或本機臨時相容；Hash 驗收後應從正式環境移除）
 - `LINE_CHANNEL_SECRET`
 - `LINE_CHANNEL_ACCESS_TOKEN`
@@ -91,6 +98,8 @@ python -m pytest -q
 - `ECPAY_HASH_IV`
 - `ECPAY_STORE_ID`（固定使用 `TWYB`，供綠界後台對帳及 callback 隔離）
 - `SMTP_PASSWORD`
+
+GitHub Actions 另需 `NEON_BACKUP_DATABASE_URL` 與 `BACKUP_PUBLIC_KEY_PEM`；不得上傳離線私鑰。完整金鑰、備份與還原流程見 `docs/postgres-backup-recovery.md`。
 
 `APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。設定 `DATABASE_URL` 時正式服務改用 PostgreSQL；未設定時才使用 `DATABASE_PATH` 指定的 SQLite。未設定 `BASE_URL` 時，LINE 卡片連結會自動使用目前公開請求的 HTTPS 網域。
 
@@ -137,6 +146,9 @@ py -3 scripts\admin_credential_handoff.py
 ## 安全邊界
 
 - 正式管理密碼採 32 bytes／256-bit 安全亂數；伺服器優先驗證 Argon2id（19 MiB、2 次、平行度 1）環境 verifier，不寫入資料庫或日誌。舊 `ADMIN_PASSWORD` 只作輪替相容且不得在 Argon2id 存在時降級使用。
+- Passkey challenge 為 32-byte、五分鐘、一次性，並綁定 IP／User-Agent；網站只保存 COSE 公鑰與必要中繼資料，不保存私鑰、生物辨識內容或 PIN。
+- Passkey-only 至少兩把金鑰；復原後工作階段受限，重新登記兩把金鑰前無法讀取後台營運資料。
+- 一次性復原碼各為 128-bit，資料庫只存 Argon2id；明文只在管理員主動輪替時顯示一次，不得經 LINE、Gmail 或日誌傳送。
 - 管理 session 原始 token 只在 HttpOnly、SameSite=Strict Cookie 中；資料庫只保存 SHA-256 雜湊。
 - 管理變更需有效 session 與 CSRF token，並寫入 `audit_logs`。
 - 仙策內容欄位採伺服器端長度、型別與色系白名單驗證，前台以 Jinja escaping 輸出，不開放任意 HTML。
@@ -169,7 +181,7 @@ py -3 scripts\admin_credential_handoff.py
 - 綠界程式介面已完成；仍缺正式特店資料與 stage／正式小額驗收。
 - SMTP 程式介面已完成；仍缺寄信帳號、寄件網域與實際收信驗收。
 - 電子發票、退款後撤銷權益、付款失敗補單與客服 SOP。
-- PostgreSQL、持久化備份與監控；目前 Render 免費執行個體使用非持久化 SQLite。
+- 程式、遷移工具與加密備份已完成；仍待帳號持有人建立 Neon／Turnstile、設定 secrets、正式遷移與兩把 Passkey 實機驗收。目前正式 Render 仍使用非持久化 SQLite。
 - Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET`、管理員收件地址及手動排程測試已完成；目前 Gmail 只缺 SMTP 寄件組態。
 - 在 Render 設定天外一筆專屬 `LINE_ADMIN_USER_ID` 後，實測一筆高風險私下推播；未設定時事件仍會完整留在後台佇列。
 
@@ -180,6 +192,9 @@ py -3 scripts\admin_credential_handoff.py
 - `docs/architecture-v13.md`
 - `docs/adr/0001-keep-modular-monolith-for-v13.md`
 - `docs/adr/0002-separate-paid-entitlements-from-short-lived-codes.md`
+- `docs/adr/0003-free-postgres-passkey-authentication.md`
+- `docs/postgres-backup-recovery.md`
+- `docs/updates/2026-08-23-free-postgres-passkey.md`
 - `docs/plans/2026-08-23-paid-activation-and-ecpay.md`
 - `docs/plans/2026-08-22-v13-product-integration.md`
 - `docs/plans/2026-08-22-xiance-pavilion-design.md`
