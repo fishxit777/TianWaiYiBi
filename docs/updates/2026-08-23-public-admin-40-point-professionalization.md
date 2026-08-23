@@ -61,6 +61,17 @@
 - 後台：今日總覽、交易訂單、仙策內容、客戶開通、系統串接、安全稽核六個工作區。
 - 正式站：`/healthz` 版本、首頁、後台登入頁、私有路由不曝光。
 
+## 完成驗證
+
+- `python -m pytest -q`：52 passed，0 failed。
+- `python -m compileall -q app.py tianwai tests`：通過。
+- `node --check static/app.js`、`node --check static/admin.js`：通過。
+- 官網桌機：1440px 根頁面無水平溢位、六張仙策為一致 3×2、篩選「品牌」即時回報 1 脈且隱藏卡片同步帶有 `aria-hidden=true`。
+- 官網手機：390×844 根內容寬 375px、頁高 7953px、首屏題字完整、三項摘要無碰撞、六張卡均為 394px。
+- 後台桌機：1280×900 六個工作區逐頁實看；訂單表格 13px、客戶六指標同列、安全六旗標 3＋3、串接四卡均有下一步。
+- 後台手機：390×844 根頁面無水平溢位；兩欄 KPI、六項底部導覽、訂單表格 900px 內容只在 361px 表格容器內捲動。
+- 正式 Render：實作 commit `df2219a` 已上線，`/healthz` 回傳 `professional-ui-v16`；首頁、V16 CSS、後台登入 200；公開首頁沒有後台連結；登入頁維持 no-store／frame deny；`/logo-review` 與正式 `/dev/line` 404。
+
 ## 版本
 
 - Release marker：`professional-ui-v16`

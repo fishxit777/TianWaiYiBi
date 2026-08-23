@@ -58,6 +58,7 @@
 - 本機瀏覽器完整操作：結帳告知 → 模擬付款 → 10 分鐘開通碼 → 付費內容；桌機與 390 × 844 均無水平溢位，浮水印 12 組且只含匿名客戶代碼、訂單尾碼與時間。
 - 後台瀏覽器實看：可信裝置／單一 session 指標、遮罩網路資訊、存取事件、證據鏈與 LINE 佇列皆正確顯示；console 0 error、0 warning。
 - 正式 Render 部署已驗證：實作 commit `0337e9e` 上線後 `/healthz` 回傳 `release=trusted-device-risk-v1`；官網、客戶登入、後台登入回 200，客戶／後台頁維持 no-store 與 frame deny，`/logo-review`、正式 `/dev/line` 維持 404。
+- V16 正式 Render 部署已驗證：實作 commit `df2219a` 上線後 `/healthz` 回傳 `release=professional-ui-v16`；官網、`static/v16.css`、後台登入皆回 200，正式首頁含完整語意 H1 且沒有 `/admin` 公開連結；後台登入維持 `Cache-Control: no-store` 與 `X-Frame-Options: DENY`，`/logo-review`、正式 `/dev/line` 維持 404。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
 - 手機 390 × 844：官網、V13 主視覺、LINE 模擬器、後台與內容編輯 dialog 都沒有根頁面水平溢位。
