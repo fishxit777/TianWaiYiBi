@@ -22,6 +22,7 @@ def create_app(test_config=None):
     )
     app.config.from_mapping(
         SECRET_KEY=os.environ.get("APP_SECRET_KEY", ""),
+        DATABASE_URL=os.environ.get("DATABASE_URL", "").strip(),
         DATABASE=str(database_path.resolve()),
         MAX_CONTENT_LENGTH=64 * 1024,
         SESSION_COOKIE_HTTPONLY=True,
