@@ -19,15 +19,23 @@
 - SQLite 全套測試：103 passed（正式文件更新後數量可能再增加）。
 - Passkey／復原專項：challenge 過期與重播、未知／撤銷 credential、CSRF、雙金鑰門檻、錯誤密碼不消耗復原碼、受限復原 session、Turnstile action／hostname 均有測試。
 - 備份專項：加密解密 round-trip、明文不可搜尋、竄改 GCM 驗證失敗、弱 RSA key 拒絕、workflow 只上傳加密檔。
-- PostgreSQL CI 工作流已備妥：推送後會在 PostgreSQL 17 service container 驗證 schema、seed、參數化 insert、lastrowid、dict row 與健康檢查；實際雲端 run 尚待分支推送。
+- PostgreSQL CI 工作流已推送：會在 PostgreSQL 17 service container 驗證 schema、seed、參數化 insert、lastrowid、dict row 與健康檢查；本次正式切換另以 Neon 遷移 checksum 與 Render 實際寫入驗證。
 
-## 尚未冒充完成的帳號持有人動作
+## 正式雲端執行結果
 
-1. 建立 Neon Free 新加坡正式專案與獨立備份帳號。
-2. 建立 Cloudflare Turnstile widget，hostname 只允許 `tianwai-yibi.onrender.com`。
-3. 設定 Render／GitHub secrets 與 GitHub `$0` Actions hard-stop budget。
-4. 執行正式資料遷移、checksum 核對、Render 切換與付款／權益回歸。
-5. 由持有人親自登記 Windows Hello 與手機 Passkey，實際登出／登入兩次。
-6. 下載並離線保存復原碼及 RSA 私鑰，完成一次測試還原後再啟用 Passkey-only／緊急復原。
+1. 已建立 Neon Free 新加坡 PostgreSQL 17 正式專案，並將 Render 正式站切換至 Neon。
+2. SQLite→Neon 遷移 21 張表、111 筆資料；逐表筆數與 SHA-256 checksum 全數核對，正式瀏覽資料亦持續寫入 Neon。
+3. 已建立 Cloudflare Turnstile Managed widget，hostname 只允許 `tianwai-yibi.onrender.com`，pre-clearance 關閉。
+4. 已將資料庫、Turnstile、WebAuthn RP／Origin 與復原開關以 Render 私密環境變數部署；正式 `/healthz` 回 200、`release=free-postgres-passkey-v1`。
+5. 持有人已親自登記 `Windows Hello（主要）` 與 `手機備援（第二把）`；正式 Neon 確認 2 把 active，兩者皆為 `multi_device`。
+6. 已產生 10 組一次性復原碼；正式資料庫只存 Argon2id 雜湊，持有人下載保留一份並刪除兩份重複下載副本。
+7. 已啟用 `ADMIN_RECOVERY_ENABLED=true` 與 Passkey 專用模式；未登入視角確認一般密碼表單消失，Passkey 按鈕、專用模式告知與緊急復原入口均存在，頁面不洩漏機密。
+8. Windows Hello 實機重新登入通過：先由 `/admin` 安全登出，確認 `/admin/login` 只有 Passkey，再完成本人驗證並成功回到 `/admin`；今日總覽與 Neon 營運資料正常載入。
 
-這六項涉及第三方帳號、機密或實體裝置同意，在真正操作成功前一律標示待完成。
+## 尚未冒充完成的項目
+
+1. 正式 GitHub Actions 尚未設定 `NEON_BACKUP_DATABASE_URL` 與 `BACKUP_PUBLIC_KEY_PEM`，也尚未產生／離線保存 RSA 私鑰。
+2. 尚未下載正式加密 Artifact 並在隔離 PostgreSQL 完成解密還原與 checksum 核對，因此災難復原仍是待完成。
+3. 沒有消耗復原碼做破壞性復原演練；完整復原會撤銷兩把 Passkey 與全部管理 session，不應只為一般驗收在正式站執行。
+
+涉及機密或實體裝置同意的步驟，在真正操作成功前一律標示待完成；任何私鑰、密語、復原碼或資料庫連線值都不得寫入本文件。

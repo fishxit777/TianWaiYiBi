@@ -6,7 +6,7 @@
 
 本機初版已 commit 並推送至獨立私人 GitHub 儲存庫，Render 免費 HTTPS 服務與 LINE Messaging API 已完成接線。
 
-2026-08-23 最新安全升級目前位於隔離分支 `feature/free-passkey-postgres`；主線與正式站仍停在部署前版本，尚未切換資料庫、尚未啟用 Passkey-only，也沒有把測試中的環境值寫進正式站。必須等 Neon 遷移、兩把實機 Passkey 與還原演練都通過後才可合併部署。
+2026-08-23 免費 PostgreSQL＋Passkey 安全升級已合併至 `main`，合併提交為 `9706054`，Render 正式站已切換至 Neon PostgreSQL。Cloudflare Turnstile、兩把實機 Passkey、10 組一次性復原碼、緊急復原入口與 Passkey 專用模式均已正式啟用。加密備份的程式、測試與 GitHub Actions 工作流已完成，但正式 GitHub 備份機密與實際解密還原演練仍待接線；不得把這一項列為已完成的災難復原。
 
 已完成：
 
@@ -55,12 +55,19 @@
 - 免費 PostgreSQL 基礎完成：SQLite／PostgreSQL 雙後端、完整 PostgreSQL schema、additive migration、SQLite→PostgreSQL checksum 遷移／核對工具與 PostgreSQL 17 CI；健康回應不揭露後端或連線值。
 - 管理 Passkey 完成：32-byte／五分鐘／一次性 WebAuthn challenge，精確 RP／HTTPS origin、user verification、兩把金鑰門檻、Passkey-only 登入、憑證盤點與最後一把撤銷保護。
 - 緊急復原完成：10 組 128-bit 一次性碼只存 Argon2id；必須密碼＋復原碼＋Turnstile 全部正確。成功會撤銷全部舊 session／Passkey、即時告警，並限制只能重建兩把 Passkey。
-- 免費加密備份完成：每日 `pg_dump` 先由 `pg_restore --list` 驗證，再以 AES-256-GCM 加密與離線 RSA-4096 公鑰包裝；GitHub 只上傳 14 天加密檔，單份 25 MB 零費用上限。
+- 免費加密備份實作完成：每日 `pg_dump` 先由 `pg_restore --list` 驗證，再以 AES-256-GCM 加密與離線 RSA-4096 公鑰包裝；GitHub 只上傳 14 天加密檔，單份 25 MB 零費用上限。正式 `NEON_BACKUP_DATABASE_URL`、`BACKUP_PUBLIC_KEY_PEM` 與實際還原演練尚待完成。
 - 完整 40 點問題、影響與對應修正記錄於 `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`；本次只改呈現層與互動狀態，沒有改動付款、開通、可信裝置、風險分級或資料庫規則。
 
 ## 驗證結果
 
-- 最新隔離分支：`python -m pytest -q` 為 103 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 執行。Passkey／復原／加密備份專項、Python compile、JavaScript syntax、`pip check` 與 `git diff --check` 均通過。
+- 免費 PostgreSQL＋Passkey 正式版：`python -m pytest -q` 為 103 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 執行。Passkey／復原／加密備份專項、Python compile、JavaScript syntax、`pip check`、依賴稽核、機密掃描與 `git diff --check` 均通過。
+- SQLite→Neon 正式遷移完成：21 張資料表、111 筆資料，逐表筆數與 SHA-256 checksum 全數核對；切換後正式瀏覽資料持續寫入 Neon，證明站台不是只建立空資料庫。
+- Render 正式部署已為 Live；`/healthz` 回 200，`release=free-postgres-passkey-v1`、`status=ok`，健康資訊不揭露資料庫連線或驗證機密。
+- Cloudflare Turnstile 正式 widget 只允許 `tianwai-yibi.onrender.com`，Managed 模式、pre-clearance 關閉；`/admin/recovery` 回 200、widget 正常載入、console 無錯誤，頁面未洩漏 site secret、資料庫連線或管理密碼 verifier。
+- 兩把實機金鑰已登記並存入 Neon：`Windows Hello（主要）` 與 `手機備援（第二把）`，兩者皆為可同步備援的 `multi_device` credential；正式資料庫確認 2 把為 active。
+- 已產生 10 組一次性復原碼並由持有人下載保留一份；正式資料庫只保存 10 筆 Argon2id 雜湊，每組原碼 32 字元，重複下載的 `_1`、`_2` 副本已由持有人刪除。
+- Passkey 專用模式正式啟用後，以未登入 HTTP 視角核對：登入頁回 200、一般密碼表單不存在、Passkey 登入按鈕存在、專用模式說明存在、緊急復原入口存在，且沒有公開任何環境機密。
+- Windows Hello 實機重新登入通過：正式站先由已登入後台執行安全登出，確認落到 `/admin/login` 且只剩 Passkey；完成本人驗證後成功回到 `/admin`，今日總覽與正式 Neon 營運資料正常載入。
 - `python -m py_compile ...`：通過。
 - `node --check static\app.js`：通過。
 - `node --check static\admin.js`：通過。
@@ -120,13 +127,13 @@
 
 ## 下一個最高 ROI 決策
 
-目前最大限制是正式 Render 仍使用非持久化 SQLite。最高 ROI 下一步不是再增加功能，而是先完成免費 Neon 遷移、加密備份實際還原與兩把 Passkey 實機驗收；在這三項完成前，不應讓正式站承接不可遺失的真實付款資料。
+目前 PostgreSQL 持久化與管理登入主線已完成，剩餘最大限制是「尚無已驗收的異地可還原備份」，其次才是金流／交付正式小額驗收。最高 ROI 下一步是完成 RSA 私鑰離線保存、GitHub 備份機密接線、手動跑一次加密備份並在隔離資料庫實際還原；完成前仍不應把正式站視為可承接不可遺失交易資料的完整災難復原系統。
 
 安全切換與需求驗證建議依序：
 
-1. 建立 Neon Free 與 Turnstile，完成 SQLite checksum 遷移及加密備份還原演練。
-2. 先部署但保留 Argon2id 正常登入，由持有人登記 Windows Hello＋手機 Passkey，兩把各實測一次。
-3. 產生／離線保存復原碼，實測一次受限復原，再啟用 Passkey-only 與 `ADMIN_RECOVERY_ENABLED=true`。
+1. 產生 RSA-4096 備份金鑰；私鑰與密語只離線保存，不進 GitHub、Render、LINE、Gmail 或專案檔案。
+2. 將只讀備份連線與公鑰設為 GitHub Secrets，手動執行工作流，下載加密 Artifact 並在隔離資料庫完成一次解密還原與 checksum 核對。
+3. 手機 Passkey 保留為第二把備援，定期做非破壞性登入確認，不為測試而撤銷兩把正式金鑰。
 4. 用目前 V16 與六脈頁面做 10～20 人需求驗證，選出首發 1～2 個仙策。
 5. 把首發仙策補強到正式可交付品質，定案價格、退款、授權與電子發票規則。
 6. 將合法綠界特店憑證只存本專案 Render，保留 `ECPAY_STORE_ID=TWYB`，補 SMTP 與 `LINE_ADMIN_USER_ID` 後做 stage／小額／退款驗收；不得沿用其他專案收件人。
