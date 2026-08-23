@@ -24,6 +24,8 @@ services:
         generateValue: true
       - key: ADMIN_USERNAME
         value: keeper
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
       - key: ADMIN_PASSWORD
         sync: false
       - key: ADMIN_SESSION_BIND_IP

@@ -489,6 +489,7 @@
     const target = document.querySelector('#security-flags');
     clear(target);
     [
+      ['管理員 Argon2id 憑證', config.admin_password_argon2, '256-bit 隨機密碼、伺服器只保存慢雜湊'],
       ['後台工作階段綁定', config.session_ip_binding, '降低 Cookie 遭竊風險'],
       ['金流通知驗簽', config.payment_signature_configured, '確認付款來源'],
       ['LINE 事件驗簽', config.line_signature_configured, '拒絕偽造訊息'],

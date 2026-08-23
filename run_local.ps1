@@ -16,6 +16,18 @@ function New-SecureHex([int]$ByteCount) {
     return [BitConverter]::ToString($Buffer).Replace('-', '').ToLowerInvariant()
 }
 
+function New-SecureBase64Url([int]$ByteCount) {
+    $Buffer = New-Object byte[] $ByteCount
+    $Generator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $Generator.GetBytes($Buffer)
+    }
+    finally {
+        $Generator.Dispose()
+    }
+    return [Convert]::ToBase64String($Buffer).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+}
+
 if (-not $env:APP_SECRET_KEY) {
     $env:APP_SECRET_KEY = New-SecureHex 32
 }
@@ -26,7 +38,7 @@ if (-not $env:ADMIN_USERNAME) {
     $env:ADMIN_USERNAME = 'keeper'
 }
 if (-not $env:ADMIN_PASSWORD) {
-    $env:ADMIN_PASSWORD = New-SecureHex 12
+    $env:ADMIN_PASSWORD = New-SecureBase64Url 32
 }
 if (-not $env:ENABLE_DEV_TOOLS) {
     $env:ENABLE_DEV_TOOLS = 'true'

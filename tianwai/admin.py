@@ -11,6 +11,7 @@ from .security import (
     ADMIN_COOKIE,
     admin_cookie_secure,
     admin_credentials_valid,
+    admin_password_hash_configured,
     admin_mutation_guard,
     admin_required,
     create_admin_session,
@@ -401,6 +402,7 @@ def dashboard_data():
                 "line_events": int(line_event_count or 0),
             },
             "security_config": {
+                "admin_password_argon2": admin_password_hash_configured(),
                 "allowlist_required": os.environ.get("ADMIN_IP_ALLOWLIST_REQUIRED", "false").lower()
                 in {"1", "true", "yes", "on"},
                 "session_ip_binding": os.environ.get("ADMIN_SESSION_BIND_IP", "true").lower()

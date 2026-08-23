@@ -40,7 +40,7 @@ cd C:\Users\bao58\Projects\TianWaiYiBi
 .\run_local.ps1
 ```
 
-啟動腳本會為本次程序產生隨機 `APP_SECRET_KEY`、支付 webhook secret 與管理密碼，並在終端顯示臨時登入資料。服務只綁定 `127.0.0.1:5088`。
+啟動腳本會為本次程序產生隨機 `APP_SECRET_KEY`、支付 webhook secret與 32 bytes／43 位／256-bit 管理密碼，並在終端顯示臨時登入資料。服務只綁定 `127.0.0.1:5088`。
 
 開啟：
 
@@ -72,13 +72,14 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `58 passed`。
+目前自動驗證結果為 `63 passed`。
 
 ## 公開部署
 
 專案根目錄的 `render.yaml` 已建立獨立 Render Web Service，正式程序使用 Gunicorn，健康檢查為 `/healthz`。機密值只放在 Render 環境變數，不得提交到 Git：
 
-- `ADMIN_PASSWORD`
+- `ADMIN_PASSWORD_HASH`（正式建議；由 `scripts/generate_admin_credential.py` 產生的 Argon2id verifier）
+- `ADMIN_PASSWORD`（只作首次輪替前或本機臨時相容；Hash 驗收後應從正式環境移除）
 - `LINE_CHANNEL_SECRET`
 - `LINE_CHANNEL_ACCESS_TOKEN`
 - `LINE_ADMIN_USER_ID`（天外一筆管理員本人的 LINE userId；不得沿用其他專案）
@@ -91,6 +92,14 @@ python -m pytest -q
 - `SMTP_PASSWORD`
 
 `APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。`DATABASE_PATH` 可指定資料庫檔案位置；未設定 `BASE_URL` 時，LINE 卡片連結會自動使用目前公開請求的 HTTPS 網域。
+
+正式管理憑證輪替請在可信任的本機終端執行：
+
+```powershell
+py -3 scripts\generate_admin_credential.py
+```
+
+產生器只在終端顯示一次 43 位 Base64url 明文與 Argon2id verifier，不會寫檔。請先將明文保存到密碼管理器，再把 verifier 設為 Render `ADMIN_PASSWORD_HASH`；確認新密碼登入成功後，移除舊 `ADMIN_PASSWORD`。不要把任何一個值貼進 Git、文件、Email、LINE 或對話紀錄。
 
 免費 Render 初版的 SQLite 檔案不是正式持久化資料庫，重新部署或重建執行個體時可能重建。可用於真人 LINE Bot、官網與需求驗證，但正式收款前必須換成持久化 PostgreSQL 或付費磁碟並建立備份。
 
@@ -107,7 +116,7 @@ python -m pytest -q
 
 ## 安全邊界
 
-- 管理密碼只讀環境變數，不寫入資料庫或日誌。
+- 正式管理密碼採 32 bytes／256-bit 安全亂數；伺服器優先驗證 Argon2id（19 MiB、2 次、平行度 1）環境 verifier，不寫入資料庫或日誌。舊 `ADMIN_PASSWORD` 只作輪替相容且不得在 Argon2id 存在時降級使用。
 - 管理 session 原始 token 只在 HttpOnly、SameSite=Strict Cookie 中；資料庫只保存 SHA-256 雜湊。
 - 管理變更需有效 session 與 CSRF token，並寫入 `audit_logs`。
 - 仙策內容欄位採伺服器端長度、型別與色系白名單驗證，前台以 Jinja escaping 輸出，不開放任意 HTML。

@@ -1,7 +1,66 @@
 import sqlite3
+import re
 
 from conftest import login_admin, set_public_csrf
 from test_customer_access import _pay_and_get_activation
+from tianwai.security import (
+    ADMIN_PASSWORD_ENTROPY_BITS,
+    generate_admin_password,
+    hash_admin_password,
+    verify_admin_password,
+)
+
+
+def test_generated_admin_password_has_256_bits_and_password_manager_safe_format():
+    passwords = {generate_admin_password() for _ in range(20)}
+
+    assert ADMIN_PASSWORD_ENTROPY_BITS == 256
+    assert len(passwords) == 20
+    assert all(len(password) == 43 for password in passwords)
+    assert all(re.fullmatch(r"[A-Za-z0-9_-]{43}", password) for password in passwords)
+
+
+def test_admin_password_hash_uses_argon2id_without_plaintext():
+    password = generate_admin_password()
+    encoded = hash_admin_password(password)
+
+    assert encoded.startswith("$argon2id$")
+    assert "m=19456,t=2,p=1" in encoded
+    assert password not in encoded
+    assert verify_admin_password(password, encoded) is True
+    assert verify_admin_password(password + "x", encoded) is False
+
+
+def test_argon2_admin_hash_takes_priority_and_prevents_plaintext_downgrade(client, monkeypatch):
+    password = generate_admin_password()
+    monkeypatch.setenv("ADMIN_PASSWORD_HASH", hash_admin_password(password))
+    monkeypatch.setenv("ADMIN_PASSWORD", "correct-horse-battery-staple")
+    csrf = set_public_csrf(client)
+
+    legacy = client.post(
+        "/admin/login",
+        data={"username": "keeper", "password": "correct-horse-battery-staple", "csrf_token": csrf},
+    )
+    accepted = client.post(
+        "/admin/login",
+        data={"username": "keeper", "password": password, "csrf_token": csrf},
+    )
+
+    assert legacy.status_code == 403
+    assert accepted.status_code == 302
+
+
+def test_admin_dashboard_reports_argon2_status_without_exposing_hash(client, monkeypatch):
+    login_admin(client)
+    legacy = client.get("/admin/api/dashboard").get_json()["security_config"]
+    encoded = hash_admin_password(generate_admin_password())
+    monkeypatch.setenv("ADMIN_PASSWORD_HASH", encoded)
+    upgraded_response = client.get("/admin/api/dashboard")
+    upgraded = upgraded_response.get_json()["security_config"]
+
+    assert legacy["admin_password_argon2"] is False
+    assert upgraded["admin_password_argon2"] is True
+    assert encoded not in upgraded_response.get_data(as_text=True)
 
 
 def test_admin_login_failure_is_generic(client):

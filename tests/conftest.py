@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 @pytest.fixture
 def app(tmp_path, monkeypatch):
     monkeypatch.setenv("ADMIN_USERNAME", "keeper")
+    monkeypatch.delenv("ADMIN_PASSWORD_HASH", raising=False)
     monkeypatch.setenv("ADMIN_PASSWORD", "correct-horse-battery-staple")
     monkeypatch.setenv("PAYMENT_WEBHOOK_SECRET", "test-payment-secret")
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "test-line-secret")

@@ -6,6 +6,9 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
+from argon2.low_level import Type
 from flask import current_app, jsonify, redirect, request, session, url_for
 
 from .db import get_db, utc_now
@@ -16,6 +19,16 @@ LOGIN_WINDOW_MINUTES = 15
 LOGIN_FAILURE_LIMIT = 5
 BLOCK_MINUTES = 15
 ADMIN_SESSION_HOURS = 8
+ADMIN_PASSWORD_BYTES = 32
+ADMIN_PASSWORD_ENTROPY_BITS = ADMIN_PASSWORD_BYTES * 8
+ADMIN_PASSWORD_HASHER = PasswordHasher(
+    time_cost=2,
+    memory_cost=19 * 1024,
+    parallelism=1,
+    hash_len=32,
+    salt_len=16,
+    type=Type.ID,
+)
 
 
 def env_enabled(name, default=False):
@@ -23,6 +36,31 @@ def env_enabled(name, default=False):
     if value is None:
         return bool(default)
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def generate_admin_password():
+    """Return a password-manager credential backed by 256 random bits."""
+    return secrets.token_urlsafe(ADMIN_PASSWORD_BYTES)
+
+
+def hash_admin_password(password):
+    value = str(password)
+    if not value:
+        raise ValueError("Admin password must not be empty")
+    return ADMIN_PASSWORD_HASHER.hash(value)
+
+
+def verify_admin_password(password, encoded_hash):
+    if not str(encoded_hash).startswith("$argon2id$"):
+        return False
+    try:
+        return bool(ADMIN_PASSWORD_HASHER.verify(str(encoded_hash), str(password)))
+    except (InvalidHashError, VerificationError, VerifyMismatchError):
+        return False
+
+
+def admin_password_hash_configured():
+    return os.environ.get("ADMIN_PASSWORD_HASH", "").strip().startswith("$argon2id$")
 
 
 def get_client_ip():
@@ -228,12 +266,16 @@ def register_login_attempt(success):
 
 def admin_credentials_valid(username, password):
     expected_user = os.environ.get("ADMIN_USERNAME", "")
+    expected_hash = os.environ.get("ADMIN_PASSWORD_HASH", "").strip()
     expected_password = os.environ.get("ADMIN_PASSWORD", "")
-    if not expected_user or not expected_password:
+    if not expected_user or not (expected_hash or expected_password):
         return False
-    return hmac.compare_digest(str(username), expected_user) and hmac.compare_digest(
-        str(password), expected_password
-    )
+    if expected_hash:
+        password_valid = verify_admin_password(password, expected_hash)
+    else:
+        password_valid = hmac.compare_digest(str(password), expected_password)
+    user_valid = hmac.compare_digest(str(username), expected_user)
+    return user_valid and password_valid
 
 
 def create_admin_session():
