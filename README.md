@@ -141,8 +141,8 @@ python -m pytest -q
 - SMTP 程式介面已完成；仍缺寄信帳號、寄件網域與實際收信驗收。
 - 電子發票、退款後撤銷權益、付款失敗補單與客服 SOP。
 - PostgreSQL、持久化備份與監控；目前 Render 免費執行個體使用非持久化 SQLite。
+- Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET`、管理員收件地址及手動排程測試已完成；目前 Gmail 只缺 SMTP 寄件組態。
 - 在 Render 設定天外一筆專屬 `LINE_ADMIN_USER_ID` 後，實測一筆高風險私下推播；未設定時事件仍會完整留在後台佇列。
-- 在 Render 設定 `ADMIN_ALERT_EMAIL`、SMTP 與 `NOTIFICATION_CRON_SECRET`，並在 GitHub Actions 建立同值 Secret 後，手動執行一次晨間摘要驗收雙通道實際收件。
 
 正式接線前先決定支付供應商、單次購買／訂閱模式、退款規則、電子發票與正式網域。這些選擇會影響資料模型與法務文案，不應在沒有帳號與政策確認時假設。
 

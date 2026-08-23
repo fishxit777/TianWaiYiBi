@@ -63,4 +63,12 @@
 
 設定完成後手動執行一次 workflow，確認本人 LINE 與 Gmail 均收到相同時段摘要，再於後台檢查兩筆佇列狀態為 `sent`。
 
-2026-08-23 正式部署後只核對變數名稱、不讀取密鑰值：Render 尚未出現 `ADMIN_ALERT_EMAIL`、`NOTIFICATION_CRON_SECRET`、`LINE_ADMIN_USER_ID` 與 SMTP 寄送組態；GitHub Actions 尚未建立 `NOTIFICATION_CRON_SECRET`。因此程式與排程檔已上線，但在外部私密設定完成前，不宣稱 LINE＋Gmail 已實際送達。
+2026-08-23 正式部署後只核對變數名稱、不讀取密鑰值：首次檢查時 Render 尚未出現管理員通知設定，GitHub Actions 也尚未建立排程密鑰。
+
+取得當下同意後已完成：
+
+- Render 新增管理員收件地址與 64 字元獨立 `NOTIFICATION_CRON_SECRET`，密鑰未顯示於對話、終端或 Git。
+- GitHub Actions 新增同值加密 Secret。
+- 正式受保護端點回 200，建立 LINE／Gmail 各一筆佇列。
+- `Daily admin summary #1` 手動執行成功，證明 GitHub 排程、兩端密鑰與正式端點已接通。
+- Gmail 因 SMTP 尚未設定而回報 `failed`；LINE 因 `LINE_ADMIN_USER_ID` 尚未設定而回報 `skipped`。沒有誤送、沒有沿用萬語通或其他專案收件人，也尚未宣稱實際雙通道收件完成。

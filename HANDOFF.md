@@ -62,6 +62,7 @@
 - 正式 Render 部署已驗證：實作 commit `0337e9e` 上線後 `/healthz` 回傳 `release=trusted-device-risk-v1`；官網、客戶登入、後台登入回 200，客戶／後台頁維持 no-store 與 frame deny，`/logo-review`、正式 `/dev/line` 維持 404。
 - V16 正式 Render 部署已驗證：實作 commit `df2219a` 上線後 `/healthz` 回傳 `release=professional-ui-v16`；官網、`static/v16.css`、後台登入皆回 200，正式首頁含完整語意 H1 且沒有 `/admin` 公開連結；後台登入維持 `Cache-Control: no-store` 與 `X-Frame-Options: DENY`，`/logo-review`、正式 `/dev/line` 維持 404。
 - 管理通知 V1 正式 Render 部署已驗證：實作 commit `197740d` 上線後 `/healthz` 回傳 `release=admin-notifications-v1`；官網與後台登入回 200，未帶密鑰的摘要端點回 404，公開首頁沒有 `/admin` 或內部通知連結。GitHub 已正確載入 `Daily admin summary` workflow，沒有 invalid workflow；正式雙通道實際收件仍需先補 Render／GitHub 私密設定。
+- 管理通知外部排程已接通：Render 已設定獨立 `NOTIFICATION_CRON_SECRET` 與管理員收件地址，GitHub Actions 已設定同名加密 Secret；正式密鑰端點回 200 並建立兩通道佇列，手動 `Daily admin summary #1` 執行成功。Gmail 仍因 SMTP 未設定而為 `failed`，LINE 仍因 `LINE_ADMIN_USER_ID` 未設定而為 `skipped`，沒有沿用其他專案收件人。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
 - 手機 390 × 844：官網、V13 主視覺、LINE 模擬器、後台與內容編輯 dialog 都沒有根頁面水平溢位。
@@ -112,7 +113,7 @@
 3. 為既有的獨立 LINE 官方帳號啟用 Messaging API，部署公開 HTTPS，填入本專案自己的 Channel Secret／Access Token。
 4. 將既有合法綠界特店的 MerchantID／HashKey／HashIV 分別存入本專案自己的 Render 環境變數，保留 `ECPAY_STORE_ID=TWYB`，並補 SMTP 設定後先做 stage／非扣款驗收。
 5. 正式公開前換 PostgreSQL 或 Render 持久化磁碟，補退款撤銷權益、電子發票、備份、監控、WAF、管理員 2FA 與部署檢查。
-6. 在天外一筆 Render 服務填入自己的 `LINE_ADMIN_USER_ID`、`ADMIN_ALERT_EMAIL` 與 SMTP；Render、GitHub Actions 設定同一個獨立 `NOTIFICATION_CRON_SECRET`，手動執行一次摘要並驗收 LINE＋Gmail 實際收件。不得填入萬語通或其他專案收件人。
+6. Render／GitHub 排程密鑰與管理員收件地址已設定；下一步只需補天外一筆專屬 SMTP 與 `LINE_ADMIN_USER_ID`，再驗收 LINE＋Gmail 實際收件。不得填入萬語通或其他專案收件人。
 
 ## 禁止混用
 
