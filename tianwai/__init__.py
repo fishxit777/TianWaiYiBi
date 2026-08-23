@@ -50,6 +50,7 @@ def create_app(test_config=None):
     from .admin import admin_bp
     from .access import access_bp
     from .line_bot import line_bp
+    from .notification_routes import notification_bp
     from .payments import payments_bp
     from .public import public_bp
 
@@ -58,6 +59,7 @@ def create_app(test_config=None):
     app.register_blueprint(access_bp)
     app.register_blueprint(line_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(notification_bp)
 
     app.before_request(security_preflight)
     app.after_request(add_security_headers)
@@ -76,7 +78,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "professional-ui-v16",
+                "release": "admin-notifications-v1",
             }
         )
 

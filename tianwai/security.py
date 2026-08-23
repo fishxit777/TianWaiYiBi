@@ -40,20 +40,43 @@ def safe_user_agent():
 def log_security_event(event_type, severity="medium", action_taken="logged", detail=""):
     try:
         connection = get_db()
-        connection.execute(
+        now = utc_now()
+        ip = get_client_ip()
+        path = request.path[:240]
+        user_agent = safe_user_agent()
+        cursor = connection.execute(
             """
             INSERT INTO security_events
                 (event_type, severity, ip, path, action_taken, detail, user_agent, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                str(event_type)[:80], str(severity)[:20], get_client_ip(), request.path[:240],
-                str(action_taken)[:80], str(detail)[:500], safe_user_agent(), utc_now(),
+                str(event_type)[:80], str(severity)[:20], ip, path,
+                str(action_taken)[:80], str(detail)[:500], user_agent, now,
             ),
         )
         connection.commit()
     except Exception:
         current_app.logger.exception("Unable to persist security event")
+        return
+    if str(severity).lower() in {"high", "critical"}:
+        try:
+            from .notifications import queue_security_alert
+
+            queue_security_alert(
+                cursor.lastrowid,
+                level=str(severity).lower(),
+                event_type=str(event_type),
+                event_id=f"SE-{cursor.lastrowid}",
+                action_taken=str(action_taken),
+                ip=ip,
+                path=path,
+                user_agent=user_agent,
+                detail=str(detail),
+                occurred_at=now,
+            )
+        except Exception:
+            current_app.logger.exception("Unable to queue immediate security alert")
 
 
 def log_audit(action, target="", detail=""):

@@ -120,10 +120,15 @@ def test_high_risk_code_failures_queue_privacy_minimized_alert(client, app):
             "SELECT * FROM risk_incidents WHERE level = 'high' ORDER BY id DESC LIMIT 1"
         ).fetchone()
         notification = connection.execute(
-            "SELECT * FROM notification_queue ORDER BY id DESC LIMIT 1"
+            "SELECT * FROM notification_queue WHERE channel = 'line' ORDER BY id DESC LIMIT 1"
         ).fetchone()
+        channels = connection.execute(
+            "SELECT channel FROM notification_queue WHERE incident_id = ? ORDER BY channel",
+            (incident["id"],),
+        ).fetchall()
         payload = json.loads(notification["payload_json"])["message"]
         assert incident is not None
+        assert [row["channel"] for row in channels] == ["email", "line"]
         assert notification["status"] in {"sent", "failed", "skipped"}
         assert "traveler@example.com" not in payload
         assert activation_code.replace("-", "") not in payload

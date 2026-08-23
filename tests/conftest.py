@@ -20,6 +20,12 @@ def app(tmp_path, monkeypatch):
     monkeypatch.setenv("APP_SECRET_KEY", "test-app-secret")
     monkeypatch.setenv("ENABLE_DEV_TOOLS", "true")
     monkeypatch.setenv("BASE_URL", "http://localhost")
+    monkeypatch.setenv("ADMIN_ALERT_EMAIL", "admin-alerts@example.com")
+    monkeypatch.setenv("LINE_ADMIN_USER_ID", "UADMIN1234567890")
+    monkeypatch.setenv(
+        "NOTIFICATION_CRON_SECRET",
+        "test-notification-secret-with-at-least-32-characters",
+    )
 
     from tianwai import create_app
 
@@ -61,4 +67,3 @@ def login_admin(client):
     match = re.search(rb'<meta name="admin-csrf" content="([^"]+)"', dashboard.data)
     assert match
     return match.group(1).decode("utf-8")
-

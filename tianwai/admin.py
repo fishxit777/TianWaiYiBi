@@ -238,7 +238,7 @@ def dashboard_data():
     ).fetchall()
     notification_queue = connection.execute(
         """
-        SELECT id, incident_id, channel, recipient_masked, status, attempts,
+        SELECT id, dedupe_key, incident_id, channel, recipient_masked, status, attempts,
                last_error, created_at, updated_at, sent_at
         FROM notification_queue ORDER BY id DESC LIMIT 40
         """
@@ -385,10 +385,19 @@ def dashboard_data():
                 "base_url": base_url,
                 "public_https": base_url.lower().startswith("https://"),
                 "line_channel": bool(os.environ.get("LINE_CHANNEL_SECRET") and os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")),
-                "line_admin_alert": bool(os.environ.get("LINE_ADMIN_USER_ID")),
+                "line_admin_alert": bool(
+                    os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+                    and os.environ.get("LINE_ADMIN_USER_ID")
+                ),
                 "payment_provider": checkout_status["provider"],
                 "payment_label": checkout_status["label"],
                 "email_delivery": email_delivery_ready(),
+                "admin_email_alert": bool(
+                    os.environ.get("ADMIN_ALERT_EMAIL") and email_delivery_ready()
+                ),
+                "daily_summary_schedule": len(
+                    os.environ.get("NOTIFICATION_CRON_SECRET", "").strip()
+                ) >= 32,
                 "line_events": int(line_event_count or 0),
             },
             "security_config": {
@@ -397,7 +406,16 @@ def dashboard_data():
                 "session_ip_binding": os.environ.get("ADMIN_SESSION_BIND_IP", "true").lower()
                 in {"1", "true", "yes", "on"},
                 "line_signature_configured": bool(os.environ.get("LINE_CHANNEL_SECRET")),
-                "line_admin_alert": bool(os.environ.get("LINE_ADMIN_USER_ID")),
+                "line_admin_alert": bool(
+                    os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+                    and os.environ.get("LINE_ADMIN_USER_ID")
+                ),
+                "admin_email_alert": bool(
+                    os.environ.get("ADMIN_ALERT_EMAIL") and email_delivery_ready()
+                ),
+                "daily_summary_schedule": len(
+                    os.environ.get("NOTIFICATION_CRON_SECRET", "").strip()
+                ) >= 32,
                 "payment_signature_configured": bool(os.environ.get("PAYMENT_WEBHOOK_SECRET")),
                 "trusted_device_limit": 2,
                 "single_active_session": True,

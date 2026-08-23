@@ -16,7 +16,8 @@
 - 每位客戶最多保留 2 台 30 天可信裝置；第三台完成驗證時自動撤銷最久未使用的裝置。同一時間只允許 1 個有效內容工作階段，新裝置登入會讓舊工作階段失效。
 - 客戶工作階段採 7 天絕對期限、24 小時閒置期限與 HttpOnly Cookie；付費內容含客戶代碼、訂單尾碼與時間的動態浮水印，不顯示完整 Email。
 - 存取風險依低／中／高／重大四級記錄；正常換機不直接視為惡意，重複使用已撤銷工作階段或第 5 次錯碼才會升高。事件使用 HMAC 串鏈，可由後台檢查完整性。
-- 高／重大事件只推送去天外一筆自己的管理員 LINE；推播只含案件、事件與匿名客戶代碼，完整資料留在受保護後台，推播失敗不會回滾付款或權益。
+- 每日台北時間 08:00、12:00、20:00 各送一次管理員營運摘要；高／重大存取、付款、登入與系統異常則不等排程，立即分別推送至天外一筆自己的管理員 LINE 與 Gmail。
+- 通知含訂單營收、開通存取、安全風險、串接狀態、需處理與正常但值得知道等內容；完整客戶 Email、完整 IP、驗證碼、Token 與密鑰不會出現在外部通知，任一通道失敗也不會回滾付款或權益。
 - LINE Bot 支援好友加入、靈感目錄、價格、說明與 1～6 導覽；目錄使用六張 LINE Flex Carousel 商品卡，正式憑證未設定時可用本機模擬器完整預覽。
 - 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項仙策內容、單品價格、排序與上下架。
 - V13 Logo 已整合官網、LINE 頭像、favicon 與後台；正式 LINE 官方帳號、Messaging API 與公開 webhook 已完成接線。
@@ -71,7 +72,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `52 passed`。
+目前自動驗證結果為 `58 passed`。
 
 ## 公開部署
 
@@ -81,6 +82,8 @@ python -m pytest -q
 - `LINE_CHANNEL_SECRET`
 - `LINE_CHANNEL_ACCESS_TOKEN`
 - `LINE_ADMIN_USER_ID`（天外一筆管理員本人的 LINE userId；不得沿用其他專案）
+- `ADMIN_ALERT_EMAIL`（天外一筆管理員本人的收件地址；不得使用客戶 Email）
+- `NOTIFICATION_CRON_SECRET`（至少 32 字元，Render 與 GitHub Actions 使用同一獨立值）
 - `ECPAY_MERCHANT_ID`
 - `ECPAY_HASH_KEY`
 - `ECPAY_HASH_IV`
@@ -114,7 +117,8 @@ python -m pytest -q
 - 綠界 AioCheckOut V5 回呼驗證 CheckMacValue、MerchantID、訂單編號、金額、狀態與重送；前端返回頁不是唯一付款依據。
 - 開通與登入碼最多嘗試 5 次，寄送請求限流；正式頁不顯示明文驗證碼。
 - 2 台可信裝置上限、單一有效內容工作階段、7 天絕對／24 小時閒置 session，並偵測已撤銷工作階段重播。
-- 客戶存取事件使用 HMAC 串鏈；後台可看匿名客戶／裝置代碼、風險分數、案件、LINE 告警送達狀態，並可撤銷裝置、處理案件或重試告警。
+- 客戶存取事件使用 HMAC 串鏈；後台可看匿名客戶／裝置代碼、風險分數、案件、LINE／Gmail 通知送達狀態，並可撤銷裝置、處理案件或重試告警。
+- 每日摘要由 GitHub Actions 以獨立密鑰呼叫只接受 POST 的內部端點；日期、時段及通道均有唯一防重送鍵，人工重跑不會重複建立通知。
 - 安全預檢攔截 `.env`、`.git`、WordPress 掃描、路徑穿越與常見注入探測；不記錄 Cookie、token 或訊息全文。
 - CSP 禁止第三方腳本與 inline script；後台禁止快取與 frame 嵌入。
 - 加入 COOP、CORP、Origin-Agent-Cluster、`object-src 'none'` 與跨網域政策標頭。
@@ -138,6 +142,7 @@ python -m pytest -q
 - 電子發票、退款後撤銷權益、付款失敗補單與客服 SOP。
 - PostgreSQL、持久化備份與監控；目前 Render 免費執行個體使用非持久化 SQLite。
 - 在 Render 設定天外一筆專屬 `LINE_ADMIN_USER_ID` 後，實測一筆高風險私下推播；未設定時事件仍會完整留在後台佇列。
+- 在 Render 設定 `ADMIN_ALERT_EMAIL`、SMTP 與 `NOTIFICATION_CRON_SECRET`，並在 GitHub Actions 建立同值 Secret 後，手動執行一次晨間摘要驗收雙通道實際收件。
 
 正式接線前先決定支付供應商、單次購買／訂閱模式、退款規則、電子發票與正式網域。這些選擇會影響資料模型與法務文案，不應在沒有帳號與政策確認時假設。
 
@@ -160,8 +165,11 @@ python -m pytest -q
 - `docs/plans/2026-08-23-v15-xianxia-site-audit-and-design.md`
 - `docs/plans/2026-08-23-device-trust-risk-access.md`
 - `docs/plans/2026-08-23-public-admin-40-point-professionalization.md`
+- `docs/plans/2026-08-23-admin-notification-design.md`
+- `docs/plans/2026-08-23-admin-notifications-implementation.md`
 - `docs/updates/2026-08-23-device-trust-risk-access-update.md`
 - `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`
+- `docs/updates/2026-08-23-admin-dual-channel-notifications.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`

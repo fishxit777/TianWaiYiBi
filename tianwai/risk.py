@@ -3,7 +3,7 @@ import hmac
 import json
 import secrets
 
-from flask import current_app, has_request_context
+from flask import current_app, has_request_context, request
 
 from .db import get_db, utc_now
 from .notifications import queue_private_alert
@@ -124,6 +124,14 @@ def record_access_event(
             queue_private_alert(
                 incident[0], incident[1], severity, str(event_type),
                 customer["public_id"] if customer else "unknown",
+                event_id=event_id,
+                risk_score=int(risk_score),
+                action_taken=str(action_taken),
+                ip=ip,
+                path=request.path if has_request_context() else "system",
+                user_agent=user_agent,
+                detail=json.dumps(clean_metadata, ensure_ascii=False),
+                occurred_at=now,
             )
         except Exception:
             current_app.logger.exception("Unable to queue private security alert")

@@ -45,6 +45,8 @@
 - V15.2 已把仙閣心訣四欄文字分為深朱砂、深青玉、靛紫與沉月金四套屬性色；小標、主標、正文、頂線與淡印同步分色，底紙仍維持單一月白古卷，兼顧角色差異與閱讀對比。
 - V16 官網已完成 20 點專業化：圖像題字保留但補上完整語意 H1；手機首屏不再被固定導覽遮住；三項摘要改成獨立三層資訊；六脈改成一致的桌機 3×2／平板 2 欄／手機 1 欄卡片，新增「適合解決」、篩選結果數與交易信任頁尾。390px 手機總頁高由基準 8280px 降至 7953px，且新增內容後仍無水平溢位。
 - V16 後台已完成 20 點專業化：頂部改為麵包屑、正式站與同步時間；總覽縮短品牌主景並加入 KPI 狀態語意與骨架載入；訂單表格升級字級、sticky header、斑馬紋與 aria-pressed；客戶六項指標固定 6 欄／3＋3／2＋2＋2；安全旗標固定 3＋3；串接卡新增依狀態變化的下一步；撤銷裝置改為明確危險操作。
+- 管理通知 V1 已完成：台北時間 08:00／12:00／20:00 詳細營運摘要；高／重大登入、存取、付款、LINE 與系統事件立即分送管理員 LINE＋Gmail。兩通道個別佇列、個別重試、日期／時段防重送；通知會遮罩 Email／IP 並移除驗證碼、Token、Cookie、密碼及簽章值。
+- 客戶交易郵件寄送失敗已接入即時管理告警；管理 Gmail 故障時不會遞迴產生無限告警，LINE 仍獨立送達。後台已顯示雙通道、通知類型及每日排程就緒狀態。
 - 完整 40 點問題、影響與對應修正記錄於 `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`；本次只改呈現層與互動狀態，沒有改動付款、開通、可信裝置、風險分級或資料庫規則。
 
 ## 驗證結果
@@ -52,7 +54,7 @@
 - `python -m py_compile ...`：通過。
 - `node --check static\app.js`：通過。
 - `node --check static\admin.js`：通過。
-- `python -m pytest -q`：52 passed，0 failed。
+- `python -m pytest -q`：58 passed，0 failed。
 - `python -m pip check`：No broken requirements found。
 - 舊版 `data/tianwai.db` 副本原地升級：新增客戶、裝置、存取事件、風險案件與告警表，回填訂單 customer 關聯；`/healthz` 通過，沒有刪除或重建既有訂單。
 - 本機瀏覽器完整操作：結帳告知 → 模擬付款 → 10 分鐘開通碼 → 付費內容；桌機與 390 × 844 均無水平溢位，浮水印 12 組且只含匿名客戶代碼、訂單尾碼與時間。
@@ -94,6 +96,7 @@
 - `/line/webhook`：正式 LINE webhook 入口
 - `/payments/webhook/mock`：支付 webhook 範例
 - `/admin`：管理後台
+- `/internal/notifications/daily-summary`：GitHub Actions 專用的密鑰保護排程端點，不得公開連結
 
 `/dev/line` 與 `/admin` 為非公開營運入口，不得從公開頁面連結；Logo 評估路由已撤除。
 
@@ -108,7 +111,7 @@
 3. 為既有的獨立 LINE 官方帳號啟用 Messaging API，部署公開 HTTPS，填入本專案自己的 Channel Secret／Access Token。
 4. 將既有合法綠界特店的 MerchantID／HashKey／HashIV 分別存入本專案自己的 Render 環境變數，保留 `ECPAY_STORE_ID=TWYB`，並補 SMTP 設定後先做 stage／非扣款驗收。
 5. 正式公開前換 PostgreSQL 或 Render 持久化磁碟，補退款撤銷權益、電子發票、備份、監控、WAF、管理員 2FA 與部署檢查。
-6. 在天外一筆 Render 服務填入自己的 `LINE_ADMIN_USER_ID`，以測試案件驗收一筆高風險私下 LINE 推播；不得填入萬語通或其他專案收件人。
+6. 在天外一筆 Render 服務填入自己的 `LINE_ADMIN_USER_ID`、`ADMIN_ALERT_EMAIL` 與 SMTP；Render、GitHub Actions 設定同一個獨立 `NOTIFICATION_CRON_SECRET`，手動執行一次摘要並驗收 LINE＋Gmail 實際收件。不得填入萬語通或其他專案收件人。
 
 ## 禁止混用
 

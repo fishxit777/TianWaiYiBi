@@ -2,7 +2,7 @@ import os
 import smtplib
 from email.message import EmailMessage
 
-from flask import current_app
+from flask import current_app, has_request_context, request
 
 from .db import get_db, utc_now
 
@@ -43,7 +43,7 @@ def _mask_email(address):
 
 def _record_event(order_id, kind, recipient, status, error_code=""):
     connection = get_db()
-    connection.execute(
+    cursor = connection.execute(
         """
         INSERT INTO email_events
             (order_id, email_kind, recipient_masked, status, error_code, created_at)
@@ -59,6 +59,30 @@ def _record_event(order_id, kind, recipient, status, error_code=""):
         ),
     )
     connection.commit()
+    return cursor.lastrowid
+
+
+def _queue_delivery_failure(email_event_id, kind, error_code):
+    if str(kind).startswith("admin_"):
+        return
+    try:
+        from .notifications import queue_security_alert
+        from .security import get_client_ip, safe_user_agent
+
+        queue_security_alert(
+            f"mail-{email_event_id}",
+            level="high",
+            event_type="transactional_email_delivery_failed",
+            event_id=f"MAIL-{email_event_id}",
+            action_taken="delivery_failed_queued_for_review",
+            ip=get_client_ip() if has_request_context() else "system",
+            path=request.path if has_request_context() else "system",
+            user_agent=safe_user_agent() if has_request_context() else "system",
+            detail=f"email_kind={str(kind)[:40]}; error={str(error_code)[:80]}",
+            occurred_at=utc_now(),
+        )
+    except Exception:
+        current_app.logger.exception("Unable to queue transactional email failure alert")
 
 
 def send_email(recipient, subject, text_body, kind, order_id=None):
@@ -77,7 +101,8 @@ def send_email(recipient, subject, text_body, kind, order_id=None):
         return "development"
 
     if not email_delivery_ready():
-        _record_event(order_id, kind, recipient, "failed", "smtp_not_configured")
+        event_id = _record_event(order_id, kind, recipient, "failed", "smtp_not_configured")
+        _queue_delivery_failure(event_id, kind, "smtp_not_configured")
         return "failed"
 
     message = EmailMessage()
@@ -102,7 +127,9 @@ def send_email(recipient, subject, text_body, kind, order_id=None):
             server.send_message(message)
     except (OSError, smtplib.SMTPException) as error:
         current_app.logger.exception("Transactional email delivery failed")
-        _record_event(order_id, kind, recipient, "failed", type(error).__name__)
+        error_code = type(error).__name__
+        event_id = _record_event(order_id, kind, recipient, "failed", error_code)
+        _queue_delivery_failure(event_id, kind, error_code)
         return "failed"
 
     _record_event(order_id, kind, recipient, "sent")
