@@ -1,5 +1,6 @@
 import sqlite3
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import current_app, g
@@ -146,6 +147,47 @@ def migrate_database(connection):
     """Apply additive SQLite migrations for databases created by earlier releases."""
     if "activation_token_hash" not in _column_names(connection, "orders"):
         connection.execute("ALTER TABLE orders ADD COLUMN activation_token_hash TEXT")
+    if "customer_id" not in _column_names(connection, "orders"):
+        connection.execute("ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)")
+
+    session_columns = _column_names(connection, "customer_sessions")
+    if "customer_id" not in session_columns:
+        connection.execute("ALTER TABLE customer_sessions ADD COLUMN customer_id INTEGER REFERENCES customers(id)")
+    if "device_id" not in session_columns:
+        connection.execute("ALTER TABLE customer_sessions ADD COLUMN device_id INTEGER REFERENCES customer_devices(id)")
+    if "ip" not in session_columns:
+        connection.execute("ALTER TABLE customer_sessions ADD COLUMN ip TEXT")
+    if "idle_expires_at" not in session_columns:
+        connection.execute("ALTER TABLE customer_sessions ADD COLUMN idle_expires_at TEXT")
+    if "replay_attempts" not in session_columns:
+        connection.execute("ALTER TABLE customer_sessions ADD COLUMN replay_attempts INTEGER NOT NULL DEFAULT 0")
+    if "last_replay_at" not in session_columns:
+        connection.execute("ALTER TABLE customer_sessions ADD COLUMN last_replay_at TEXT")
+
+    migration_now = utc_now()
+    code_cap = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(timespec="seconds")
+    connection.execute(
+        """
+        UPDATE activation_codes SET expires_at = ?
+        WHERE used_at IS NULL AND revoked_at IS NULL AND expires_at > ?
+        """,
+        (code_cap, code_cap),
+    )
+    connection.execute(
+        """
+        UPDATE customer_login_codes SET expires_at = ?
+        WHERE used_at IS NULL AND revoked_at IS NULL AND expires_at > ?
+        """,
+        (code_cap, code_cap),
+    )
+    connection.execute(
+        """
+        UPDATE customer_sessions
+        SET revoked_at = ?, revoked_reason = 'security_upgrade_relogin_required'
+        WHERE revoked_at IS NULL AND (customer_id IS NULL OR device_id IS NULL OR idle_expires_at IS NULL)
+        """,
+        (migration_now,),
+    )
 
     from .security import derive_activation_token, hash_token
 
@@ -158,8 +200,44 @@ def migrate_database(connection):
             "UPDATE orders SET activation_token_hash = ? WHERE id = ?",
             (hash_token(token), row["id"]),
         )
+
+    emails = connection.execute(
+        "SELECT DISTINCT LOWER(TRIM(customer_email)) AS email FROM orders WHERE customer_email <> ''"
+    ).fetchall()
+    for row in emails:
+        email = row["email"]
+        existing = connection.execute(
+            "SELECT id FROM customers WHERE normalized_email = ?", (email,)
+        ).fetchone()
+        if existing is None:
+            public_id = f"TYB-{secrets.token_hex(6).upper()}"
+            cursor = connection.execute(
+                """
+                INSERT INTO customers
+                    (public_id, normalized_email, status, risk_level, created_at, updated_at)
+                VALUES (?, ?, 'active', 'low', ?, ?)
+                """,
+                (public_id, email, utc_now(), utc_now()),
+            )
+            customer_id = cursor.lastrowid
+        else:
+            customer_id = existing["id"]
+        connection.execute(
+            "UPDATE orders SET customer_id = ? WHERE LOWER(TRIM(customer_email)) = ? AND customer_id IS NULL",
+            (customer_id, email),
+        )
+        connection.execute(
+            "UPDATE customer_sessions SET customer_id = ? WHERE LOWER(TRIM(customer_email)) = ? AND customer_id IS NULL",
+            (customer_id, email),
+        )
     connection.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_activation_token ON orders (activation_token_hash)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders (customer_id, status)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_customer_session_customer_expiry ON customer_sessions (customer_id, expires_at DESC)"
     )
     connection.commit()
 

@@ -13,9 +13,11 @@
 - 統一價格設定、訂單成交價快照、專屬內容連結。
 - 本機模擬付款、HMAC webhook、事件冪等與金額核對。
 - 付款前明確告知彈窗、雙重同意版本與稽核紀錄；付款後成功彈窗改用清楚的消費者文字。
-- 付款成功後才寄送專屬開通連結與 12 位一次性開通碼；首次碼 24 小時有效、成功後立即作廢，最多嘗試 5 次。
-- 重新登入採另一組 12 位碼，伺服器端 7 分鐘失效且可重寄；已付款權益不會因驗證碼失效而刪除。
-- 30 天 HttpOnly 客戶 session、已購內容庫、跨裝置 Email 無密碼登入與登出撤銷。
+- 付款成功後才寄送專屬開通連結與 12 位一次性開通碼；首次開通與重新登入碼均為 10 分鐘、一次性、最多嘗試 5 次，失效不會刪除已付款權益。
+- 每位客戶最多 2 台 30 天可信裝置；第三台驗證成功會淘汰最久未使用裝置。任何時間只有 1 個有效內容工作階段，新登入自動撤銷舊工作階段。
+- 客戶 session 採 7 天絕對期限、24 小時閒置期限、HttpOnly Cookie；付費頁含匿名客戶代碼、訂單尾碼與時間浮水印。
+- 低／中／高／重大四級風險、已撤銷工作階段重播偵測、HMAC 防竄改證據鏈、風險案件與告警佇列均已完成；正常換機只列中度，不直接當成惡意。
+- 高／重大事件才私下推播管理員 LINE；訊息不含完整 Email、IP、驗證碼或 token。後台可撤銷裝置、更新案件、重試告警並驗證證據鏈。
 - 綠界 AioCheckOut V5 已完成表單轉送、官方 CheckMacValue 算法、ReturnURL／OrderResultURL、金額核對、防重送與正式啟用閘門；可沿用與 NestFM 相同的合法特店憑證，但固定使用 `TWYB` 訂單前綴及 `StoreID=TWYB` 隔離對帳與 callback。
 - SMTP 交易信介面已完成；本機使用不外寄的 outbox 預覽，正式環境需補 SMTP 設定。
 - LINE webhook 簽章、防重送、好友加入、文字指令、六脈 Flex Carousel 與共用訊息模型的本機模擬器。
@@ -47,8 +49,11 @@
 - `python -m py_compile ...`：通過。
 - `node --check static\app.js`：通過。
 - `node --check static\admin.js`：通過。
-- `python -m pytest -q`：43 passed，0 failed。
+- `python -m pytest -q`：51 passed，0 failed。
 - `python -m pip check`：No broken requirements found。
+- 舊版 `data/tianwai.db` 副本原地升級：新增客戶、裝置、存取事件、風險案件與告警表，回填訂單 customer 關聯；`/healthz` 通過，沒有刪除或重建既有訂單。
+- 本機瀏覽器完整操作：結帳告知 → 模擬付款 → 10 分鐘開通碼 → 付費內容；桌機與 390 × 844 均無水平溢位，浮水印 12 組且只含匿名客戶代碼、訂單尾碼與時間。
+- 後台瀏覽器實看：可信裝置／單一 session 指標、遮罩網路資訊、存取事件、證據鏈與 LINE 佇列皆正確顯示；console 0 error、0 warning。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
 - 手機 390 × 844：官網、V13 主視覺、LINE 模擬器、後台與內容編輯 dialog 都沒有根頁面水平溢位。
@@ -96,6 +101,7 @@
 3. 為既有的獨立 LINE 官方帳號啟用 Messaging API，部署公開 HTTPS，填入本專案自己的 Channel Secret／Access Token。
 4. 將既有合法綠界特店的 MerchantID／HashKey／HashIV 分別存入本專案自己的 Render 環境變數，保留 `ECPAY_STORE_ID=TWYB`，並補 SMTP 設定後先做 stage／非扣款驗收。
 5. 正式公開前換 PostgreSQL 或 Render 持久化磁碟，補退款撤銷權益、電子發票、備份、監控、WAF、管理員 2FA 與部署檢查。
+6. 在天外一筆 Render 服務填入自己的 `LINE_ADMIN_USER_ID`，以測試案件驗收一筆高風險私下 LINE 推播；不得填入萬語通或其他專案收件人。
 
 ## 禁止混用
 

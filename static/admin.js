@@ -95,7 +95,7 @@
     const target = document.querySelector('#attention-list');
     clear(target);
     const pendingAccess = data.customer_access?.summary?.pending_activation || 0;
-    const riskEvents = (data.security_events || []).filter((item) => ['critical', 'high'].includes(item.severity)).length;
+    const riskEvents = [...(data.security_events || []), ...(data.access_events || [])].filter((item) => ['critical', 'high'].includes(item.severity)).length;
     const disconnected = integrationItems(data.integration_status || {}).filter((item) => !item.ready).length;
     const items = [
       {count: data.metrics.pending_orders, title: '待付款訂單', detail: '確認付款進度與異常交易', view: 'orders', tone: 'gold'},
@@ -309,7 +309,8 @@
       ['內容權限', summary.paid_entitlements || 0, '已付款份數'],
       ['已完成開通', summary.activated_entitlements || 0, '可登入取用'],
       ['等待開通', summary.pending_activation || 0, '需要確認交付'],
-      ['目前登入', summary.active_sessions || 0, '有效工作階段']
+      ['目前登入', summary.active_sessions || 0, '單一有效工作階段'],
+      ['可信裝置', summary.trusted_devices || 0, '每位客戶最多 2 台']
     ].forEach(([label, value, detail], index) => {
       const card = node('article', `customer-metric ${index === 3 && value ? 'needs-attention' : ''}`);
       card.append(node('span', '', label), node('strong', '', value), node('small', '', detail));
@@ -328,7 +329,7 @@
     data.orders.forEach((order) => {
       const row = node('tr');
       const customer = node('td');
-      customer.append(node('strong', '', order.customer_name), node('small', '', order.customer_email));
+      customer.append(node('strong', '', order.customer_name), node('small', '', `${order.customer_email}・${order.customer_public_id}`), node('small', '', `風險 ${order.risk_level}・可信裝置 ${order.trusted_devices}/2`));
       const delivery = node('td');
       delivery.appendChild(node('span', `status-pill delivery-${order.delivery_status}`, deliveryLabels[order.delivery_status] || '等待交付'));
       const activation = node('td');
@@ -338,10 +339,49 @@
     });
   }
 
+  function renderCustomerDevices(devices) {
+    const table = document.querySelector('#customer-device-table');
+    clear(table);
+    if (!devices.length) {
+      const row = node('tr');
+      const cell = node('td', 'table-empty', '目前沒有可信裝置');
+      cell.colSpan = 6;
+      row.appendChild(cell);
+      table.appendChild(row);
+      return;
+    }
+    devices.forEach((device) => {
+      const row = node('tr');
+      const status = device.revoked_at ? `已撤銷・${device.revoked_reason || '未註明'}` : '可信任';
+      const action = node('td');
+      if (!device.revoked_at) {
+        const button = node('button', '', '撤銷裝置');
+        button.type = 'button';
+        button.addEventListener('click', async () => {
+          try {
+            await api(`/admin/api/customers/devices/${device.id}/revoke`, {method: 'POST'});
+            await loadDashboard('可信裝置及其有效工作階段已撤銷。');
+          } catch (error) { showError(error); }
+        });
+        action.appendChild(button);
+      } else action.textContent = '—';
+      row.append(
+        node('td', 'order-number', device.customer_public_id),
+        node('td', '', `${device.label}・${device.public_id}`),
+        node('td', '', device.last_ip),
+        node('td', 'date-cell', dateText(device.last_seen_at)),
+        node('td', '', status),
+        action
+      );
+      table.appendChild(row);
+    });
+  }
+
   function eventItem(item, audit = false) {
     const row = node('article', `event-item severity-${item.severity || 'info'}`);
     const copy = node('div');
-    copy.append(node('strong', '', audit ? item.action : item.event_type), node('span', '', audit ? `${item.target}・${item.detail}` : `${item.action_taken}・${item.path}`));
+    const eventDetail = item.path || `風險分數 ${item.risk_score ?? '—'}・${item.customer_public_id || '未綁定客戶'}`;
+    copy.append(node('strong', '', audit ? item.action : item.event_type), node('span', '', audit ? `${item.target}・${item.detail}` : `${item.action_taken}・${eventDetail}`));
     row.append(copy, node('small', '', audit ? item.ip : item.ip), node('time', '', dateText(item.created_at)));
     return row;
   }
@@ -354,6 +394,64 @@
       return;
     }
     events.forEach((item) => target.appendChild(eventItem(item, audit)));
+  }
+
+  function renderNotifications(items) {
+    const target = document.querySelector('#notification-events');
+    clear(target);
+    if (!items.length) {
+      target.appendChild(node('div', 'event-empty', '目前沒有高風險私下警示'));
+      return;
+    }
+    items.forEach((item) => {
+      const row = node('article', `event-item severity-${item.status === 'sent' ? 'low' : 'medium'}`);
+      const copy = node('div');
+      copy.append(
+        node('strong', '', `${item.channel.toUpperCase()}・${item.status}`),
+        node('span', '', `${item.recipient_masked}・嘗試 ${item.attempts} 次${item.last_error ? `・${item.last_error}` : ''}`)
+      );
+      row.append(copy, node('time', '', dateText(item.updated_at)));
+      target.appendChild(row);
+    });
+  }
+
+  function renderIncidents(items) {
+    const target = document.querySelector('#risk-incidents');
+    clear(target);
+    if (!items.length) {
+      target.appendChild(node('div', 'event-empty', '目前沒有待處理風險案件'));
+      return;
+    }
+    items.forEach((item) => {
+      const row = node('article', `event-item severity-${item.level}`);
+      const copy = node('div');
+      copy.append(
+        node('strong', '', `${item.incident_no}・${item.event_type}`),
+        node('span', '', `${item.customer_public_id || '未綁定客戶'}・分數 ${item.risk_score}・${item.status}`)
+      );
+      const actions = node('span', 'event-actions');
+      if (item.status === 'open') {
+        const reviewing = node('button', '', '開始檢視');
+        reviewing.type = 'button';
+        reviewing.addEventListener('click', () => updateIncident(item.id, 'reviewing'));
+        actions.appendChild(reviewing);
+      }
+      if (!['resolved', 'dismissed'].includes(item.status)) {
+        const resolved = node('button', '', '標記已處理');
+        resolved.type = 'button';
+        resolved.addEventListener('click', () => updateIncident(item.id, 'resolved'));
+        actions.appendChild(resolved);
+      }
+      row.append(copy, actions, node('time', '', dateText(item.created_at)));
+      target.appendChild(row);
+    });
+  }
+
+  async function updateIncident(id, incidentStatus) {
+    try {
+      await api(`/admin/api/security/incidents/${id}`, {method: 'POST', body: JSON.stringify({status: incidentStatus})});
+      await loadDashboard('風險案件狀態已更新並寫入稽核紀錄。');
+    } catch (error) { showError(error); }
   }
 
   function renderBlocks(blocks) {
@@ -387,6 +485,8 @@
       ['後台工作階段綁定', config.session_ip_binding, '降低 Cookie 遭竊風險'],
       ['金流通知驗簽', config.payment_signature_configured, '確認付款來源'],
       ['LINE 事件驗簽', config.line_signature_configured, '拒絕偽造訊息'],
+      ['管理員私下 LINE 告警', config.line_admin_alert, '高風險與重大事件才推播'],
+      ['2 台可信裝置上限', config.trusted_device_limit === 2, '單一工作階段、10 分鐘驗證碼'],
       ['後台 IP 白名單', config.allowlist_required, '限制可登入來源']
     ].forEach(([label, enabled, detail]) => {
       const card = node('article', `security-flag ${enabled ? 'good' : 'warn'}`);
@@ -406,7 +506,15 @@
     renderIdeas(data.ideas || []);
     renderOrders();
     renderCustomerAccess(data.customer_access || {});
+    renderCustomerDevices(data.customer_devices || []);
     renderEvents(data.security_events || [], '#security-events');
+    renderEvents(data.access_events || [], '#access-events');
+    renderNotifications(data.notification_queue || []);
+    renderIncidents(data.risk_incidents || []);
+    const chain = data.evidence_chain || {};
+    const chainTarget = document.querySelector('#evidence-chain-status');
+    chainTarget.textContent = chain.valid ? `證據鏈完整・${chain.checked || 0} 筆` : `證據鏈異常・${chain.broken_event_id || '未知'}`;
+    chainTarget.classList.toggle('danger', !chain.valid);
     renderBlocks(data.blocked_ips || []);
     renderEvents(data.audit_logs || [], '#audit-logs', true);
     renderFlags(data.security_config || {});
@@ -451,6 +559,12 @@
     try {
       await api('/admin/api/security/test', {method: 'POST'});
       await loadDashboard('安全測試事件已寫入。');
+    } catch (error) { showError(error); }
+  });
+  document.querySelector('#retry-security-alerts').addEventListener('click', async () => {
+    try {
+      const result = await api('/admin/api/security/notifications/retry', {method: 'POST'});
+      await loadDashboard(`私下警示已重試 ${result.processed} 筆，送達 ${result.sent} 筆。`);
     } catch (error) { showError(error); }
   });
   document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => editor.close()));

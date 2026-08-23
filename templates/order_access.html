@@ -3,6 +3,9 @@
 {% block body_class %}access-page accent-{{ order['accent'] }}{% endblock %}
 {% block content %}
 <section class="access-shell section-shell">
+  <div class="access-watermark" aria-hidden="true">
+    {% for _ in range(12) %}<span>{{ access_context.customer }}・{{ access_context.order }}・{{ access_context.time }}</span>{% endfor %}
+  </div>
   <header class="access-header reveal">
     <span class="access-seal"><img src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt=""></span>
     <div><p class="section-index">已購買內容</p><h1>{{ order['title'] }}</h1><p>{{ order['role'] }}・{{ order['discipline'] }}</p></div>
@@ -12,6 +15,6 @@
     <p class="manuscript-copy">{{ order['paid_content'] }}</p>
     <footer><span>交付物</span><strong>{{ order['deliverables'] }}</strong></footer>
   </article>
-  <aside class="access-reminder reveal delay-2"><strong>購買權限已保留。</strong><p>登入碼只用於驗證身分，7 分鐘失效不會影響此內容。請勿分享帳號、開通連結或驗證碼。</p><div class="access-actions"><a class="button button-ghost" href="{{ url_for('access.customer_library') }}">返回已購內容</a><form action="{{ url_for('access.customer_logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-ghost" type="submit">登出</button></form></div></aside>
+  <aside class="access-reminder reveal delay-2"><strong>購買權限已保留。</strong><p>登入碼只用於驗證身分，10 分鐘失效不會影響此內容。此頁含個人化識別浮水印，請勿分享帳號、畫面、開通連結或驗證碼。</p><div class="access-actions"><a class="button button-ghost" href="{{ url_for('access.customer_library') }}">返回已購內容</a><form action="{{ url_for('access.customer_logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-ghost" type="submit">登出</button></form></div></aside>
 </section>
 {% endblock %}

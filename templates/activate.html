@@ -13,7 +13,8 @@
       <p class="plain-alert">此訂單已完成首次開通。原開通碼已作廢，請使用購買 Email 重新登入。</p>
       <a class="button button-primary button-wide" href="{{ url_for('access.customer_login_page') }}">前往客戶登入</a>
     {% else %}
-      <p>請輸入 Email 中的一次性 12 位開通碼。開通碼有效 24 小時，成功後立即失效。</p>
+      <p>請輸入 Email 中的一次性 12 位開通碼。開通碼有效 10 分鐘，成功後立即失效。</p>
+      <p class="plain-alert">完成後此裝置會列為可信裝置。每個帳號最多保留 2 台可信裝置，且同一時間僅允許 1 台裝置存取已購內容；在另一台裝置完成驗證時，舊工作階段會自動登出。</p>
       {% if resent %}<p class="plain-success">若訂單與寄信服務正常，新的開通資料已寄出。請同時檢查垃圾郵件匣。</p>{% endif %}
       {% if error %}<p class="plain-error" role="alert">{{ error }}</p>{% endif %}
       <form action="{{ url_for('access.activate_order', activation_token=activation_token) }}" method="post">

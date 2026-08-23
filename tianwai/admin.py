@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, make_response, redirect, render_template, 
 
 from .db import get_db, get_setting_int, utc_now
 from .mailer import email_delivery_ready
+from .risk import verify_access_event_chain
 from .security import (
     ADMIN_COOKIE,
     admin_cookie_secure,
@@ -45,6 +46,18 @@ def _mask_email(value):
         return "***"
     visible = local[:2] if len(local) > 2 else local[:1]
     return f"{visible}***@{domain}"
+
+
+def _mask_ip(value):
+    try:
+        address = ipaddress.ip_address(str(value))
+    except ValueError:
+        return "unknown"
+    if address.version == 4:
+        parts = str(address).split(".")
+        return f"{parts[0]}.{parts[1]}.*.*"
+    parts = address.exploded.split(":")
+    return f"{parts[0]}:{parts[1]}::*"
 
 
 @admin_bp.get("/login")
@@ -158,6 +171,13 @@ def dashboard_data():
         """,
         (utc_now(),),
     ).fetchone()["count"]
+    trusted_devices = connection.execute(
+        """
+        SELECT COUNT(*) AS count FROM customer_devices
+        WHERE revoked_at IS NULL AND trusted_until > ?
+        """,
+        (utc_now(),),
+    ).fetchone()["count"]
     customer_access = connection.execute(
         """
         SELECT
@@ -166,6 +186,14 @@ def dashboard_data():
             orders.customer_email,
             orders.paid_at,
             ideas.title,
+            customers.public_id AS customer_public_id,
+            COALESCE(customers.risk_level, 'low') AS risk_level,
+            COALESCE((
+                SELECT COUNT(*) FROM customer_devices
+                WHERE customer_devices.customer_id = orders.customer_id
+                  AND customer_devices.revoked_at IS NULL
+                  AND customer_devices.trusted_until > ?
+            ), 0) AS trusted_devices,
             CASE WHEN EXISTS (
                 SELECT 1 FROM activation_codes
                 WHERE activation_codes.order_id = orders.id
@@ -178,13 +206,51 @@ def dashboard_data():
             ), 'pending') AS delivery_status
         FROM orders
         JOIN ideas ON ideas.id = orders.idea_id
+        LEFT JOIN customers ON customers.id = orders.customer_id
         WHERE orders.status = 'paid'
         ORDER BY orders.paid_at DESC, orders.id DESC
         LIMIT 40
-        """
+        """,
+        (utc_now(),),
     ).fetchall()
     security_events = connection.execute(
         "SELECT * FROM security_events ORDER BY id DESC LIMIT 40"
+    ).fetchall()
+    access_events = connection.execute(
+        """
+        SELECT access_events.*, customers.public_id AS customer_public_id,
+               customer_devices.public_id AS device_public_id
+        FROM access_events
+        LEFT JOIN customers ON customers.id = access_events.customer_id
+        LEFT JOIN customer_devices ON customer_devices.id = access_events.device_id
+        ORDER BY access_events.id DESC LIMIT 60
+        """
+    ).fetchall()
+    risk_incidents = connection.execute(
+        """
+        SELECT risk_incidents.*, customers.public_id AS customer_public_id,
+               access_events.event_type, access_events.risk_score
+        FROM risk_incidents
+        LEFT JOIN customers ON customers.id = risk_incidents.customer_id
+        JOIN access_events ON access_events.id = risk_incidents.access_event_id
+        ORDER BY risk_incidents.id DESC LIMIT 40
+        """
+    ).fetchall()
+    notification_queue = connection.execute(
+        """
+        SELECT id, incident_id, channel, recipient_masked, status, attempts,
+               last_error, created_at, updated_at, sent_at
+        FROM notification_queue ORDER BY id DESC LIMIT 40
+        """
+    ).fetchall()
+    customer_devices = connection.execute(
+        """
+        SELECT customer_devices.*, customers.public_id AS customer_public_id
+        FROM customer_devices
+        JOIN customers ON customers.id = customer_devices.customer_id
+        ORDER BY customer_devices.last_seen_at DESC, customer_devices.id DESC
+        LIMIT 100
+        """
     ).fetchall()
     blocks = connection.execute(
         "SELECT * FROM blocked_ips WHERE blocked_until > ? ORDER BY blocked_until DESC",
@@ -272,12 +338,16 @@ def dashboard_data():
                         0,
                     ),
                     "active_sessions": int(active_customer_sessions or 0),
+                    "trusted_devices": int(trusted_devices or 0),
                 },
                 "orders": [
                     {
                         "order_no": row["order_no"],
                         "customer_name": row["customer_name"],
                         "customer_email": _mask_email(row["customer_email"]),
+                        "customer_public_id": row["customer_public_id"] or "尚未建立",
+                        "risk_level": row["risk_level"],
+                        "trusted_devices": int(row["trusted_devices"] or 0),
                         "title": row["title"],
                         "paid_at": row["paid_at"],
                         "activated": bool(row["activated"]),
@@ -287,6 +357,25 @@ def dashboard_data():
                 ],
             },
             "security_events": [dict(row) for row in security_events],
+            "access_events": [dict(row) for row in access_events],
+            "risk_incidents": [dict(row) for row in risk_incidents],
+            "notification_queue": [dict(row) for row in notification_queue],
+            "customer_devices": [
+                {
+                    "id": row["id"],
+                    "public_id": row["public_id"],
+                    "customer_public_id": row["customer_public_id"],
+                    "label": row["label"],
+                    "last_ip": _mask_ip(row["last_ip"]),
+                    "first_seen_at": row["first_seen_at"],
+                    "last_seen_at": row["last_seen_at"],
+                    "trusted_until": row["trusted_until"],
+                    "revoked_at": row["revoked_at"],
+                    "revoked_reason": row["revoked_reason"],
+                }
+                for row in customer_devices
+            ],
+            "evidence_chain": verify_access_event_chain(),
             "blocked_ips": [dict(row) for row in blocks],
             "audit_logs": [dict(row) for row in audits],
             "revenue_days": [dict(row) for row in revenue_days],
@@ -296,6 +385,7 @@ def dashboard_data():
                 "base_url": base_url,
                 "public_https": base_url.lower().startswith("https://"),
                 "line_channel": bool(os.environ.get("LINE_CHANNEL_SECRET") and os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")),
+                "line_admin_alert": bool(os.environ.get("LINE_ADMIN_USER_ID")),
                 "payment_provider": checkout_status["provider"],
                 "payment_label": checkout_status["label"],
                 "email_delivery": email_delivery_ready(),
@@ -307,7 +397,11 @@ def dashboard_data():
                 "session_ip_binding": os.environ.get("ADMIN_SESSION_BIND_IP", "true").lower()
                 in {"1", "true", "yes", "on"},
                 "line_signature_configured": bool(os.environ.get("LINE_CHANNEL_SECRET")),
+                "line_admin_alert": bool(os.environ.get("LINE_ADMIN_USER_ID")),
                 "payment_signature_configured": bool(os.environ.get("PAYMENT_WEBHOOK_SECRET")),
+                "trusted_device_limit": 2,
+                "single_active_session": True,
+                "verification_code_minutes": 10,
             },
         }
     )
@@ -454,3 +548,78 @@ def unblock_ip():
     connection.commit()
     log_audit("security_unblock_ip", ip, f"removed={cursor.rowcount}")
     return jsonify({"ok": True, "removed": cursor.rowcount})
+
+
+@admin_bp.post("/api/customers/devices/<int:device_id>/revoke")
+@admin_required
+def revoke_customer_device(device_id):
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    from .risk import record_access_event
+
+    connection = get_db()
+    device = connection.execute(
+        "SELECT * FROM customer_devices WHERE id = ?", (device_id,)
+    ).fetchone()
+    if device is None:
+        return jsonify({"error": "找不到可信裝置"}), 404
+    if device["revoked_at"] is None:
+        now = utc_now()
+        connection.execute(
+            "UPDATE customer_devices SET revoked_at = ?, revoked_reason = 'admin_revoked' WHERE id = ?",
+            (now, device_id),
+        )
+        connection.execute(
+            """
+            UPDATE customer_sessions
+            SET revoked_at = ?, revoked_reason = 'admin_device_revoked'
+            WHERE device_id = ? AND revoked_at IS NULL
+            """,
+            (now, device_id),
+        )
+        connection.commit()
+        record_access_event(
+            "trusted_device_admin_revoked", 5, "device_and_sessions_revoked",
+            customer_id=device["customer_id"], device_id=device_id,
+        )
+    log_audit("revoke_customer_device", str(device_id), "device_and_sessions_revoked")
+    return jsonify({"ok": True, "device_id": device_id})
+
+
+@admin_bp.post("/api/security/incidents/<int:incident_id>")
+@admin_required
+def update_risk_incident(incident_id):
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    status = str(data.get("status", "")).strip().lower()
+    if status not in {"reviewing", "resolved", "dismissed"}:
+        return jsonify({"error": "案件狀態不正確"}), 400
+    connection = get_db()
+    cursor = connection.execute(
+        "UPDATE risk_incidents SET status = ?, updated_at = ? WHERE id = ?",
+        (status, utc_now(), incident_id),
+    )
+    connection.commit()
+    if cursor.rowcount == 0:
+        return jsonify({"error": "找不到風險案件"}), 404
+    log_audit("update_risk_incident", str(incident_id), f"status={status}")
+    return jsonify({"ok": True, "incident_id": incident_id, "status": status})
+
+
+@admin_bp.post("/api/security/notifications/retry")
+@admin_required
+def retry_security_notifications():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    from .notifications import retry_private_alerts
+
+    result = retry_private_alerts(limit=20)
+    log_audit(
+        "retry_security_notifications", "notification_queue",
+        f"processed={result['processed']},sent={result['sent']}",
+    )
+    return jsonify({"ok": True, **result})

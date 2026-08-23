@@ -54,7 +54,7 @@ def test_activation_code_expires_and_can_be_resent(client, app):
     assert len(app.extensions["mail_outbox"]) == 2
 
 
-def test_customer_login_code_expires_after_seven_minutes_without_losing_entitlement(client, app):
+def test_customer_login_code_expires_after_ten_minutes_without_losing_entitlement(client, app):
     order, link, activation_code = _pay_and_get_activation(client)
     csrf = set_public_csrf(client, "activate-for-login-csrf")
     activated = client.post(
@@ -91,7 +91,7 @@ def test_customer_login_code_expires_after_seven_minutes_without_losing_entitlem
         data={"csrf_token": login_csrf, "login_code": login_code},
     )
     assert rejected.status_code == 400
-    assert "超過 7 分鐘" in rejected.get_data(as_text=True)
+    assert "超過 10 分鐘" in rejected.get_data(as_text=True)
 
     with app.app_context():
         paid = get_db().execute(

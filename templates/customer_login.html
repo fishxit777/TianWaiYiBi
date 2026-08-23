@@ -15,7 +15,8 @@
       </form>
     {% else %}
       <h1>輸入登入碼</h1>
-      <p>若 Email 有已付款訂單，登入碼已寄出。登入碼僅能使用一次，7 分鐘後自動失效。</p>
+      <p>若 Email 有已付款訂單，登入碼已寄出。登入碼僅能使用一次，10 分鐘後自動失效。</p>
+      <p class="plain-alert">登入後，此裝置會加入最多 2 台的可信裝置名單；同一時間只允許 1 台裝置存取已購內容。若已達上限，系統會淘汰最久未使用的可信裝置。</p>
       {% if development_code %}<div class="development-code"><span>本機測試登入碼</span><strong>{{ development_code }}</strong></div>{% endif %}
       {% if error %}<p class="plain-error" role="alert">{{ error }}</p>{% endif %}
       <form action="{{ url_for('access.customer_login_complete') }}" method="post">

@@ -10,8 +10,9 @@
     <div class="payment-order"><div><span>訂單 {{ order['order_no'] }}</span><strong>{{ order['title'] }}</strong></div><strong>NT${{ order['amount'] }}</strong></div>
     <ol class="plain-steps">
       <li>專屬開通連結與一次性 12 位開通碼已寄到購買時填寫的 Email。</li>
-      <li>開通碼有效 24 小時，成功使用後立即失效。</li>
-      <li>日後重新登入會使用另一組 7 分鐘登入碼；登入碼失效不會取消購買權限。</li>
+      <li>開通碼有效 10 分鐘，成功使用後立即失效。</li>
+      <li>日後重新登入會使用另一組 10 分鐘登入碼；登入碼失效不會取消購買權限。</li>
+      <li>每個帳號最多保留 2 台可信裝置，同一時間只允許 1 台裝置存取。</li>
     </ol>
     {% if development_code %}<div class="development-code"><span>本機測試開通碼</span><strong>{{ development_code }}</strong><small>正式環境不會在付款頁顯示開通碼。</small></div>{% endif %}
     <a class="button button-primary button-wide" href="{{ url_for('access.activate_page', activation_token=activation_token) }}">前往專屬開通頁</a>
@@ -19,7 +20,7 @@
       <div class="consumer-dialog-card">
         <p class="plain-kicker">付款成功</p>
         <h2 id="paid-notice-title">你的付款已確認</h2>
-        <p>開通資料已寄到購買 Email。一次性開通碼使用後立即失效；日後登入碼會在 7 分鐘後失效，但不會影響已購買內容。</p>
+        <p>開通資料已寄到購買 Email。一次性開通碼使用後立即失效；日後登入碼會在 10 分鐘後失效，但不會影響已購買內容。</p>
         <div class="dialog-actions"><button class="button button-ghost" type="button" data-dialog-close>留在本頁</button><a class="button button-primary" href="{{ url_for('access.activate_page', activation_token=activation_token) }}">立即開通</a></div>
       </div>
     </dialog>

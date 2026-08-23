@@ -100,6 +100,10 @@
         <div class="panel-heading table-heading"><div><span>PAID ACCESS</span><h3>已付款內容開通進度</h3></div></div>
         <div class="table-scroll"><table class="admin-table"><thead><tr><th>客戶</th><th>購買內容</th><th>訂單</th><th>交付狀態</th><th>開通狀態</th><th>付款時間</th></tr></thead><tbody id="customer-access-table"></tbody></table></div>
       </div>
+      <div class="admin-panel table-panel">
+        <div class="panel-heading table-heading"><div><span>TRUSTED DEVICES</span><h3>可信裝置與工作階段</h3></div></div>
+        <div class="table-scroll"><table class="admin-table"><thead><tr><th>客戶代碼</th><th>裝置</th><th>網路概略</th><th>最後使用</th><th>狀態</th><th>操作</th></tr></thead><tbody id="customer-device-table"></tbody></table></div>
+      </div>
     </section>
 
     <section id="integrations-admin" class="admin-workspace" data-admin-panel="integrations" hidden>
@@ -115,6 +119,11 @@
         <section class="admin-panel"><div class="panel-heading"><div><span>EVENTS</span><h3>最近安全事件</h3></div><strong id="risk-event-count" class="panel-count danger">0</strong></div><div id="security-events" class="event-list"></div></section>
         <section class="admin-panel"><div class="panel-heading"><div><span>BLOCKS</span><h3>目前封鎖 IP</h3></div></div><div id="blocked-ips" class="event-list"></div></section>
       </div>
+      <div class="admin-two-col security-columns">
+        <section class="admin-panel"><div class="panel-heading"><div><span>ACCESS RISK</span><h3>客戶存取風險事件</h3></div><strong id="evidence-chain-status" class="panel-note">驗證中</strong></div><div id="access-events" class="event-list"></div></section>
+        <section class="admin-panel"><div class="panel-heading"><div><span>PRIVATE ALERTS</span><h3>私下 LINE 警示佇列</h3></div><button id="retry-security-alerts" type="button">重試未送達</button></div><div id="notification-events" class="event-list"></div></section>
+      </div>
+      <section class="admin-panel audit-panel"><div class="panel-heading"><div><span>INCIDENTS</span><h3>風險案件處理</h3></div></div><div id="risk-incidents" class="event-list"></div></section>
       <section class="admin-panel audit-panel"><div class="panel-heading"><div><span>AUDIT</span><h3>管理操作紀錄</h3></div></div><div id="audit-logs" class="event-list"></div></section>
       <details class="advanced-tools"><summary>進階安全測試工具</summary><div><p>只在測試告警與稽核紀錄時使用，不影響真實客戶資料。</p><button id="security-test" type="button">寫入一筆測試事件</button></div></details>
     </section>

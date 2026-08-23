@@ -119,6 +119,54 @@ def test_security_test_endpoint_creates_event(client):
     assert any(item["event_type"] == "manual_security_test" for item in dashboard["security_events"])
 
 
+def test_admin_can_inspect_and_revoke_trusted_device(app, client):
+    csrf = login_admin(client)
+    _, activation_link, activation_code = _pay_and_get_activation(client)
+    public_csrf = set_public_csrf(client, "device-admin-csrf")
+    client.post(
+        activation_link,
+        data={"csrf_token": public_csrf, "activation_code": activation_code},
+        follow_redirects=True,
+    )
+
+    dashboard = client.get("/admin/api/dashboard").get_json()
+    device = dashboard["customer_devices"][0]
+    assert dashboard["evidence_chain"]["valid"] is True
+    assert device["customer_public_id"].startswith("TYB-")
+    assert device["last_ip"].endswith("*.*")
+
+    revoked = client.post(
+        f"/admin/api/customers/devices/{device['id']}/revoke",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert revoked.status_code == 200
+    assert client.get("/customer/library").status_code == 302
+
+
+def test_admin_can_update_incident_and_retry_private_alerts(app, client):
+    from tianwai.risk import record_access_event
+
+    csrf = login_admin(client)
+    with app.test_request_context("/test-risk", environ_base={"REMOTE_ADDR": "203.0.113.44"}):
+        record_access_event("automated_security_test", 70, "rejected")
+
+    dashboard = client.get("/admin/api/dashboard").get_json()
+    incident = dashboard["risk_incidents"][0]
+    updated = client.post(
+        f"/admin/api/security/incidents/{incident['id']}",
+        json={"status": "resolved"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    retried = client.post(
+        "/admin/api/security/notifications/retry",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert updated.status_code == 200
+    assert updated.get_json()["status"] == "resolved"
+    assert retried.status_code == 200
+    assert retried.get_json()["processed"] >= 1
+
+
 def test_repeated_bad_logins_trigger_temporary_block(client):
     csrf = set_public_csrf(client)
     statuses = []

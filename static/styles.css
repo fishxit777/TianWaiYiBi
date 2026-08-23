@@ -379,6 +379,19 @@
   .admin-ops-page .event-item { grid-template-columns: 1fr auto; }.admin-ops-page .event-item time { grid-column: 1 / -1; }.advanced-tools > div { align-items: stretch; flex-direction: column; }
   .admin-ops-page .idea-admin-row { grid-template-columns: 38px 1fr; }.idea-admin-price { grid-column: 2; }.admin-ops-page .idea-admin-actions { grid-column: 1 / -1; }.admin-ops-page .idea-admin-row button { flex: 1; }
 }
+.admin-page .event-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-page .event-actions button,
+.admin-page #retry-security-alerts,
+.admin-page #customer-device-table button {
+  min-height: 34px;
+  padding: 7px 12px;
+  color: #4f2c29;
+  background: #f4ead2;
+  border: 1px solid rgba(126, 80, 55, .28);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.admin-page .panel-note.danger { color: #a9322d; }
 
 @media (max-width: 430px) {
   .admin-ops-page .metric-grid, .customer-metrics, .admin-ops-page .integration-grid, .security-config-grid { grid-template-columns: 1fr 1fr; }
@@ -2024,6 +2037,33 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .public-site .form-status { font-size: var(--label-readable-size); }
 .public-site .payment-warning { font-size: 14px; line-height: 1.65; }
 .public-site .access-reminder p { font-size: 15px; }
+
+/* Paid-content traceability: visible, privacy-minimized dynamic watermark. */
+.access-shell { position: relative; isolation: isolate; }
+.access-shell > :not(.access-watermark) { position: relative; z-index: 2; }
+.access-watermark {
+  position: fixed;
+  z-index: 1;
+  inset: 120px -12vw 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 100px 50px;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  transform: rotate(-18deg) scale(1.08);
+  opacity: .11;
+}
+.access-watermark span {
+  color: #ddc276;
+  font: 600 13px/1.4 var(--sans);
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .access-watermark { grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 84px 30px; }
+  .access-watermark span { font-size: 11px; }
+}
 
 .public-site.transmission-v2-page .transmission-ceremony { font-size: 15px; }
 .public-site.transmission-v2-page .transmission-legacy { font-size: 17px; }
