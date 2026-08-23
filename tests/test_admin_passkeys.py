@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from conftest import login_admin, set_public_csrf
 from tianwai.db import get_db, utc_now
 from tianwai.passkeys import (
     active_credential_count,
@@ -197,3 +198,120 @@ def test_unknown_or_revoked_credential_is_rejected(app):
                 {"id": credential_b64, "rawId": credential_b64},
                 expected_challenge=b"x" * 32,
             )
+
+
+def _insert_passkey(app, credential_id, label):
+    with app.test_request_context("/admin/passkeys/setup"):
+        verified = SimpleNamespace(
+            credential_id=credential_id,
+            credential_public_key=b"public-key-" + credential_id,
+            sign_count=0,
+            aaguid="aaguid",
+            credential_device_type=SimpleNamespace(value="multi_device"),
+            credential_backed_up=True,
+            user_verified=True,
+        )
+        return store_registration_result(
+            verified,
+            label=label,
+            transports=["hybrid"],
+        )
+
+
+def test_registration_api_requires_admin_and_csrf(app, client):
+    unauthenticated = client.post("/admin/api/passkeys/registration/options")
+    assert unauthenticated.status_code == 401
+
+    csrf = login_admin(client)
+    missing_csrf = client.post("/admin/api/passkeys/registration/options")
+    accepted = client.post(
+        "/admin/api/passkeys/registration/options",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert missing_csrf.status_code == 403
+    assert accepted.status_code == 200
+    assert accepted.get_json()["publicKey"]["rp"]["id"] == "localhost"
+
+
+def test_registration_api_stores_verified_passkey(app, client, monkeypatch):
+    csrf = login_admin(client)
+    options = client.post(
+        "/admin/api/passkeys/registration/options",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert options.status_code == 200
+
+    monkeypatch.setattr(
+        "tianwai.admin.verify_and_store_registration",
+        lambda credential, expected_challenge, label, transports: 42,
+    )
+    verified = client.post(
+        "/admin/api/passkeys/registration/verify",
+        json={"credential": {"id": "test"}, "label": "Windows Hello", "transports": ["internal"]},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert verified.status_code == 200
+    assert verified.get_json()["credential_id"] == 42
+
+
+def test_passkey_login_creates_admin_session(app, client, monkeypatch):
+    _insert_passkey(app, b"login-credential", "Windows Hello")
+    csrf = set_public_csrf(client, "passkey-login-csrf")
+    options = client.post(
+        "/admin/passkeys/authentication/options",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert options.status_code == 200
+
+    monkeypatch.setattr(
+        "tianwai.admin.verify_and_update_authentication",
+        lambda credential, expected_challenge: SimpleNamespace(user_verified=True),
+    )
+    verified = client.post(
+        "/admin/passkeys/authentication/verify",
+        json={"credential": {"id": "test"}},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert verified.status_code == 200
+    assert verified.get_json()["redirect"] == "/admin"
+    assert client.get_cookie("twyb_admin", path="/admin") is not None
+    assert client.get("/admin").status_code == 200
+
+
+def test_passkey_only_mode_requires_two_credentials_and_disables_password(app, client):
+    csrf = login_admin(client)
+    _insert_passkey(app, b"first", "Windows Hello")
+    rejected = client.post(
+        "/admin/api/passkeys/activate",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert rejected.status_code == 409
+
+    _insert_passkey(app, b"second", "iPhone Passkey")
+    activated = client.post(
+        "/admin/api/passkeys/activate",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert activated.status_code == 200
+    client.post("/admin/logout", data={"csrf_token": csrf})
+
+    login_page = client.get("/admin/login").get_data(as_text=True)
+    assert "使用 Passkey 安全登入" in login_page
+    assert 'name="password"' not in login_page
+    blocked_password = client.post(
+        "/admin/login",
+        data={"username": "keeper", "password": "correct-horse-battery-staple"},
+    )
+    assert blocked_password.status_code == 404
+
+
+def test_passkey_setup_lists_credentials_and_never_public_keys(app, client):
+    _insert_passkey(app, b"secret-credential-id", "Windows Hello")
+    login_admin(client)
+    response = client.get("/admin/passkeys/setup")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Windows Hello" in body
+    assert "secret-credential-id" not in body
+    assert "public-key-secret-credential-id" not in body

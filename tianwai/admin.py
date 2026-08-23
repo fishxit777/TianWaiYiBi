@@ -1,14 +1,18 @@
+import base64
 import ipaddress
+import json
 import os
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, jsonify, make_response, redirect, render_template, request, session, url_for
+from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRegistrationResponse
 
 from .db import get_db, get_setting_int, utc_now
 from .mailer import email_delivery_ready
 from .risk import verify_access_event_chain
 from .security import (
     ADMIN_COOKIE,
+    ADMIN_SESSION_HOURS,
     admin_cookie_secure,
     admin_credentials_valid,
     admin_password_hash_configured,
@@ -22,6 +26,18 @@ from .security import (
     public_csrf_valid,
     register_login_attempt,
     revoke_admin_session,
+)
+from .passkeys import (
+    activate_passkey_only,
+    active_credential_count,
+    active_credentials,
+    begin_authentication,
+    begin_registration,
+    consume_challenge,
+    passkey_only_enabled,
+    revoke_credential,
+    verify_and_store_registration,
+    verify_and_update_authentication,
 )
 
 
@@ -65,38 +81,200 @@ def _mask_ip(value):
 def login_page():
     if current_admin_session() is not None:
         return redirect(url_for("admin.dashboard"))
-    return render_template("admin_login.html", error=None)
+    return render_template(
+        "admin_login.html",
+        error=None,
+        passkey_count=active_credential_count(),
+        passkey_only=passkey_only_enabled(),
+    )
 
 
-@admin_bp.post("/login")
-def login_submit():
-    if not is_admin_ip_allowed():
-        log_security_event("admin_ip_denied", "high", "rejected", "allowlist_mismatch")
-        return "", 404
-    if not public_csrf_valid():
-        log_security_event("admin_login_csrf_rejected", "high", "rejected", "csrf_mismatch")
-        return render_template("admin_login.html", error="安全驗證已過期，請重新整理後再試。"), 403
-    username = request.form.get("username", "")[:120]
-    password = request.form.get("password", "")[:512]
-    if not admin_credentials_valid(username, password):
-        failures = register_login_attempt(False)
-        status = 429 if failures >= 5 else 403
-        return render_template("admin_login.html", error="帳號或密碼錯誤，請稍後再試。"), status
-
-    register_login_attempt(True)
-    raw_token = create_admin_session()
-    log_audit("admin_login", "admin", "server_side_session_created")
-    response = make_response(redirect(url_for("admin.dashboard")))
+def _set_admin_cookie(response, raw_token):
     response.set_cookie(
         ADMIN_COOKIE,
         raw_token,
-        max_age=8 * 3600,
+        max_age=ADMIN_SESSION_HOURS * 3600,
         httponly=True,
         secure=admin_cookie_secure(),
         samesite="Strict",
         path="/admin",
     )
     return response
+
+
+def _encode_challenge(challenge):
+    return base64.urlsafe_b64encode(bytes(challenge)).decode("ascii").rstrip("=")
+
+
+def _decode_challenge(value):
+    raw = str(value or "")
+    return base64.urlsafe_b64decode(raw + "=" * ((4 - len(raw) % 4) % 4))
+
+
+@admin_bp.post("/login")
+def login_submit():
+    if passkey_only_enabled():
+        log_security_event("admin_password_login_disabled", "medium", "rejected", "passkey_only")
+        return "", 404
+    if not is_admin_ip_allowed():
+        log_security_event("admin_ip_denied", "high", "rejected", "allowlist_mismatch")
+        return "", 404
+    if not public_csrf_valid():
+        log_security_event("admin_login_csrf_rejected", "high", "rejected", "csrf_mismatch")
+        return render_template(
+            "admin_login.html",
+            error="安全驗證已過期，請重新整理後再試。",
+            passkey_count=active_credential_count(),
+            passkey_only=False,
+        ), 403
+    username = request.form.get("username", "")[:120]
+    password = request.form.get("password", "")[:512]
+    if not admin_credentials_valid(username, password):
+        failures = register_login_attempt(False)
+        status = 429 if failures >= 5 else 403
+        return render_template(
+            "admin_login.html",
+            error="帳號或密碼錯誤，請稍後再試。",
+            passkey_count=active_credential_count(),
+            passkey_only=False,
+        ), status
+
+    register_login_attempt(True)
+    raw_token = create_admin_session()
+    log_audit("admin_login", "admin", "server_side_session_created")
+    response = make_response(redirect(url_for("admin.dashboard")))
+    return _set_admin_cookie(response, raw_token)
+
+
+@admin_bp.post("/passkeys/authentication/options")
+def passkey_authentication_options():
+    if not is_admin_ip_allowed():
+        return "", 404
+    if not public_csrf_valid():
+        return jsonify({"error": "安全驗證已過期，請重新整理後再試。"}), 403
+    if active_credential_count() < 1:
+        return jsonify({"error": "尚未登記 Passkey"}), 409
+    options, challenge = begin_authentication()
+    session["admin_webauthn_auth_challenge"] = _encode_challenge(challenge)
+    return jsonify({"publicKey": json.loads(options)})
+
+
+@admin_bp.post("/passkeys/authentication/verify")
+def passkey_authentication_verify():
+    if not is_admin_ip_allowed():
+        return "", 404
+    if not public_csrf_valid():
+        return jsonify({"error": "安全驗證已過期，請重新整理後再試。"}), 403
+    encoded_challenge = session.pop("admin_webauthn_auth_challenge", "")
+    payload = request.get_json(silent=True) or {}
+    credential = payload.get("credential")
+    if not encoded_challenge or not isinstance(credential, dict):
+        return jsonify({"error": "Passkey 驗證已過期，請重新操作。"}), 400
+    try:
+        challenge = _decode_challenge(encoded_challenge)
+        if not consume_challenge("authentication", challenge):
+            raise ValueError("challenge_rejected")
+        verify_and_update_authentication(credential, challenge)
+    except (InvalidAuthenticationResponse, ValueError, TypeError):
+        failures = register_login_attempt(False)
+        status = 429 if failures >= 5 else 403
+        return jsonify({"error": "Passkey 驗證失敗，請稍後再試。"}), status
+
+    register_login_attempt(True)
+    raw_token = create_admin_session()
+    log_audit("admin_passkey_login", "admin", "server_side_session_created")
+    response = jsonify({"ok": True, "redirect": url_for("admin.dashboard")})
+    return _set_admin_cookie(response, raw_token)
+
+
+@admin_bp.get("/passkeys/setup")
+@admin_required
+def passkey_setup():
+    credentials = [
+        {
+            "id": row["id"],
+            "label": row["label"],
+            "device_type": row["device_type"],
+            "backed_up": bool(row["backed_up"]),
+            "created_at": row["created_at"],
+            "last_used_at": row["last_used_at"],
+        }
+        for row in active_credentials()
+    ]
+    admin_session = current_admin_session()
+    return render_template(
+        "admin_passkeys.html",
+        admin_csrf=admin_session["csrf_token"],
+        credentials=credentials,
+        passkey_only=passkey_only_enabled(),
+    )
+
+
+@admin_bp.post("/api/passkeys/registration/options")
+@admin_required
+def passkey_registration_options():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    options, challenge = begin_registration()
+    session["admin_webauthn_registration_challenge"] = _encode_challenge(challenge)
+    return jsonify({"publicKey": json.loads(options)})
+
+
+@admin_bp.post("/api/passkeys/registration/verify")
+@admin_required
+def passkey_registration_verify():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    encoded_challenge = session.pop("admin_webauthn_registration_challenge", "")
+    payload = request.get_json(silent=True) or {}
+    credential = payload.get("credential")
+    label = str(payload.get("label", "Passkey"))[:80]
+    transports = payload.get("transports") or []
+    if not encoded_challenge or not isinstance(credential, dict) or not isinstance(transports, list):
+        return jsonify({"error": "Passkey 登記已過期，請重新操作。"}), 400
+    try:
+        challenge = _decode_challenge(encoded_challenge)
+        if not consume_challenge("registration", challenge):
+            raise ValueError("challenge_rejected")
+        credential_id = verify_and_store_registration(
+            credential,
+            expected_challenge=challenge,
+            label=label,
+            transports=transports,
+        )
+    except (InvalidRegistrationResponse, ValueError, TypeError):
+        log_security_event("admin_passkey_registration_failed", "high", "rejected", "invalid_response")
+        return jsonify({"error": "Passkey 登記失敗，請重新操作。"}), 400
+    log_audit("admin_passkey_registered", f"credential:{credential_id}", "public_key_only")
+    return jsonify({"ok": True, "credential_id": credential_id})
+
+
+@admin_bp.post("/api/passkeys/activate")
+@admin_required
+def passkey_activate():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    if not activate_passkey_only():
+        return jsonify({"error": "至少需要兩個已驗證 Passkey 才能停用一般密碼登入。"}), 409
+    log_audit("admin_passkey_only_enabled", "admin", "two_or_more_credentials")
+    return jsonify({"ok": True})
+
+
+@admin_bp.post("/api/passkeys/<int:credential_id>/revoke")
+@admin_required
+def passkey_revoke(credential_id):
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    if passkey_only_enabled() and active_credential_count() <= 1:
+        return jsonify({"error": "不能撤銷最後一個可用 Passkey。"}), 409
+    if not revoke_credential(credential_id, "owner_revoked"):
+        return jsonify({"error": "找不到可撤銷的 Passkey。"}), 404
+    log_audit("admin_passkey_revoked", f"credential:{credential_id}", "owner_revoked")
+    return jsonify({"ok": True})
 
 
 @admin_bp.post("/logout")

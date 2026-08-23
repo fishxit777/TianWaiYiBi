@@ -151,6 +151,29 @@ def active_credential_count():
     return int(row["count"])
 
 
+def passkey_only_enabled():
+    row = get_db().execute(
+        "SELECT value FROM settings WHERE key = 'admin_auth_mode'"
+    ).fetchone()
+    return bool(row and row["value"] == "passkey")
+
+
+def activate_passkey_only():
+    if active_credential_count() < 2:
+        return False
+    connection = get_db()
+    connection.execute(
+        """
+        INSERT INTO settings (key, value, updated_at)
+        VALUES ('admin_auth_mode', 'passkey', ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+        """,
+        (utc_now(),),
+    )
+    connection.commit()
+    return True
+
+
 def get_credential(credential_id):
     return get_db().execute(
         """

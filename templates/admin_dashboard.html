@@ -118,7 +118,7 @@
     </section>
 
     <section id="security-admin" class="admin-workspace" data-admin-panel="security" hidden>
-      <div class="workspace-heading"><div><span class="workspace-kicker">SECURITY</span><h2>安全與操作稽核</h2><p>先處理高風險事件與封鎖，再追查管理操作；一般日常不需要碰測試工具。</p></div></div>
+      <div class="workspace-heading"><div><span class="workspace-kicker">SECURITY</span><h2>安全與操作稽核</h2><p>先處理高風險事件與封鎖，再追查管理操作；一般日常不需要碰測試工具。</p></div><a class="admin-secondary-action" href="{{ url_for('admin.passkey_setup') }}">Passkey 安全設定</a></div>
       <div id="security-flags" class="security-flags security-config-grid" aria-live="polite"></div>
       <div class="admin-two-col security-columns">
         <section class="admin-panel"><div class="panel-heading"><div><span>EVENTS</span><h3>最近安全事件</h3></div><strong id="risk-event-count" class="panel-count danger">0</strong></div><div id="security-events" class="event-list"></div></section>
