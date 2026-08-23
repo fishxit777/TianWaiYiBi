@@ -223,6 +223,42 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
     revoked_reason TEXT
 );
 
+CREATE TABLE IF NOT EXISTS admin_webauthn_credentials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    credential_id BLOB NOT NULL UNIQUE,
+    public_key BLOB NOT NULL,
+    sign_count INTEGER NOT NULL DEFAULT 0,
+    transports_json TEXT NOT NULL DEFAULT '[]',
+    device_type TEXT NOT NULL,
+    backed_up INTEGER NOT NULL DEFAULT 0 CHECK (backed_up IN (0, 1)),
+    aaguid TEXT NOT NULL DEFAULT '',
+    label TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT,
+    revoked_at TEXT,
+    revoked_reason TEXT
+);
+
+CREATE TABLE IF NOT EXISTS admin_webauthn_challenges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    challenge_hash TEXT NOT NULL UNIQUE,
+    purpose TEXT NOT NULL CHECK (purpose IN ('registration', 'authentication')),
+    ip TEXT NOT NULL,
+    user_agent TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS admin_recovery_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    used_at TEXT,
+    used_ip TEXT,
+    revoked_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS admin_login_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ip TEXT NOT NULL,
@@ -275,3 +311,6 @@ CREATE INDEX IF NOT EXISTS idx_email_events_order_time ON email_events (order_id
 CREATE INDEX IF NOT EXISTS idx_analytics_name_created ON analytics_events (event_name, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_security_created ON security_events (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_login_ip_time ON admin_login_attempts (ip, attempted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_webauthn_active ON admin_webauthn_credentials (revoked_at, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_webauthn_challenge_expiry ON admin_webauthn_challenges (purpose, expires_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_recovery_available ON admin_recovery_codes (used_at, revoked_at);
