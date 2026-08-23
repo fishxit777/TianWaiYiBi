@@ -28,6 +28,7 @@
 - `py -3 -m pytest -q`：59 passed。
 - 390 × 844 本機手機瀏覽器：六張主標皆回報 `Tianwai Masa Display`、字型載入狀態完成；角色名與技能分類皆回報 `Tianwai Masa` 14px。
 - 第 6 張卡片實看：`商機觀星盤` 六字筆形一致，無逐字回退；根頁面無水平溢位。
+- 正式 Render：commit `4872bbe` 部署後 `/healthz` 回傳 `release=mobile-card-type-v1`；正式首頁載入帶版本參數的 CSS 與兩個字型，390 × 844 複驗結果與本機一致，console 0 error／0 warning。
 
 ## 未變更範圍
 
