@@ -72,7 +72,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前自動驗證結果為 `63 passed`。
+目前自動驗證結果為 `67 passed`。
 
 ## 公開部署
 

@@ -25,3 +25,11 @@ V1 在擁有者確認保存後立即關閉視窗並以 Argon2id verifier 覆蓋�
 4. 後台顯示 Argon2id 憑證已啟用。
 5. 清除 legacy `ADMIN_PASSWORD` 後再次部署仍可登入。
 
+## 正式驗收結果
+
+- V1 第一次輪替：正式登入失敗，不列為完成；原因是交接視窗過早關閉，無法再次取得登入明文。
+- V2 第二次輪替：同一視窗在部署後重新複製真正登入密碼，擁有者已實際進入正式後台。
+- 本機交接程序回報 `completed` 後才清除畫面與剪貼簿，未輸出密碼或 verifier。
+- Render 已移除 legacy `ADMIN_PASSWORD`，只保留 `ADMIN_PASSWORD_HASH`，再次部署狀態為 Live。
+- 正式 `/healthz` 正常，登入頁回 200、禁止快取與 frame 嵌入，頁面未洩漏憑證字串。
+- 自動測試：67 passed；`pip check`：無相依衝突。

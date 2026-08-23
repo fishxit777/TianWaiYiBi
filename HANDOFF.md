@@ -66,7 +66,7 @@
 - V16 正式 Render 部署已驗證：實作 commit `df2219a` 上線後 `/healthz` 回傳 `release=professional-ui-v16`；官網、`static/v16.css`、後台登入皆回 200，正式首頁含完整語意 H1 且沒有 `/admin` 公開連結；後台登入維持 `Cache-Control: no-store` 與 `X-Frame-Options: DENY`，`/logo-review`、正式 `/dev/line` 維持 404。
 - 管理通知 V1 正式 Render 部署已驗證：實作 commit `197740d` 上線後 `/healthz` 回傳 `release=admin-notifications-v1`；官網與後台登入回 200，未帶密鑰的摘要端點回 404，公開首頁沒有 `/admin` 或內部通知連結。GitHub 已正確載入 `Daily admin summary` workflow，沒有 invalid workflow；正式雙通道實際收件仍需先補 Render／GitHub 私密設定。
 - 手機卡片字型修正已正式部署：實作 commit `4872bbe` 上線後 `/healthz` 回傳 `release=mobile-card-type-v1`；正式 390×844 首頁六張主標皆載入 `Tianwai Masa Display`，角色名與技能分類皆為 `Tianwai Masa` 14px，`商機觀星盤` 實看無混字、無水平溢位，console 0 error／0 warning。
-- 管理員憑證 V2 已正式部署：實作 commit `577a049` 上線後 `/healthz` 回傳 `release=admin-credential-v2`；Argon2 套件成功載入、後台登入頁回 200、未登入 Dashboard API 回 401、安全狀態 UI 已上線且登入頁未洩漏 verifier。正式 `ADMIN_PASSWORD_HASH` 尚待擁有者在可信任終端產生新明文並保存到密碼管理器後設定；輪替前仍沿用舊密碼相容路徑，不能誤報為正式憑證已完成更換。
+- 管理員憑證 V2 已完成正式輪替：擁有者透過本機交接 V2 保存 43 位／256-bit 新密碼，正式登入成功後才銷毀本機明文；Render 現在只保留 `ADMIN_PASSWORD_HASH`，legacy `ADMIN_PASSWORD` 已刪除並再次部署為 Live。`/healthz` 回傳 `release=admin-credential-v2`，登入頁 200、no-store、frame deny 且未洩漏 verifier。第一次交接因視窗過早關閉導致登入失敗，已如實記錄並由 V2 防鎖死流程修復，不列為成功驗收。
 - 管理通知外部排程已接通：Render 已設定獨立 `NOTIFICATION_CRON_SECRET` 與管理員收件地址，GitHub Actions 已設定同名加密 Secret；正式密鑰端點回 200 並建立兩通道佇列，手動 `Daily admin summary #1` 執行成功。Gmail 仍因 SMTP 未設定而為 `failed`，LINE 仍因 `LINE_ADMIN_USER_ID` 未設定而為 `skipped`，沒有沿用其他專案收件人。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
@@ -81,7 +81,7 @@
 - V16 本機桌機 QA：官網 1440px 首屏、卷軸、六脈 3×2 卡片、篩選互動與頁尾無水平溢位；後台 1280×900 六個工作區逐頁實看，訂單首屏可完整呈現、客戶六指標同列、安全六旗標 3＋3，系統串接四張卡均顯示下一步。
 - V16 本機手機 QA：390×844 官網首屏題字完整、三項摘要無碰撞、卡片統一 394px、根頁面 375px／內容 375px；後台固定六項底部導覽、兩欄 KPI 與訂單表格內部橫向捲動正常，根頁面無水平溢位。
 - 手機卡片字型 QA：390×844 六張主標 computed font-family 全為 `Tianwai Masa Display`，角色名與技能分類全為 `Tianwai Masa` 14px；第 6 張 `商機觀星盤` 實看無逐字回退，字型載入完成且根頁面無水平溢位。
-- 管理憑證 V2 QA：43 位 Base64url 格式、256-bit 熵、Argon2id 正誤驗證、Hash 優先禁止降級與後台不洩漏 verifier 均通過；完整測試 63 passed，`pip check` 無衝突，`pip-audit -r requirements.txt` 無已知漏洞。
+- 管理憑證 V2 QA：43 位 Base64url 格式、256-bit 熵、Argon2id 正誤驗證、Hash 優先禁止降級、交接狀態機、防鎖死與後台不洩漏 verifier 均通過；完整測試 67 passed，`pip check` 無衝突。正式環境已驗證 Hash 存在、舊明文不存在、部署 Live、健康狀態正常，且擁有者以新密碼實際登入成功。
 
 瀏覽器驗收使用的假訂單與假 Email 已從正式本機資料庫清除；可復原 QA 副本暫存於 Windows Temp，不屬專案交付資料。
 
