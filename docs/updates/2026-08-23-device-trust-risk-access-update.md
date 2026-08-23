@@ -77,6 +77,16 @@
 
 本次實際結果：51 passed；舊版 SQLite 副本原地 migration 通過；桌機 1280 與手機 390 × 844 無水平溢位；付費內容顯示 12 組動態匿名浮水印；後台證據鏈顯示完整；瀏覽器 console 0 error、0 warning。
 
+## 公開部署紀錄
+
+- 實作 commit：`85bf87c feat: add trusted device risk access controls`。
+- 部署識別 commit：`0337e9e chore: expose release health marker`。
+- GitHub：`main` 已推送，Render `autoDeploy` 已完成上線。
+- 正式 `/healthz`：HTTP 200，`status=ok`，`release=trusted-device-risk-v1`。
+- 正式 `/`、`/customer/login`、`/admin/login`：HTTP 200。
+- 客戶／後台登入頁：`Cache-Control: no-store`、`X-Frame-Options: DENY`。
+- `/logo-review`、正式 `/dev/line`：HTTP 404，私密／開發入口未重新出現在公開站。
+
 ## 尚需外部設定／不可假裝完成
 
 - `LINE_ADMIN_USER_ID` 必須填天外一筆管理員本人的 LINE userId；目前程式不會沿用萬語通或其他專案收件人。未填時告警為 `skipped`，但後台事件、案件與佇列仍完整保留。
