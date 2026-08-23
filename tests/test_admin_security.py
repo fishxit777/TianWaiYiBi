@@ -1,6 +1,7 @@
 import sqlite3
 
 from conftest import login_admin, set_public_csrf
+from test_customer_access import _pay_and_get_activation
 
 
 def test_admin_login_failure_is_generic(client):
@@ -33,6 +34,44 @@ def test_admin_api_requires_authentication(client):
     response = client.get("/admin/api/dashboard")
 
     assert response.status_code == 401
+
+
+def test_admin_dashboard_uses_six_separate_operational_workspaces(client):
+    login_admin(client)
+    body = client.get("/admin").get_data(as_text=True)
+
+    for workspace in ("overview", "orders", "ideas", "customers", "integrations", "security"):
+        assert f'data-admin-view="{workspace}"' in body
+        assert f'data-admin-panel="{workspace}"' in body
+    assert "今日需要處理" in body
+    assert "開通碼、登入碼與私密連結不會在後台曝光" in body
+    assert 'data-admin-panel="orders" hidden' in body
+
+
+def test_admin_customer_access_summary_tracks_paid_then_activated(client):
+    login_admin(client)
+    _, activation_link, activation_code = _pay_and_get_activation(client)
+
+    paid = client.get("/admin/api/dashboard").get_json()["customer_access"]
+    assert paid["summary"]["paid_customers"] == 1
+    assert paid["summary"]["paid_entitlements"] == 1
+    assert paid["summary"]["pending_activation"] == 1
+    assert paid["orders"][0]["activated"] is False
+
+    csrf = set_public_csrf(client, "admin-access-test-csrf")
+    response = client.post(
+        activation_link,
+        data={"csrf_token": csrf, "activation_code": activation_code},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    activated = client.get("/admin/api/dashboard").get_json()["customer_access"]
+    assert activated["summary"]["activated_entitlements"] == 1
+    assert activated["summary"]["pending_activation"] == 0
+    assert activated["summary"]["active_sessions"] == 1
+    assert activated["orders"][0]["activated"] is True
+    assert "traveler@example.com" not in str(activated["orders"])
 
 
 def test_admin_price_change_requires_csrf_and_writes_audit(app, client):

@@ -6,6 +6,387 @@
   font-weight: 400;
 }
 
+/* V14 admin operations center: daily decisions first, technical detail on demand. */
+.admin-ops-page {
+  --admin-indigo: #171633;
+  --admin-indigo-deep: #0e1029;
+  --admin-indigo-soft: #282550;
+  --admin-paper: #f2efe7;
+  --admin-surface: #fbfaf6;
+  --admin-ink: #222634;
+  --admin-muted: #737681;
+  --admin-line: #dcd9cf;
+  --admin-jade: #247765;
+  --admin-jade-soft: #e4f2ed;
+  --admin-gold: #a47428;
+  --admin-gold-soft: #f5ecd8;
+  --admin-red: #a54439;
+  --admin-red-soft: #f7e7e3;
+  min-height: 100vh;
+  color: var(--admin-ink);
+  background:
+    radial-gradient(circle at 88% 0, rgba(58, 118, 105, .08), transparent 28rem),
+    linear-gradient(135deg, #efede6, var(--admin-paper));
+  font-family: "Microsoft JhengHei UI", "PingFang TC", sans-serif;
+  line-height: 1.55;
+}
+.admin-ops-page::before {
+  display: block;
+  opacity: .16;
+  background-image: linear-gradient(rgba(33,36,51,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(33,36,51,.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, black, transparent 74%);
+}
+.admin-ops-page button, .admin-ops-page input, .admin-ops-page textarea, .admin-ops-page select { font-family: inherit; }
+.admin-ops-page button:focus-visible, .admin-ops-page a:focus-visible, .admin-ops-page input:focus-visible, .admin-ops-page summary:focus-visible {
+  outline: 3px solid rgba(36,119,101,.28);
+  outline-offset: 2px;
+}
+
+.admin-ops-page .admin-sidebar {
+  width: 232px;
+  padding: 26px 16px 18px;
+  color: #f7f0df;
+  background:
+    radial-gradient(circle at 12% 2%, rgba(93, 197, 179, .14), transparent 15rem),
+    linear-gradient(180deg, var(--admin-indigo) 0%, #171535 58%, var(--admin-indigo-deep) 100%);
+  border-right: 1px solid rgba(225,197,116,.18);
+  box-shadow: 12px 0 40px rgba(18,17,42,.08);
+}
+.admin-ops-page .admin-sidebar::after {
+  position: absolute;
+  right: 16px;
+  bottom: 120px;
+  width: 100px;
+  height: 100px;
+  content: "";
+  pointer-events: none;
+  border: 1px solid rgba(229,195,110,.08);
+  border-radius: 50%;
+  box-shadow: 0 0 0 18px rgba(127,215,208,.025), 0 0 0 36px rgba(229,195,110,.018);
+}
+.admin-ops-page .admin-brand {
+  gap: 13px;
+  padding: 0 8px 25px;
+  border-bottom-color: rgba(244,237,220,.12);
+}
+.admin-ops-page .admin-brand > span { width: 48px; height: 48px; box-shadow: 0 0 24px rgba(127,215,208,.14); }
+.admin-ops-page .admin-brand strong { color: #fff5d9; font: 400 21px/1.15 "Tianwai Masa Display", var(--display); letter-spacing: .08em; }
+.admin-ops-page .admin-brand small { margin-top: 5px; color: #8fd4c9; font-size: 10px; letter-spacing: .2em; }
+.admin-ops-page .admin-sidebar nav { gap: 7px; margin-top: 25px; }
+.admin-ops-page .admin-sidebar nav button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 11px;
+  color: rgba(244,237,220,.62);
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+.admin-ops-page .admin-sidebar nav button:hover { color: #fff; background: rgba(255,255,255,.045); }
+.admin-ops-page .admin-sidebar nav button.is-active {
+  color: #fff9e8;
+  border-color: rgba(229,195,110,.17);
+  background: linear-gradient(90deg, rgba(75,70,135,.62), rgba(40,37,80,.62));
+  box-shadow: inset 3px 0 #e5c36e;
+}
+.admin-ops-page .admin-sidebar nav button i {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  color: #8dd9ce;
+  border: 1px solid rgba(127,215,208,.24);
+  border-radius: 50%;
+  font: normal 13px/1 "Tianwai Masa Display", var(--display);
+}
+.admin-ops-page .admin-sidebar nav button.is-active i { color: #201d46; border-color: #d9c279; background: #e8d58f; }
+.admin-ops-page .admin-sidebar nav button span { font-size: 14px; font-weight: 600; letter-spacing: .04em; }
+.admin-ops-page .admin-sidebar nav button b {
+  min-width: 20px;
+  padding: 2px 6px;
+  color: #fff;
+  text-align: center;
+  border-radius: 999px;
+  background: #bd5544;
+  font-size: 10px;
+}
+.admin-ops-page .admin-sidebar nav button b[hidden] { display: none; }
+.admin-sidebar-footer { z-index: 1; display: grid; gap: 7px; margin-top: auto; }
+.admin-ops-page .admin-preview-link, .admin-ops-page .admin-sidebar-footer form button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  color: rgba(244,237,220,.64);
+  text-decoration: none;
+  border: 1px solid rgba(244,237,220,.12);
+  border-radius: 7px;
+  background: rgba(255,255,255,.025);
+  cursor: pointer;
+  font-size: 12px;
+}
+.admin-ops-page .admin-sidebar-footer form { display: block; margin: 0; }
+.admin-ops-page .admin-preview-link:hover, .admin-ops-page .admin-sidebar-footer form button:hover { color: #fff; border-color: rgba(127,215,208,.32); }
+
+.admin-ops-page .admin-main { width: calc(100% - 232px); max-width: 1660px; margin-left: 232px; padding: 28px clamp(24px,3.2vw,54px) 70px; }
+.admin-ops-page .admin-topbar { align-items: center; min-height: 72px; padding: 0 0 20px; border-bottom-color: rgba(34,38,52,.11); }
+.admin-ops-page .admin-topbar p { color: #85818b; font-size: 10px; font-weight: 700; letter-spacing: .16em; }
+.admin-ops-page .admin-topbar h1 { margin-top: 3px; color: #29253f; font: 400 31px/1.2 "Tianwai Masa Display", var(--display); letter-spacing: .04em; }
+.admin-topbar-actions { display: flex; gap: 9px; align-items: center; }
+.admin-account, .admin-refresh {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 12px;
+  color: #666874;
+  border: 1px solid var(--admin-line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.46);
+  font-size: 12px;
+}
+.admin-account i { width: 8px; height: 8px; border-radius: 50%; background: #2c8b72; box-shadow: 0 0 0 3px #d8ede6; }
+.admin-refresh { color: #464457; cursor: pointer; }
+.admin-refresh:hover { color: #fff; border-color: #292650; background: #292650; }
+.admin-ops-page .admin-status { min-height: 19px; margin: 10px 0 0; color: #8a8991; font-size: 11px; }
+
+.admin-workspace { padding: 22px 0 0; }
+.admin-workspace[hidden] { display: none !important; }
+.admin-workspace.is-active { animation: admin-workspace-in .28s ease both; }
+@keyframes admin-workspace-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.workspace-kicker, .admin-ops-page .panel-heading span { color: #8f6d31; font-size: 9px; font-weight: 800; letter-spacing: .2em; }
+.workspace-heading { display: flex; justify-content: space-between; align-items: end; min-height: 110px; margin-bottom: 22px; padding: 24px 28px; border: 1px solid var(--admin-line); background: rgba(255,255,255,.33); }
+.workspace-heading h2, .overview-intro h2 { margin: 5px 0 0; color: #2b273e; font: 400 clamp(30px,3vw,44px)/1.15 "Tianwai Masa Display", var(--display); letter-spacing: .035em; }
+.workspace-heading p, .overview-intro p { max-width: 680px; margin: 6px 0 0; color: var(--admin-muted); font-size: 13px; }
+.overview-intro {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 28px;
+  align-items: center;
+  min-height: 160px;
+  margin-bottom: 15px;
+  padding: 28px 32px;
+  color: #f7f1e3;
+  background:
+    radial-gradient(circle at 80% 25%, rgba(123,209,194,.17), transparent 18rem),
+    linear-gradient(115deg, #201d47, #2d2858 60%, #17253b);
+  border: 1px solid rgba(229,195,110,.24);
+  box-shadow: 0 20px 50px rgba(30,27,66,.09);
+}
+.overview-intro::after { position: absolute; right: 18%; bottom: -92px; width: 210px; height: 210px; content: ""; border: 1px solid rgba(229,195,110,.13); border-radius: 50%; box-shadow: 0 0 0 28px rgba(127,215,208,.035), 0 0 0 58px rgba(229,195,110,.025); }
+.overview-intro > * { position: relative; z-index: 1; }
+.overview-intro .workspace-kicker { color: #90d9cf; }
+.overview-intro h2 { color: #fff5dd; }
+.overview-intro p { color: rgba(247,241,227,.66); }
+.overview-date { display: grid; min-width: 130px; justify-items: end; padding-left: 28px; border-left: 1px solid rgba(244,237,220,.16); }
+.overview-date span { color: #91d7ce; font-size: 13px; }
+.overview-date strong { margin-top: 2px; color: #f3d783; font: 400 42px/1 "Tianwai Masa Display", var(--display); }
+.overview-date small { margin-top: 6px; color: rgba(244,237,220,.48); font-size: 9px; letter-spacing: .2em; }
+
+.admin-ops-page .metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.admin-ops-page .metric-card {
+  min-height: 128px;
+  padding: 20px 21px;
+  border: 1px solid var(--admin-line);
+  border-top: 3px solid #706d82;
+  border-radius: 0;
+  background: rgba(255,255,255,.64);
+  box-shadow: 0 8px 24px rgba(33,32,49,.035);
+}
+.admin-ops-page .metric-card::after { right: -35px; bottom: -43px; width: 110px; height: 110px; border-color: rgba(59,61,78,.07); }
+.admin-ops-page .metric-card.tone-revenue { border-top-color: #b28a3d; }
+.admin-ops-page .metric-card.tone-paid, .admin-ops-page .metric-card.tone-clear { border-top-color: #2d876e; }
+.admin-ops-page .metric-card.tone-attention { border-top-color: #bf604d; background: linear-gradient(145deg, rgba(255,255,255,.7), #f8ebe5); }
+.admin-ops-page .metric-card.tone-conversion { border-top-color: #665ba2; }
+.admin-ops-page .metric-label { color: #747680; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.admin-ops-page .metric-card strong { margin-top: 11px; color: #2b2d3a; font: 700 30px/1 "Microsoft JhengHei UI", sans-serif; letter-spacing: -.04em; }
+.admin-ops-page .metric-card small { display: block; margin-top: 9px; color: #8c8e95; font-size: 10px; }
+
+.admin-ops-page .admin-panel { border-color: var(--admin-line); border-radius: 0; background: rgba(255,255,255,.68); box-shadow: 0 10px 30px rgba(33,32,49,.04); }
+.admin-ops-page .panel-heading { align-items: center; margin-bottom: 17px; }
+.admin-ops-page .panel-heading h3 { margin-top: 3px; color: #302d41; font: 400 22px/1.2 "Tianwai Masa Display", var(--display); letter-spacing: .03em; }
+.overview-layout { display: grid; grid-template-columns: 1.35fr .65fr; gap: 12px; margin-top: 12px; }
+.attention-panel, .pulse-panel { min-height: 290px; }
+.panel-count { display: grid; min-width: 34px; height: 34px; place-items: center; color: #815f26; border: 1px solid #d8c38d; border-radius: 50%; background: #fbf4e2; font-size: 13px; }
+.panel-count.danger { color: var(--admin-red); border-color: #dfb2aa; background: var(--admin-red-soft); }
+.attention-list { display: grid; gap: 7px; }
+.attention-item {
+  display: grid;
+  grid-template-columns: 39px 1fr 20px;
+  gap: 13px;
+  align-items: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  color: #444653;
+  text-align: left;
+  border: 1px solid #e2dfd7;
+  border-left: 3px solid #9d884e;
+  background: rgba(250,249,245,.7);
+  cursor: pointer;
+}
+.attention-item:hover { border-color: #c8c2b2; background: #fff; transform: translateX(2px); }
+.attention-item > strong { display: grid; width: 34px; height: 34px; place-items: center; color: #8a6526; border-radius: 50%; background: var(--admin-gold-soft); font-size: 13px; }
+.attention-item > span { display: grid; }
+.attention-item b { font-size: 12px; }
+.attention-item small { margin-top: 2px; color: #888a91; font-size: 10px; }
+.attention-item > i { color: #9b9ba1; font-style: normal; }
+.attention-item.tone-jade { border-left-color: var(--admin-jade); }.attention-item.tone-jade > strong { color: var(--admin-jade); background: var(--admin-jade-soft); }
+.attention-item.tone-violet { border-left-color: #665ba2; }.attention-item.tone-violet > strong { color: #665ba2; background: #ece9f6; }
+.attention-item.tone-red { border-left-color: var(--admin-red); }.attention-item.tone-red > strong { color: var(--admin-red); background: var(--admin-red-soft); }
+.attention-empty { display: grid; min-height: 180px; place-items: center; align-content: center; text-align: center; }
+.attention-empty i { display: grid; width: 42px; height: 42px; place-items: center; color: var(--admin-jade); border: 1px solid #8ec5b7; border-radius: 50%; background: var(--admin-jade-soft); font-style: normal; }
+.attention-empty strong { margin-top: 12px; color: #3c534d; font-size: 14px; }.attention-empty span { margin-top: 4px; color: #878a90; font-size: 11px; }
+.business-pulse { display: grid; }
+.pulse-row { display: flex; justify-content: space-between; gap: 15px; align-items: center; min-height: 50px; border-bottom: 1px solid #e3e0d8; }
+.pulse-row:last-child { border: 0; }.pulse-row span { display: grid; }.pulse-row b { color: #555863; font-size: 11px; }.pulse-row small { color: #97979c; font-size: 9px; }.pulse-row strong { color: #303244; font-size: 17px; }
+.admin-ops-page .overview-panels { grid-template-columns: 1.35fr .65fr; margin-top: 12px; }
+.admin-ops-page .revenue-chart { min-height: 170px; gap: 12px; }
+.admin-ops-page .revenue-day { grid-template-rows: 20px 1fr 16px; }
+.admin-ops-page .revenue-day progress { height: 105px; border-radius: 3px; overflow: hidden; }
+.admin-ops-page .revenue-day progress::-webkit-progress-bar { background: #ebe8e1; }
+.admin-ops-page .revenue-day progress::-webkit-progress-value { background: linear-gradient(#4b8d7c, #26254e); }
+.admin-ops-page .revenue-day strong { color: #5d606b; font-size: 9px; }
+.admin-ops-page .traffic-source-row { grid-template-columns: 80px 1fr 34px; min-height: 30px; }
+
+.order-toolbar { display: flex; justify-content: space-between; gap: 18px; align-items: center; margin-bottom: 12px; padding: 14px 16px; }
+.order-search { position: relative; display: block; flex: 1 1 360px; max-width: 470px; }
+.order-search i { position: absolute; top: 50%; left: 13px; color: #8c8e96; font-style: normal; transform: translateY(-50%); }
+.order-search input { width: 100%; min-height: 42px; padding: 9px 13px 9px 39px; color: #2f303c; border: 1px solid #d4d1c8; border-radius: 7px; outline: 0; background: #fbfaf7; font-size: 12px; }
+.order-search input:focus { border-color: #568f81; box-shadow: 0 0 0 3px rgba(36,119,101,.1); }
+.order-filters { display: flex; gap: 5px; overflow-x: auto; }
+.order-filters button { min-height: 38px; padding: 7px 10px; color: #71737c; white-space: nowrap; border: 1px solid transparent; border-radius: 7px; background: transparent; cursor: pointer; font-size: 11px; }
+.order-filters button b { margin-left: 4px; color: #999aa0; font-size: 10px; }
+.order-filters button:hover, .order-filters button.is-active { color: #2d4b45; border-color: #b9d0c9; background: #edf5f2; }
+.order-filters button.is-active b { color: #247765; }
+.admin-ops-page .table-panel { padding: 0; }
+.admin-ops-page .admin-table { min-width: 850px; font-size: 11px; }
+.admin-ops-page .admin-table th, .admin-ops-page .admin-table td { padding: 15px 17px; border-bottom-color: #e1ded6; vertical-align: middle; }
+.admin-ops-page .admin-table th { color: #777983; background: #ebe9e2; font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.admin-ops-page .admin-table td { color: #4a4c57; background: rgba(255,255,255,.32); }
+.admin-ops-page .admin-table tr:hover td { background: #fdfcf8; }
+.admin-ops-page .admin-table td strong { display: block; color: #353744; font-size: 11px; }
+.admin-ops-page .admin-table td small { display: block; margin-top: 3px; color: #8b8d94; font-size: 9px; }
+.order-number { color: #4f4b71 !important; font-family: Consolas, monospace; }.order-number strong { font-family: Consolas, monospace; }.money-cell { color: #765b28 !important; font-weight: 700; }.date-cell { color: #7e8089 !important; font-size: 10px; }
+.admin-ops-page .status-pill { padding: 5px 8px; border-radius: 999px; font-size: 9px; font-weight: 700; }
+.admin-ops-page .status-pill.paid, .status-pill.delivery-sent { color: #236b58; border-color: #a6ccbf; background: #e8f4f0; }
+.admin-ops-page .status-pill.pending, .status-pill.delivery-pending, .status-pill.delivery-development { color: #8e6421; border-color: #d9c390; background: #faf2de; }
+.status-pill.cancelled, .status-pill.refunded, .status-pill.delivery-failed { color: #9e4438; border-color: #deb5ad; background: #f9eae7; }
+.table-summary { margin: 0; padding: 10px 17px; color: #898b93; background: #f4f2ec; font-size: 9px; text-align: right; }
+.table-empty { height: 150px; color: #8b8d94 !important; text-align: center !important; }
+
+.catalog-layout { display: grid; grid-template-columns: minmax(260px,.42fr) minmax(580px,1fr); gap: 12px; align-items: start; }
+.price-card { position: sticky; top: 24px; }
+.price-input { display: flex; align-items: center; overflow: hidden; height: 66px; margin: 8px 0 13px; border: 1px solid #d5d1c5; background: #faf9f5; }
+.price-input span { padding: 0 13px; color: #8d6e34; font-weight: 700; border-right: 1px solid #dedacf; font-size: 12px; }
+.price-input input { width: 100%; height: 100%; padding: 0 14px; color: #2d2d39; border: 0; outline: 0; background: transparent; font-size: 24px; font-weight: 700; }
+.admin-primary-button { width: 100%; min-height: 43px; color: #fff; border: 1px solid #292650; border-radius: 6px; background: #292650; cursor: pointer; font-size: 12px; font-weight: 700; }
+.admin-primary-button:hover { background: #37326d; }.price-card > small { display: block; margin-top: 11px; color: #888a91; font-size: 10px; }
+.panel-note { color: #656873; font-size: 11px; }
+.admin-ops-page .idea-admin-list { gap: 0; }
+.admin-ops-page .idea-admin-row { grid-template-columns: 44px minmax(180px,1fr) 100px auto; gap: 13px; min-height: 74px; padding: 10px 0; border-bottom-color: #e1ded6; }
+.idea-admin-seal { display: grid; width: 38px; height: 38px; place-items: center; color: #376d62; border: 1px solid #abc6bd; border-radius: 50%; background: #edf5f2; font: 400 17px/1 "Tianwai Masa Display", var(--display); }
+.idea-admin-copy { display: grid !important; }.idea-admin-copy strong { color: #393a47; font-size: 12px; }.idea-admin-copy small { margin-top: 3px; color: #898b92 !important; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idea-admin-price { display: grid !important; }.idea-admin-price strong { color: #765a27 !important; font-size: 11px !important; }.idea-admin-price small { color: #99999e !important; font-size: 8px; }
+.admin-ops-page .idea-admin-actions { display: flex; flex-direction: row; gap: 6px; }
+.admin-ops-page .idea-admin-row button { min-width: 70px; min-height: 34px; padding: 6px 9px; border-radius: 5px; font-size: 10px; }
+.admin-ops-page .idea-admin-row .edit-idea { color: #4b4772; border-color: #c2bdd7; background: #f1eff8; }
+.admin-ops-page .publish-toggle.on { color: #fff; border-color: #28755f; background: #28755f; }
+
+.customer-metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
+.customer-metric { padding: 17px; border: 1px solid var(--admin-line); border-left: 3px solid #6a6690; background: rgba(255,255,255,.64); }
+.customer-metric.needs-attention { border-left-color: #bd5746; background: #fbefea; }.customer-metric span { color: #777983; font-size: 10px; font-weight: 700; }.customer-metric strong { display: block; margin-top: 7px; color: #30313e; font-size: 24px; }.customer-metric small { color: #929399; font-size: 9px; }
+.table-heading { padding: 20px 20px 0; }
+
+.integration-summary { display: flex; gap: 10px; align-items: center; min-height: 54px; margin-bottom: 12px; padding: 10px 15px; color: #875f20; border: 1px solid #dcc898; background: var(--admin-gold-soft); }
+.integration-summary.ready { color: #236b58; border-color: #a7cdbf; background: var(--admin-jade-soft); }.integration-summary i { display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-style: normal; }.integration-summary strong { font-size: 12px; }.integration-summary span { color: #777983; font-size: 10px; }
+.admin-ops-page .integration-grid { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+.admin-ops-page .integration-card { min-height: 190px; padding: 19px; border-color: var(--admin-line); background: rgba(255,255,255,.66); }
+.admin-ops-page .integration-card::before { display: none; }
+.integration-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.integration-card-head > i { display: grid; width: 37px; height: 37px; place-items: center; color: #5f5b86; border: 1px solid #c8c4db; background: #efedf7; font: normal 8px/1 sans-serif; letter-spacing: .1em; }
+.integration-dot { padding: 4px 7px; border-radius: 999px; font-size: 8px; font-weight: 700; }.integration-dot.good { color: #236c58; background: #dff0ea; }.integration-dot.warn { color: #965d28; background: #f7e8cf; }
+.admin-ops-page .integration-card h3 { margin: 0; color: #6d6f79; font-size: 10px; }.admin-ops-page .integration-card strong { margin-top: 7px; color: #32333f; font: 700 14px/1.4 "Microsoft JhengHei UI", sans-serif; }.admin-ops-page .integration-card small { color: #888a92; font-size: 9px; }
+.plain-ops-note { display: grid; grid-template-columns: 130px 1fr; gap: 18px; margin-top: 12px; padding: 16px 19px; color: #575964; border-left: 3px solid #ad8338; background: rgba(247,241,224,.85); }.plain-ops-note strong { font-size: 11px; }.plain-ops-note p { margin: 0; color: #777983; font-size: 10px; }
+
+.security-config-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 12px; }
+.admin-ops-page .security-flag { display: grid; grid-template-columns: 28px 1fr; gap: 3px 9px; align-items: center; min-height: 78px; padding: 13px; border-radius: 0; background: rgba(255,255,255,.62); }
+.admin-ops-page .security-flag i { grid-row: 1 / 3; display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-style: normal; }.admin-ops-page .security-flag strong { font-size: 10px; }.admin-ops-page .security-flag small { color: #8a8c93; font-size: 8px; }.admin-ops-page .security-flag.good { color: #27715e; border-color: #b6d2ca; }.admin-ops-page .security-flag.warn { color: #9a5b2d; border-color: #ddc7a7; }
+.admin-ops-page .security-columns { grid-template-columns: 1.3fr .7fr; gap: 12px; }
+.admin-ops-page .event-list { gap: 0; max-height: 420px; }
+.admin-ops-page .event-item { grid-template-columns: minmax(180px,1fr) 120px auto; gap: 12px; min-height: 57px; align-items: center; padding: 10px 0; border-bottom-color: #e2dfd7; }
+.admin-ops-page .event-item > div { display: grid; }.admin-ops-page .event-item strong { color: #464852; font-size: 10px; }.admin-ops-page .event-item span, .admin-ops-page .event-item small, .admin-ops-page .event-item time { color: #8a8c93; font-size: 8px; overflow-wrap: anywhere; }.admin-ops-page .event-item.severity-critical strong, .admin-ops-page .event-item.severity-high strong { color: #a23f34; }.admin-ops-page .block-item { grid-template-columns: 1fr auto; }.admin-ops-page .block-item button { color: #9b4237; border: 1px solid #deb8b1; background: #faece9; }
+.audit-panel { margin-top: 12px; }.audit-panel .event-list { max-height: 330px; }
+.advanced-tools { margin-top: 12px; color: #666873; border: 1px dashed #c9c5ba; background: rgba(255,255,255,.34); font-size: 10px; }.advanced-tools summary { padding: 13px 16px; cursor: pointer; font-weight: 700; }.advanced-tools > div { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 0 16px 14px; }.advanced-tools p { margin: 0; color: #898b92; }.advanced-tools button { padding: 7px 10px; color: #8e3f35; border: 1px solid #d8aaa2; background: #faeae7; cursor: pointer; }
+
+.admin-ops-page .idea-editor { border-radius: 10px; background: #f4f1e9; }.admin-ops-page .idea-editor header { border-bottom-color: #d8d4ca; }.admin-ops-page .idea-editor h2 { color: #302b43; font-family: "Tianwai Masa Display", var(--display); }.admin-ops-page .idea-editor input, .admin-ops-page .idea-editor textarea, .admin-ops-page .idea-editor select { border-radius: 5px; }
+
+@media (max-width: 1180px) {
+  .admin-ops-page .admin-sidebar { width: 205px; }
+  .admin-ops-page .admin-main { width: calc(100% - 205px); margin-left: 205px; }
+  .admin-ops-page .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .overview-layout, .admin-ops-page .overview-panels, .catalog-layout { grid-template-columns: 1fr; }
+  .price-card { position: static; }
+  .customer-metrics { grid-template-columns: repeat(3, 1fr); }
+  .admin-ops-page .integration-grid, .security-config-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 760px) {
+  .admin-ops-page { padding-bottom: 76px; }
+  .admin-ops-page .admin-sidebar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 80;
+    display: block;
+    width: 100%;
+    height: 68px;
+    padding: 7px 8px env(safe-area-inset-bottom);
+    overflow: visible;
+    border: 0;
+    border-top: 1px solid rgba(229,195,110,.22);
+  }
+  .admin-ops-page .admin-sidebar::after, .admin-ops-page .admin-brand, .admin-sidebar-footer { display: none; }
+  .admin-ops-page .admin-sidebar nav { display: grid; grid-template-columns: repeat(6,1fr); gap: 2px; margin: 0; }
+  .admin-ops-page .admin-sidebar nav button { display: grid; grid-template-columns: 1fr; gap: 2px; justify-items: center; min-width: 0; min-height: 54px; padding: 3px 1px; border: 0; border-radius: 5px; box-shadow: none; }
+  .admin-ops-page .admin-sidebar nav button i { width: 24px; height: 24px; font-size: 11px; }
+  .admin-ops-page .admin-sidebar nav button span { overflow: hidden; max-width: 100%; font-size: 9px; letter-spacing: 0; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-ops-page .admin-sidebar nav button b { position: absolute; top: 0; right: 5px; min-width: 16px; padding: 1px 4px; font-size: 8px; }
+  .admin-ops-page .admin-main { width: 100%; margin: 0; padding: 18px 14px 36px; }
+  .admin-ops-page .admin-topbar { align-items: center; flex-direction: row; padding-bottom: 14px; }
+  .admin-ops-page .admin-topbar h1 { font-size: 25px; }.admin-ops-page .admin-topbar p, .admin-account { display: none; }.admin-refresh { min-height: 36px; padding: 7px 9px; font-size: 10px; }
+  .admin-workspace { padding-top: 14px; }.workspace-heading { min-height: 0; padding: 20px; }.workspace-heading h2, .overview-intro h2 { font-size: 30px; }.workspace-heading p, .overview-intro p { font-size: 11px; }
+  .overview-intro { grid-template-columns: 1fr; min-height: 0; padding: 23px 21px; }.overview-date { display: none; }
+  .admin-ops-page .metric-grid { grid-template-columns: repeat(2,1fr); gap: 8px; }.admin-ops-page .metric-card { min-height: 112px; padding: 15px; }.admin-ops-page .metric-card strong { font-size: 24px; }.admin-ops-page .metric-card small { font-size: 8px; }
+  .overview-layout, .admin-ops-page .overview-panels, .catalog-layout, .admin-ops-page .security-columns { grid-template-columns: 1fr; }
+  .attention-panel, .pulse-panel { min-height: 0; }.admin-ops-page .admin-panel { padding: 17px; }.admin-ops-page .table-panel { padding: 0; }
+  .order-toolbar { align-items: stretch; flex-direction: column; padding: 12px; }.order-search { flex-basis: auto; max-width: none; }.order-filters { padding-bottom: 2px; }
+  .customer-metrics { grid-template-columns: repeat(2,1fr); }.customer-metric { padding: 14px; }
+  .admin-ops-page .integration-grid, .security-config-grid { grid-template-columns: 1fr 1fr; }
+  .admin-ops-page .integration-card { min-height: 170px; }.plain-ops-note { grid-template-columns: 1fr; gap: 5px; }
+  .admin-ops-page .event-item { grid-template-columns: 1fr auto; }.admin-ops-page .event-item time { grid-column: 1 / -1; }.advanced-tools > div { align-items: stretch; flex-direction: column; }
+  .admin-ops-page .idea-admin-row { grid-template-columns: 38px 1fr; }.idea-admin-price { grid-column: 2; }.admin-ops-page .idea-admin-actions { grid-column: 1 / -1; }.admin-ops-page .idea-admin-row button { flex: 1; }
+}
+
+@media (max-width: 430px) {
+  .admin-ops-page .metric-grid, .customer-metrics, .admin-ops-page .integration-grid, .security-config-grid { grid-template-columns: 1fr 1fr; }
+  .admin-ops-page .metric-card { min-width: 0; }.admin-ops-page .metric-card strong { font-size: 21px; }
+  .admin-ops-page .integration-card { min-height: 165px; padding: 14px; }.integration-card-head { margin-bottom: 18px; }
+  .admin-ops-page .admin-sidebar nav button span { font-size: 8px; }
+}
+
 @font-face {
   font-family: "Tianwai Masa";
   src: url("fonts/tianwai-masa-bold.woff2") format("woff2");

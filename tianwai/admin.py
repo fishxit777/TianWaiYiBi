@@ -140,6 +140,49 @@ def dashboard_data():
         ORDER BY orders.id DESC LIMIT 50
         """
     ).fetchall()
+    customer_metrics = connection.execute(
+        """
+        SELECT
+            COUNT(DISTINCT CASE WHEN orders.status = 'paid' THEN orders.customer_email END) AS paid_customers,
+            COUNT(DISTINCT CASE WHEN orders.status = 'paid' THEN orders.id END) AS paid_entitlements,
+            COUNT(DISTINCT CASE WHEN orders.status = 'paid' AND activation_codes.used_at IS NOT NULL THEN orders.id END) AS activated_entitlements
+        FROM orders
+        LEFT JOIN activation_codes ON activation_codes.order_id = orders.id
+        """
+    ).fetchone()
+    active_customer_sessions = connection.execute(
+        """
+        SELECT COUNT(DISTINCT customer_email) AS count
+        FROM customer_sessions
+        WHERE revoked_at IS NULL AND expires_at > ?
+        """,
+        (utc_now(),),
+    ).fetchone()["count"]
+    customer_access = connection.execute(
+        """
+        SELECT
+            orders.order_no,
+            orders.customer_name,
+            orders.customer_email,
+            orders.paid_at,
+            ideas.title,
+            CASE WHEN EXISTS (
+                SELECT 1 FROM activation_codes
+                WHERE activation_codes.order_id = orders.id
+                  AND activation_codes.used_at IS NOT NULL
+            ) THEN 1 ELSE 0 END AS activated,
+            COALESCE((
+                SELECT activation_codes.delivery_status FROM activation_codes
+                WHERE activation_codes.order_id = orders.id
+                ORDER BY activation_codes.id DESC LIMIT 1
+            ), 'pending') AS delivery_status
+        FROM orders
+        JOIN ideas ON ideas.id = orders.idea_id
+        WHERE orders.status = 'paid'
+        ORDER BY orders.paid_at DESC, orders.id DESC
+        LIMIT 40
+        """
+    ).fetchall()
     security_events = connection.execute(
         "SELECT * FROM security_events ORDER BY id DESC LIMIT 40"
     ).fetchall()
@@ -218,6 +261,31 @@ def dashboard_data():
                 }
                 for row in orders
             ],
+            "customer_access": {
+                "summary": {
+                    "paid_customers": int(customer_metrics["paid_customers"] or 0),
+                    "paid_entitlements": int(customer_metrics["paid_entitlements"] or 0),
+                    "activated_entitlements": int(customer_metrics["activated_entitlements"] or 0),
+                    "pending_activation": max(
+                        int(customer_metrics["paid_entitlements"] or 0)
+                        - int(customer_metrics["activated_entitlements"] or 0),
+                        0,
+                    ),
+                    "active_sessions": int(active_customer_sessions or 0),
+                },
+                "orders": [
+                    {
+                        "order_no": row["order_no"],
+                        "customer_name": row["customer_name"],
+                        "customer_email": _mask_email(row["customer_email"]),
+                        "title": row["title"],
+                        "paid_at": row["paid_at"],
+                        "activated": bool(row["activated"]),
+                        "delivery_status": row["delivery_status"],
+                    }
+                    for row in customer_access
+                ],
+            },
             "security_events": [dict(row) for row in security_events],
             "blocked_ips": [dict(row) for row in blocks],
             "audit_logs": [dict(row) for row in audits],
