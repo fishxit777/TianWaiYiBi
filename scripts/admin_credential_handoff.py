@@ -1,8 +1,8 @@
 """Local-only GUI for handing an admin credential to its owner.
 
-The plaintext password is never printed or written to disk. After the owner
-confirms it has been saved, the Windows clipboard is replaced with the
-Argon2id verifier that can be pasted into Render.
+The plaintext password is never printed or written to disk. The window remains
+open after the Render verifier is copied so the owner can copy the real login
+password again after deployment. Secrets are cleared only after login succeeds.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ from tianwai.security import (  # noqa: E402
 )
 
 
-HANDOFF_TTL_MINUTES = 10
+HANDOFF_TTL_MINUTES = 30
 
 
 class HandoffError(ValueError):
@@ -40,13 +40,15 @@ class AdminCredentialHandoff:
     created_at: datetime
     expires_at: datetime
     password_copied: bool = False
-    confirmed: bool = False
+    hash_copied: bool = False
+    completed: bool = False
 
     def __repr__(self) -> str:
         return (
             "AdminCredentialHandoff("
             f"created_at={self.created_at!r}, expires_at={self.expires_at!r}, "
-            f"password_copied={self.password_copied!r}, confirmed={self.confirmed!r})"
+            f"password_copied={self.password_copied!r}, hash_copied={self.hash_copied!r}, "
+            f"completed={self.completed!r})"
         )
 
     def is_expired(self, now: datetime | None = None) -> bool:
@@ -58,18 +60,29 @@ class AdminCredentialHandoff:
             raise HandoffError("handoff_expired")
         self.password_copied = True
 
-    def confirm_saved(self, owner_confirmed: bool, now: datetime | None = None) -> None:
+    def mark_hash_copied(self, owner_confirmed: bool, now: datetime | None = None) -> None:
         if self.is_expired(now):
             raise HandoffError("handoff_expired")
         if not self.password_copied:
             raise HandoffError("password_not_copied")
         if not owner_confirmed:
             raise HandoffError("password_not_saved")
-        self.confirmed = True
+        self.hash_copied = True
+
+    def mark_completed(self) -> None:
+        if not self.hash_copied:
+            raise HandoffError("render_hash_not_copied")
+        self.completed = True
 
     def public_status(self) -> dict[str, int | str | bool]:
+        if self.completed:
+            status = "completed"
+        elif self.hash_copied:
+            status = "ready_for_render"
+        else:
+            status = "pending_owner_confirmation"
         return {
-            "status": "ready_for_render" if self.confirmed else "pending_owner_confirmation",
+            "status": status,
             "length": len(self.password),
             "entropy_bits": ADMIN_PASSWORD_ENTROPY_BITS,
             "argon2id": self.encoded_hash.startswith("$argon2id$"),
@@ -101,8 +114,8 @@ class CredentialHandoffWindow:
         self.closed = False
         self.root = tk.Tk()
         self.root.title("天外一筆｜管理員密碼安全更新")
-        self.root.geometry("780x470")
-        self.root.minsize(720, 440)
+        self.root.geometry("820x560")
+        self.root.minsize(760, 520)
         self.root.configure(bg="#0d1130")
         self.root.protocol("WM_DELETE_WINDOW", self.cancel)
         self.root.attributes("-topmost", True)
@@ -201,19 +214,28 @@ class CredentialHandoffWindow:
 
         self.confirm_button = ttk.Button(
             card,
-            text="3. 已安全保存，開始正式更新",
-            command=self.confirm,
+            text="3. 複製 Render 驗證值",
+            command=self.copy_render_hash,
             state="disabled",
             style="Action.TButton",
         )
         self.confirm_button.pack(anchor="w")
+
+        self.finish_button = ttk.Button(
+            card,
+            text="4. 新密碼已登入成功，清除並關閉",
+            command=self.complete,
+            state="disabled",
+            style="Action.TButton",
+        )
+        self.finish_button.pack(anchor="w", pady=(10, 0))
 
         ttk.Label(card, textvariable=self.status_var, style="Status.TLabel").pack(
             anchor="w", pady=(18, 0)
         )
         ttk.Label(
             card,
-            text="確認後，畫面與剪貼簿中的明文會被清除，剪貼簿改放 Render 驗證值。",
+            text="視窗會保持開啟；Render 上線後可再按第 1 步複製真正登入密碼。",
             style="Body.TLabel",
         ).pack(anchor="w", pady=(8, 0))
 
@@ -240,25 +262,37 @@ class CredentialHandoffWindow:
             self.expire()
             return
         self._replace_clipboard(self.handoff.password)
-        self.status_var.set("密碼已複製。請先存入密碼管理器，再勾選確認。")
+        if self.handoff.hash_copied:
+            self.status_var.set("真正登入密碼已重新複製。請貼到正式登入頁驗收。")
+        else:
+            self.status_var.set("密碼已複製。請保存後再複製 Render 驗證值。")
         self.refresh_confirm_state()
 
     def refresh_confirm_state(self) -> None:
         enabled = self.handoff.password_copied and self.saved_var.get()
         self.confirm_button.configure(state="normal" if enabled else "disabled")
 
-    def confirm(self) -> None:
+    def copy_render_hash(self) -> None:
         try:
-            self.handoff.confirm_saved(self.saved_var.get())
+            self.handoff.mark_hash_copied(self.saved_var.get())
         except HandoffError as exc:
             self.status_var.set(f"尚未符合安全確認條件：{exc}")
             return
         self._replace_clipboard(self.handoff.encoded_hash)
-        self.password_var.set("")
-        self.copy_button.configure(state="disabled")
         self.saved_checkbox.configure(state="disabled")
-        self.confirm_button.configure(state="disabled")
-        self.status_var.set("本機交接完成；明文已清除，正在接續正式環境更新。")
+        self.confirm_button.configure(text="Render 驗證值已複製（可再次複製）")
+        self.finish_button.configure(state="normal")
+        self.status_var.set("Render 驗證值已複製。視窗不會關閉；部署後請再複製登入密碼。")
+        print(json.dumps(self.handoff.public_status(), ensure_ascii=False), flush=True)
+
+    def complete(self) -> None:
+        try:
+            self.handoff.mark_completed()
+        except HandoffError as exc:
+            self.status_var.set(f"尚未完成登入驗收：{exc}")
+            return
+        self._clear_sensitive_clipboard()
+        self.password_var.set("")
         print(json.dumps(self.handoff.public_status(), ensure_ascii=False), flush=True)
         self.closed = True
         self.root.after(1200, self.root.destroy)
@@ -268,6 +302,10 @@ class CredentialHandoffWindow:
             return
         remaining = int((self.handoff.expires_at - datetime.now(timezone.utc)).total_seconds())
         if remaining <= 0:
+            if self.handoff.hash_copied:
+                self.countdown_var.set("等待正式登入驗收")
+                self.status_var.set("已超過 30 分鐘；為避免鎖死，密碼仍保留到你確認登入成功。")
+                return
             self.expire()
             return
         minutes, seconds = divmod(remaining, 60)
@@ -286,6 +324,17 @@ class CredentialHandoffWindow:
     def cancel(self) -> None:
         if self.closed:
             return
+        if self.handoff.hash_copied and not self.handoff.completed:
+            from tkinter import messagebox
+
+            should_close = messagebox.askyesno(
+                "尚未完成登入驗收",
+                "Render 驗證值已交付。現在關閉可能失去真正登入密碼並造成鎖定。\n\n"
+                "確定仍要關閉嗎？",
+                parent=self.root,
+            )
+            if not should_close:
+                return
         self._clear_sensitive_clipboard()
         self.password_var.set("")
         self.closed = True
@@ -304,4 +353,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

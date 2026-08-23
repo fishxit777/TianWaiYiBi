@@ -21,13 +21,13 @@ def test_local_handoff_requires_copy_and_explicit_saved_confirmation():
     handoff = create_handoff()
 
     with pytest.raises(HandoffError, match="password_not_copied"):
-        handoff.confirm_saved(True)
+        handoff.mark_hash_copied(True)
 
     handoff.mark_password_copied()
     with pytest.raises(HandoffError, match="password_not_saved"):
-        handoff.confirm_saved(False)
+        handoff.mark_hash_copied(False)
 
-    handoff.confirm_saved(True)
+    handoff.mark_hash_copied(True)
     assert handoff.public_status() == {
         "status": "ready_for_render",
         "length": 43,
@@ -35,13 +35,22 @@ def test_local_handoff_requires_copy_and_explicit_saved_confirmation():
         "argon2id": True,
     }
 
+    handoff.mark_completed()
+    assert handoff.public_status()["status"] == "completed"
 
-def test_local_handoff_expires_after_ten_minutes():
+
+def test_local_handoff_expires_after_thirty_minutes():
     created_at = datetime(2026, 8, 23, 0, 0, tzinfo=timezone.utc)
     handoff = create_handoff(created_at)
-    expired_at = created_at + timedelta(minutes=10)
+    expired_at = created_at + timedelta(minutes=30)
 
     assert handoff.is_expired(expired_at) is True
     with pytest.raises(HandoffError, match="handoff_expired"):
         handoff.mark_password_copied(expired_at)
 
+
+def test_local_handoff_cannot_complete_before_render_hash_is_copied():
+    handoff = create_handoff()
+
+    with pytest.raises(HandoffError, match="render_hash_not_copied"):
+        handoff.mark_completed()

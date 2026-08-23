@@ -107,8 +107,9 @@ py -3 scripts\generate_admin_credential.py
 py -3 scripts\admin_credential_handoff.py
 ```
 
-視窗會要求先複製並保存密碼；確認後會清除畫面上的明文，並把剪貼簿改成
-Render 所需的 Argon2id verifier。視窗 10 分鐘後自動失效，不會把明文寫入磁碟。
+視窗會要求先複製並保存密碼，再把剪貼簿改成 Render 所需的 Argon2id verifier。
+視窗會保留到正式登入驗收成功，期間可再次複製真正登入密碼，避免部署後鎖死；
+未交付 verifier 前 30 分鐘自動失效，明文不會寫入磁碟。
 
 免費 Render 初版的 SQLite 檔案不是正式持久化資料庫，重新部署或重建執行個體時可能重建。可用於真人 LINE Bot、官網與需求驗證，但正式收款前必須換成持久化 PostgreSQL 或付費磁碟並建立備份。
 

@@ -48,7 +48,7 @@
 - 管理通知 V1 已完成：台北時間 08:00／12:00／20:00 詳細營運摘要；高／重大登入、存取、付款、LINE 與系統事件立即分送管理員 LINE＋Gmail。兩通道個別佇列、個別重試、日期／時段防重送；通知會遮罩 Email／IP 並移除驗證碼、Token、Cookie、密碼及簽章值。
 - 手機六脈卡片字型一致性已修正：字型子集建置補入 `tianwai/db.py` 與全部公開交易頁文案，Regular／Bold 皆重新輸出；角色名與技能分類統一 MasaFont Regular 14px，主標統一同系 Display，手機 29px。六脈共 83 個不同卡片漢字已驗證缺字 0，並加入版本參數避免 iPhone 延用舊快取。
 - 管理員憑證 V2 已完成：本機與正式輪替工具可產生 32 bytes／43 位 Base64url／256-bit 密碼；伺服器支援 Argon2id（19 MiB、2 次、p=1）且 Hash 存在時禁止降級使用舊明文。後台安全稽核新增 Argon2id 狀態；正式新明文不得進 Git、文件或對話，需由擁有者在可信任終端產生並直接保存到密碼管理器後，再設定 Render `ADMIN_PASSWORD_HASH`、驗收並移除 `ADMIN_PASSWORD`。
-- 管理員憑證本機交接 V1 已完成：`scripts/admin_credential_handoff.py` 以一次性 Windows 視窗顯示 43 位密碼，擁有者複製並明確確認已保存後，畫面明文會清除、剪貼簿改放 Argon2id verifier；10 分鐘逾時或取消不會變更正式環境，明文不寫入磁碟、終端、Git、LINE、Gmail 或 Chat。
+- 管理員憑證本機交接 V2 已完成：`scripts/admin_credential_handoff.py` 以一次性 Windows 視窗顯示 43 位密碼；複製 Argon2id verifier 後視窗仍保持開啟，可在 Render 部署完成後再次複製真正登入密碼，直到正式登入成功才銷毀，避免密碼管理器未保存時鎖死。明文不寫入磁碟、終端、Git、LINE、Gmail 或 Chat。
 - 客戶交易郵件寄送失敗已接入即時管理告警；管理 Gmail 故障時不會遞迴產生無限告警，LINE 仍獨立送達。後台已顯示雙通道、通知類型及每日排程就緒狀態。
 - 完整 40 點問題、影響與對應修正記錄於 `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`；本次只改呈現層與互動狀態，沒有改動付款、開通、可信裝置、風險分級或資料庫規則。
 
