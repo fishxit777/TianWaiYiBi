@@ -163,4 +163,41 @@
       }
     });
   });
+
+  const recoveryCodeButton = document.querySelector('#recovery-code-generate');
+  let recoveryCodes = [];
+  recoveryCodeButton?.addEventListener('click', async () => {
+    const replacing = recoveryCodeButton.textContent.includes('重新');
+    if (replacing && !window.confirm('重新產生後，尚未使用的舊復原碼會全部失效。確定繼續？')) return;
+    recoveryCodeButton.disabled = true;
+    setStatus(setupStatus, '正在產生復原碼…');
+    try {
+      const result = await postJson('/admin/api/passkeys/recovery-codes', adminCsrf);
+      recoveryCodes = result.codes || [];
+      const list = document.querySelector('#recovery-code-list');
+      list.replaceChildren(...recoveryCodes.map((code) => {
+        const item = document.createElement('li');
+        item.textContent = code;
+        return item;
+      }));
+      document.querySelector('#recovery-code-output').hidden = false;
+      setStatus(setupStatus, '復原碼已產生；請立即安全保存。');
+      recoveryCodeButton.textContent = '重新產生並撤銷目前代碼';
+      recoveryCodeButton.disabled = false;
+    } catch (error) {
+      setStatus(setupStatus, error.message || '無法產生復原碼。', true);
+      recoveryCodeButton.disabled = false;
+    }
+  });
+
+  document.querySelector('#recovery-code-download')?.addEventListener('click', () => {
+    if (!recoveryCodes.length) return;
+    const header = '天外一筆管理員一次性緊急復原碼\n每組僅可使用一次；請離線加密保存。\n\n';
+    const blob = new Blob([header + recoveryCodes.join('\n') + '\n'], {type: 'text/plain;charset=utf-8'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'tianwai-yibi-recovery-codes.txt';
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+  });
 })();

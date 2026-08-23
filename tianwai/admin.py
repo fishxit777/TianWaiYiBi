@@ -20,6 +20,7 @@ from .security import (
     admin_required,
     create_admin_session,
     current_admin_session,
+    get_client_ip,
     is_admin_ip_allowed,
     log_audit,
     log_security_event,
@@ -39,6 +40,13 @@ from .passkeys import (
     verify_and_store_registration,
     verify_and_update_authentication,
 )
+from .recovery import (
+    available_recovery_code_count,
+    consume_recovery_code,
+    generate_recovery_codes,
+    revoke_all_passkeys,
+)
+from .turnstile import turnstile_configured, turnstile_site_key, verify_turnstile
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -86,6 +94,7 @@ def login_page():
         error=None,
         passkey_count=active_credential_count(),
         passkey_only=passkey_only_enabled(),
+        recovery_available=_recovery_available(),
     )
 
 
@@ -111,6 +120,19 @@ def _decode_challenge(value):
     return base64.urlsafe_b64decode(raw + "=" * ((4 - len(raw) % 4) % 4))
 
 
+def _recovery_enabled():
+    return os.environ.get("ADMIN_RECOVERY_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _recovery_available():
+    return bool(
+        _recovery_enabled()
+        and admin_password_hash_configured()
+        and turnstile_configured()
+        and available_recovery_code_count() > 0
+    )
+
+
 @admin_bp.post("/login")
 def login_submit():
     if passkey_only_enabled():
@@ -126,6 +148,7 @@ def login_submit():
             error="安全驗證已過期，請重新整理後再試。",
             passkey_count=active_credential_count(),
             passkey_only=False,
+            recovery_available=_recovery_available(),
         ), 403
     username = request.form.get("username", "")[:120]
     password = request.form.get("password", "")[:512]
@@ -137,10 +160,11 @@ def login_submit():
             error="帳號或密碼錯誤，請稍後再試。",
             passkey_count=active_credential_count(),
             passkey_only=False,
+            recovery_available=_recovery_available(),
         ), status
 
     register_login_attempt(True)
-    raw_token = create_admin_session()
+    raw_token = create_admin_session(auth_method="password")
     log_audit("admin_login", "admin", "server_side_session_created")
     response = make_response(redirect(url_for("admin.dashboard")))
     return _set_admin_cookie(response, raw_token)
@@ -181,7 +205,7 @@ def passkey_authentication_verify():
         return jsonify({"error": "Passkey 驗證失敗，請稍後再試。"}), status
 
     register_login_attempt(True)
-    raw_token = create_admin_session()
+    raw_token = create_admin_session(auth_method="passkey")
     log_audit("admin_passkey_login", "admin", "server_side_session_created")
     response = jsonify({"ok": True, "redirect": url_for("admin.dashboard")})
     return _set_admin_cookie(response, raw_token)
@@ -207,6 +231,8 @@ def passkey_setup():
         admin_csrf=admin_session["csrf_token"],
         credentials=credentials,
         passkey_only=passkey_only_enabled(),
+        recovery_mode=bool(admin_session["restricted"]),
+        recovery_code_count=available_recovery_code_count(),
     )
 
 
@@ -259,6 +285,17 @@ def passkey_activate():
         return guard
     if not activate_passkey_only():
         return jsonify({"error": "至少需要兩個已驗證 Passkey 才能停用一般密碼登入。"}), 409
+    admin_session = current_admin_session()
+    if bool(admin_session["restricted"]):
+        connection = get_db()
+        connection.execute(
+            "UPDATE admin_sessions SET restricted = 0, auth_method = 'passkey' WHERE id = ?",
+            (admin_session["id"],),
+        )
+        connection.commit()
+        log_security_event(
+            "admin_recovery_completed", "critical", "two_passkeys_reenrolled", "recovery_session_upgraded"
+        )
     log_audit("admin_passkey_only_enabled", "admin", "two_or_more_credentials")
     return jsonify({"ok": True})
 
@@ -275,6 +312,80 @@ def passkey_revoke(credential_id):
         return jsonify({"error": "找不到可撤銷的 Passkey。"}), 404
     log_audit("admin_passkey_revoked", f"credential:{credential_id}", "owner_revoked")
     return jsonify({"ok": True})
+
+
+@admin_bp.post("/api/passkeys/recovery-codes")
+@admin_required
+def rotate_recovery_codes():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    admin_session = current_admin_session()
+    if bool(admin_session["restricted"]):
+        return jsonify({"error": "請先完成兩把 Passkey 的重新登記。"}), 409
+    codes = generate_recovery_codes()
+    log_audit("admin_recovery_codes_rotated", "admin", f"count={len(codes)};plaintext_not_persisted")
+    return jsonify({"ok": True, "codes": codes, "count": len(codes)})
+
+
+@admin_bp.get("/recovery")
+def recovery_page():
+    if not _recovery_available():
+        return "", 404
+    return render_template(
+        "admin_recovery.html",
+        error=None,
+        turnstile_site_key=turnstile_site_key(),
+    )
+
+
+@admin_bp.post("/recovery")
+def recovery_submit():
+    if not _recovery_available():
+        return "", 404
+    if not is_admin_ip_allowed():
+        return "", 404
+    if not public_csrf_valid():
+        return render_template(
+            "admin_recovery.html",
+            error="安全驗證已過期，請重新整理後再試。",
+            turnstile_site_key=turnstile_site_key(),
+        ), 403
+
+    turnstile_token = request.form.get("cf-turnstile-response", "")[:2048]
+    username = request.form.get("username", "")[:120]
+    password = request.form.get("password", "")[:512]
+    recovery_code = request.form.get("recovery_code", "")[:80]
+    verified = (
+        verify_turnstile(turnstile_token, get_client_ip())
+        and admin_credentials_valid(username, password)
+        and consume_recovery_code(recovery_code)
+    )
+    if not verified:
+        failures = register_login_attempt(False)
+        status = 429 if failures >= 5 else 403
+        return render_template(
+            "admin_recovery.html",
+            error="復原驗證失敗，請確認三項資料後重新操作。",
+            turnstile_site_key=turnstile_site_key(),
+        ), status
+
+    connection = get_db()
+    connection.execute(
+        "UPDATE admin_sessions SET revoked_at = ?, revoked_reason = 'emergency_recovery' WHERE revoked_at IS NULL",
+        (utc_now(),),
+    )
+    connection.commit()
+    revoked_credentials = revoke_all_passkeys("emergency_recovery")
+    raw_token = create_admin_session(auth_method="recovery", restricted=True)
+    register_login_attempt(True)
+    log_security_event(
+        "admin_emergency_recovery", "critical", "sessions_and_passkeys_revoked",
+        f"passkeys_revoked={revoked_credentials};codes_not_logged",
+    )
+    log_audit("admin_emergency_recovery", "admin", "restricted_session_created;two_passkeys_required")
+    response = make_response(redirect(url_for("admin.passkey_setup")))
+    return _set_admin_cookie(response, raw_token)
 
 
 @admin_bp.post("/logout")

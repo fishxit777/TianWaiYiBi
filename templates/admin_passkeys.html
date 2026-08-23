@@ -36,7 +36,10 @@
       <article class="passkey-panel passkey-policy">
         <span class="workspace-kicker">POLICY</span>
         <h2>登入模式</h2>
-        {% if passkey_only %}
+        {% if recovery_mode %}
+        <strong class="security-mode">緊急復原尚未完成</strong>
+        <p>舊工作階段與舊 Passkey 已撤銷。請重新登記兩把金鑰，再按下完成復原。</p>
+        {% elif passkey_only %}
         <strong class="security-mode is-active">Passkey 專用模式已啟用</strong>
         <p>一般密碼登入已關閉。至少保留一把可用金鑰，建議長期維持兩把。</p>
         {% elif credentials|length >= 2 %}
@@ -46,6 +49,9 @@
         {% else %}
         <strong class="security-mode">尚缺 {{ 2 - credentials|length }} 把備援金鑰</strong>
         <p>為避免裝置遺失造成永久鎖定，系統在兩把金鑰都驗證完成前不允許停用密碼登入。</p>
+        {% endif %}
+        {% if recovery_mode and credentials|length >= 2 %}
+        <button id="passkey-activate" class="button button-primary button-wide" type="button">完成復原並啟用 Passkey</button>
         {% endif %}
       </article>
     </section>
@@ -72,6 +78,22 @@
       <p class="passkey-empty">尚未登記任何 Passkey。請先登記 Windows Hello。</p>
       {% endif %}
     </section>
+
+    {% if not recovery_mode %}
+    <section class="passkey-panel recovery-code-panel">
+      <div class="passkey-list-heading">
+        <div><span class="workspace-kicker">BREAK GLASS</span><h2>一次性緊急復原碼</h2></div>
+        <strong>{{ recovery_code_count }} 組可用</strong>
+      </div>
+      <p>每組只能使用一次，必須和管理密碼、人機驗證一起通過。請存入離線密碼管理器或列印後鎖藏；不要傳到 LINE、Gmail 或雲端記事。</p>
+      <button id="recovery-code-generate" class="button button-ghost" type="button">{{ '重新產生並撤銷舊碼' if recovery_code_count else '產生 10 組復原碼' }}</button>
+      <div id="recovery-code-output" class="recovery-code-output" hidden>
+        <strong>只顯示這一次，離開頁面後無法再查看</strong>
+        <ol id="recovery-code-list"></ol>
+        <button id="recovery-code-download" type="button">下載純文字備份</button>
+      </div>
+    </section>
+    {% endif %}
 
     <aside class="passkey-privacy-note">
       <strong>隱私與安全界線</strong>

@@ -218,7 +218,9 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
     last_seen_at TEXT NOT NULL,
     expires_at TEXT NOT NULL,
     revoked_at TEXT,
-    revoked_reason TEXT
+    revoked_reason TEXT,
+    auth_method TEXT NOT NULL DEFAULT 'password',
+    restricted INTEGER NOT NULL DEFAULT 0 CHECK (restricted IN (0, 1))
 );
 
 CREATE TABLE IF NOT EXISTS admin_webauthn_credentials (

@@ -37,6 +37,7 @@
       <small>連續失敗將暫時封鎖來源 IP；系統不會在網址或日誌保存密令。</small>
       {% else %}
       <p class="passkey-only-note">此後台已停用一般密碼登入。若兩把 Passkey 都遺失，請走緊急復原流程。</p>
+      {% if recovery_available %}<a class="inline-text-link" href="{{ url_for('admin.recovery_page') }}">兩把 Passkey 都無法使用</a>{% endif %}
       {% endif %}
     </section>
   </main>

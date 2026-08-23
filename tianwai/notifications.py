@@ -39,6 +39,8 @@ EVENT_LABELS = {
     "admin_ip_denied": "非允許來源嘗試進入管理後台",
     "admin_csrf_rejected": "管理操作安全驗證遭拒絕",
     "admin_login_csrf_rejected": "管理登入安全驗證遭拒絕",
+    "admin_emergency_recovery": "管理員緊急復原已啟動",
+    "admin_recovery_completed": "管理員緊急復原已完成",
     "sensitive_path_probe": "敏感檔案或已知弱點掃描",
     "csrf_rejected": "網頁安全驗證遭拒絕",
 }

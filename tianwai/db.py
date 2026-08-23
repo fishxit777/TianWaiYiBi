@@ -270,6 +270,12 @@ def migrate_database(connection):
     if "last_replay_at" not in session_columns:
         connection.execute("ALTER TABLE customer_sessions ADD COLUMN last_replay_at TEXT")
 
+    admin_session_columns = _column_names(connection, "admin_sessions")
+    if "auth_method" not in admin_session_columns:
+        connection.execute("ALTER TABLE admin_sessions ADD COLUMN auth_method TEXT NOT NULL DEFAULT 'password'")
+    if "restricted" not in admin_session_columns:
+        connection.execute("ALTER TABLE admin_sessions ADD COLUMN restricted INTEGER NOT NULL DEFAULT 0")
+
     migration_now = utc_now()
     code_cap = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(timespec="seconds")
     connection.execute(
