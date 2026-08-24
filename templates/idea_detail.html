@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_conversation_widget.html" import conversation_widget %}
 {% block title %}{{ idea['title'] }}｜{{ idea['role'] }}｜仙策閣{% endblock %}
 {% block body_class %}detail-page accent-{{ idea['accent'] }}{% endblock %}
 {% block content %}
@@ -34,4 +35,5 @@
     </div>
   </div>
 </section>
+{{ conversation_widget('idea-detail', '仙策・' ~ idea['title'], idea['slug']) }}
 {% endblock %}

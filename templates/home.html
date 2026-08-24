@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_conversation_widget.html" import conversation_widget %}
 {% block title %}天外一筆・仙策閣｜想法販售・創意支援{% endblock %}
 {% block hero_image_preload %}
   <link rel="preload" href="{{ url_for('static', filename='brand/home-title-xianxia-v14.webp') }}" as="image" type="image/webp" fetchpriority="high">
@@ -37,6 +38,7 @@
   <div class="cloud cloud-a" aria-hidden="true"></div>
   <div class="cloud cloud-b" aria-hidden="true"></div>
 </section>
+{{ conversation_widget('home-hero', '卷首・一筆開天') }}
 
 <section id="world-note" class="world-note section-shell reveal">
   <div class="world-chapter-mark" aria-label="卷一・擇法">
@@ -53,6 +55,7 @@
     <span class="ink-line" aria-hidden="true"></span>
   </div>
 </section>
+{{ conversation_widget('home-world', '卷一・擇法') }}
 
 <section id="ideas" class="ideas-section section-shell">
   <header class="section-heading reveal">
@@ -98,6 +101,7 @@
     {% endfor %}
   </div>
 </section>
+{{ conversation_widget('home-ideas', '卷二・六脈仙策') }}
 
 <section id="how" class="how-section section-shell">
   <div class="how-intro reveal">
@@ -111,6 +115,7 @@
     <li class="reveal delay-2"><span>參</span><div><h3>照表執行驗證</h3><p>用行動與數字判斷，不用感覺自我說服。</p></div></li>
   </ol>
 </section>
+{{ conversation_widget('home-how', '卷三・入世之法') }}
 
 <section id="creed" class="creed-section section-shell">
   <header class="creed-heading reveal">
@@ -125,6 +130,7 @@
     <article class="reveal"><span>一程</span><h3>長路共修</h3><p>不求一夜飛昇，只求每次選擇都更接近可持續、可複用、能累積的成果。</p></article>
   </div>
 </section>
+{{ conversation_widget('home-creed', '卷四・仙閣心訣') }}
 
 <section id="transmission" class="line-portal section-shell reveal">
   <img class="line-glyph" src="{{ url_for('static', filename='brand/line-avatar-1254.png') }}" alt="天外一筆仙策靈使傳音法印">
@@ -138,4 +144,5 @@
   <a class="button button-ghost" href="{{ url_for('public.transmission') }}"><span>傳音給守閣者</span><small>開啟 LINE 接引</small></a>
   <p class="transmission-assurance"><span>由本人接續</span><span>不索取密碼</span><span>付款問題可詢問</span></p>
 </section>
+{{ conversation_widget('home-transmission', '卷五・傳音閣') }}
 {% endblock %}

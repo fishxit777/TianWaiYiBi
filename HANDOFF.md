@@ -58,10 +58,17 @@
 - 緊急復原完成：10 組 128-bit 一次性碼只存 Argon2id；必須密碼＋復原碼＋Turnstile 全部正確。成功會撤銷全部舊 session／Passkey、即時告警，並限制只能重建兩把 Passkey。
 - 免費加密異地備份與還原已完成：每日 `pg_dump` 先由 `pg_restore --list` 驗證，再以 AES-256-GCM 加密與離線 RSA-4096 公鑰包裝；GitHub 只上傳 14 天加密檔，單份 25 MB 上限。RSA 私鑰只在實體離線 USB，GitHub 已設定只讀備份連線與公鑰；正式 run `32696239051` 成功，Artifact 只有 `.twybenc`，PostgreSQL 17.11 隔離還原及 24 表／164 筆逐表 checksum 全數通過。
 - Neon 最小權限收尾已完成：建立正式唯讀備份角色 `twyb_backup_ro` 後，已永久刪除未使用且不擁有任何資料庫的臨時角色 `twyb_backup`；production 分支只保留正式擁有者與唯讀備份角色。
+- 分區混合傳音 V1 已完成：首頁六卷與每一脈仙策詳情頁下方皆有預設收合、展開才載入的傳音元件。公開傳音所有訪客可讀，但只有有效客戶工作階段可投稿且必須先審；私密傳音只由該客戶與守閣者讀寫，所有權在 SQL 查詢固定綁定 `customer_id`。
+- 客戶公開身分只顯示由匿名客戶代碼穩定產生的 `同道・XXXX` 與固定識別色，不公開訂單姓名、Email 或內部客戶 ID。顏色只套在頭像、名稱與色條，正文維持高對比中性色；每則訊息仍有名稱與 `守閣者`、`同道`、`等待公開`、`指定給你` 等文字徽章。
+- 後台新增「傳音對話」工作區：可篩選待審核、私密、已公開與全部訊息，一鍵公開、隱藏或指定回覆；不物理刪除訊息，所有審核／回覆寫入 `audit_logs`。新客戶傳音的 LINE／Gmail 管理提醒不含客戶身分與正文；客戶回覆提醒信也只要求登入查看，不外送站內內容。
+- 傳音防濫用已完成：2～800 字、純文字、前端只用 `textContent`、公開網址拒絕、CSRF、客戶狀態檢查、每 10 分鐘 5 則／每日 30 則限制、公開先審後發、私密與 API 全部 `no-store`。付款、登入、開通與安全頁面不放傳音元件。
 - 完整 40 點問題、影響與對應修正記錄於 `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`；本次只改呈現層與互動狀態，沒有改動付款、開通、可信裝置、風險分級或資料庫規則。
 
 ## 驗證結果
 
+- 2026-08-24 分區混合傳音 V1：`python -m pytest -q` 為 120 passed、1 skipped；其中傳音／資料遷移專項 16 passed。Python compileall、`node --check static/conversations.js`、`node --check static/admin.js` 與 `git diff --check` 通過。
+- 傳音權限驗收：匿名只能讀已公開訊息；待審訊息只讓投稿者本人看見；兩個客戶的私密訊息互不可見；管理核准、隱藏、公開回覆、私密指定回覆與 CSRF 均通過。外部管理通知未包含測試正文或 Email。
+- 分區傳音瀏覽器 QA：桌機首頁確認 6 個元件與公開／私密切換；390×844 手機根頁面 viewport 375px／scroll width 375px、面板與展開列 347px，無水平溢位。隔離假資料後台確認待審／私密數量、匿名色標、公開／隱藏／指定回覆按鈕與回覆表單自動帶入正確客戶及區塊；手機後台同樣無水平溢位。
 - 免費 PostgreSQL＋Passkey 正式版：`python -m pytest -q` 為 103 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 執行。Passkey／復原／加密備份專項、Python compile、JavaScript syntax、`pip check`、依賴稽核、機密掃描與 `git diff --check` 均通過。
 - 2026-08-24 公開管理入口情報最小化後的最終本機驗證：`python -m pytest -q` 為 110 passed、1 skipped；`verify_postgres_backup_restore.py` 的直接 CLI 與 module invocation 均通過。
 - PostgreSQL 17.11 隔離整合測試另以本機臨時資料庫實跑 1 passed：新 challenge IP／時間索引已實際建立，每分鐘上限在 PostgreSQL 後端同樣生效；測試叢集與日誌已刪除。
@@ -120,12 +127,15 @@
 - `/customer/login`：已購客戶 Email 登入碼入口
 - `/customer/library`：已購內容庫
 - `/library/orders/<order_no>`：需客戶 session 的付費內容
+- `/api/conversations/<section_key>`：讀取公開或該客戶自己的私密分區傳音
+- `/api/conversations/<section_key>/messages`：有效客戶工作階段提交公開待審或私密傳音
 - `/orders/<access_token>`：舊網址相容轉址，不再直接顯示付費內容
 - `/dev/line`：LINE Bot 模擬器
 - `/line/webhook`：正式 LINE webhook 入口
 - `/payments/webhook/mock`：支付 webhook 範例
 - `/admin`：管理後台
 - `/admin/passkeys/setup`：登入後的 Passkey、雙金鑰與一次性復原碼設定（不得公開連結）
+- `/admin#conversations`：登入後的傳音審核與指定回覆工作區
 - `/admin/recovery`：只在 Passkey-only 且復原三因素已完整配置時存在；一般情況回 404
 - `/internal/notifications/daily-summary`：GitHub Actions 專用的密鑰保護排程端點，不得公開連結
 

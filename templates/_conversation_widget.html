@@ -1,0 +1,35 @@
+{% macro conversation_widget(section_key, section_label, idea_slug='') %}
+{% set widget_id = 'conversation-' ~ section_key ~ ('-' ~ idea_slug if idea_slug else '') %}
+<aside class="conversation-dock section-shell" data-conversation-widget data-section-key="{{ section_key }}" data-section-label="{{ section_label }}"{% if idea_slug %} data-idea-slug="{{ idea_slug }}"{% endif %}>
+  <button class="conversation-trigger" type="button" aria-expanded="false" aria-controls="{{ widget_id }}-panel" data-conversation-trigger>
+    <span class="conversation-trigger-mark" aria-hidden="true">談</span>
+    <span class="conversation-trigger-copy"><small>{{ section_label }}</small><strong>在此卷留下傳音</strong></span>
+    <span class="conversation-trigger-action"><span data-conversation-trigger-label>展開對話</span><i aria-hidden="true">⌄</i></span>
+  </button>
+  <div id="{{ widget_id }}-panel" class="conversation-panel" data-conversation-panel hidden tabindex="-1">
+    <header class="conversation-heading">
+      <div><span>SECTION DIALOGUE</span><h2>{{ section_label }}・傳音錄</h2></div>
+      <p>公開交流與私下問策，各自守住應有的界線。</p>
+    </header>
+    <div class="conversation-tabs" role="tablist" aria-label="選擇傳音範圍">
+      <button type="button" role="tab" aria-selected="true" tabindex="0" data-conversation-tab="public">公開傳音</button>
+      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-conversation-tab="private">私密傳音</button>
+    </div>
+    <div class="conversation-privacy-note" data-conversation-privacy-note>
+      <span aria-hidden="true">眾</span><p><strong>所有訪客可閱讀</strong><em data-conversation-privacy-copy>已驗證客戶的留言會先由守閣者審核，再對外公開。</em></p>
+    </div>
+    <div class="conversation-legend" aria-label="對話身分辨識說明">
+      <span class="identity-key identity-key-keeper"><i aria-hidden="true"></i>守閣者</span>
+      <span class="identity-key" data-conversation-viewer-key hidden><i aria-hidden="true"></i><b></b></span>
+      <small>顏色僅供輔助辨識，請以名稱與徽章為準。</small>
+    </div>
+    <p class="conversation-status" role="status" aria-live="polite" data-conversation-status>展開後讀取傳音…</p>
+    <div class="conversation-timeline" role="log" aria-live="polite" aria-label="傳音內容" data-conversation-messages></div>
+    <form class="conversation-composer" data-conversation-form hidden>
+      <label><span data-conversation-form-label>留下公開傳音</span><textarea name="body" minlength="2" maxlength="800" rows="4" placeholder="寫下你的想法或疑問；公開傳音請勿放入個人資料或網址。" required></textarea></label>
+      <footer><small><b data-conversation-count>0</b> / 800</small><button type="submit">送出傳音 <span aria-hidden="true">↗</span></button></footer>
+    </form>
+    <p class="conversation-login-note" data-conversation-login-note hidden>登入客戶專區後即可留言，並開啟只屬於你與守閣者的私密對話。<a href="{{ url_for('access.customer_login_page') }}">前往客戶登入</a></p>
+  </div>
+</aside>
+{% endmacro %}

@@ -52,6 +52,7 @@ def create_app(test_config=None):
 
     from .admin import admin_bp
     from .access import access_bp
+    from .conversations import conversations_bp
     from .line_bot import line_bp
     from .notification_routes import notification_bp
     from .payments import payments_bp
@@ -60,6 +61,7 @@ def create_app(test_config=None):
     app.register_blueprint(public_bp)
     app.register_blueprint(payments_bp)
     app.register_blueprint(access_bp)
+    app.register_blueprint(conversations_bp)
     app.register_blueprint(line_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(notification_bp)
@@ -81,7 +83,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "free-postgres-passkey-v1",
+                "release": "hybrid-section-conversations-v1",
             }
         )
 

@@ -2,6 +2,7 @@ import base64
 import ipaddress
 import json
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, make_response, redirect, render_template, request, session, url_for
@@ -48,6 +49,14 @@ from .recovery import (
     revoke_all_passkeys,
 )
 from .turnstile import turnstile_configured, turnstile_site_key, verify_turnstile
+from .conversations import (
+    HOME_SECTIONS,
+    customer_identity,
+    message_query,
+    normalize_message_body,
+    resolve_section_context,
+    serialize_message,
+)
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -84,6 +93,38 @@ def _mask_ip(value):
         return f"{parts[0]}.{parts[1]}.*.*"
     parts = address.exploded.split(":")
     return f"{parts[0]}:{parts[1]}::*"
+
+
+def _notify_customer_conversation_reply(connection, customer, visibility):
+    """Send only a neutral login notice; never copy the conversation body to email."""
+    if customer is None:
+        return "not_targeted"
+    order = connection.execute(
+        """
+        SELECT id FROM orders
+        WHERE customer_id = ? AND status = 'paid'
+        ORDER BY paid_at DESC, id DESC LIMIT 1
+        """,
+        (customer["id"],),
+    ).fetchone()
+    if order is None:
+        return "no_entitlement"
+    from .mailer import send_email
+
+    base_url = os.environ.get("BASE_URL", "").strip().rstrip("/")
+    login_url = f"{base_url}/customer/login" if base_url else "天外一筆客戶登入頁"
+    scope = "私密傳音" if visibility == "private" else "公開傳音"
+    return send_email(
+        customer["normalized_email"],
+        f"天外一筆｜你的{scope}有新回覆",
+        (
+            f"守閣者已回覆你的{scope}。\n\n"
+            f"請由官網登入後查看：{login_url}\n\n"
+            "為保護隱私，本通知不包含對話正文。天外一筆不會在信件中索取密碼、驗證碼或付款資料。\n"
+        ),
+        "conversation_reply",
+        order["id"],
+    )
 
 
 @admin_bp.get("/login")
@@ -572,6 +613,34 @@ def dashboard_data():
         ((datetime.now(timezone.utc) - timedelta(days=29)).isoformat(timespec="seconds"),),
     ).fetchall()
     line_event_count = connection.execute("SELECT COUNT(*) AS count FROM line_events").fetchone()["count"]
+    conversation_counts = connection.execute(
+        """
+        SELECT
+            SUM(CASE WHEN visibility = 'public' AND status = 'pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN visibility = 'public' AND status = 'published' THEN 1 ELSE 0 END) AS public_count,
+            SUM(CASE WHEN visibility = 'private' AND status = 'published' THEN 1 ELSE 0 END) AS private_count
+        FROM section_messages
+        """
+    ).fetchone()
+    conversation_rows = connection.execute(
+        f"{message_query()} ORDER BY section_messages.id DESC LIMIT 100"
+    ).fetchall()
+    conversation_customers = connection.execute(
+        """
+        SELECT customers.public_id
+        FROM customers
+        WHERE customers.status = 'active'
+          AND EXISTS (
+              SELECT 1 FROM orders
+              WHERE orders.customer_id = customers.id AND orders.status = 'paid'
+          )
+        ORDER BY customers.created_at DESC, customers.id DESC
+        LIMIT 200
+        """
+    ).fetchall()
+    conversation_ideas = connection.execute(
+        "SELECT slug, title FROM ideas WHERE published = 1 ORDER BY sort_order, id"
+    ).fetchall()
     global_price = get_setting_int("idea_price", 199)
     base_url = os.environ.get("BASE_URL", "http://127.0.0.1:5088").strip()
     return jsonify(
@@ -673,6 +742,32 @@ def dashboard_data():
             "audit_logs": [dict(row) for row in audits],
             "revenue_days": [dict(row) for row in revenue_days],
             "traffic_sources": [dict(row) for row in traffic_sources],
+            "conversation_summary": {
+                "pending": int(conversation_counts["pending"] or 0),
+                "public": int(conversation_counts["public_count"] or 0),
+                "private": int(conversation_counts["private_count"] or 0),
+            },
+            "conversation_messages": [
+                serialize_message(row, admin_view=True) for row in conversation_rows
+            ],
+            "conversation_customers": [
+                {
+                    "public_id": row["public_id"],
+                    **customer_identity(row["public_id"]),
+                }
+                for row in conversation_customers
+            ],
+            "conversation_sections": [
+                {"key": key, "label": label, "idea_slug": ""}
+                for key, label in HOME_SECTIONS.items()
+            ] + [
+                {
+                    "key": "idea-detail",
+                    "label": f"仙策・{row['title']}",
+                    "idea_slug": row["slug"],
+                }
+                for row in conversation_ideas
+            ],
             "integration_status": {
                 "mode": checkout_status["mode"],
                 "base_url": base_url,
@@ -717,6 +812,148 @@ def dashboard_data():
             },
         }
     )
+
+
+@admin_bp.post("/api/conversations/<int:message_id>/moderate")
+@admin_required
+def moderate_conversation_message(message_id):
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    status = str(data.get("status", "")).strip().lower()
+    if status not in {"published", "hidden"}:
+        return jsonify({"error": "不支援的審核狀態"}), 400
+    connection = get_db()
+    message = connection.execute(
+        "SELECT * FROM section_messages WHERE id = ?", (message_id,)
+    ).fetchone()
+    if message is None:
+        return jsonify({"error": "找不到傳音"}), 404
+    if status == "published" and message["visibility"] != "public":
+        return jsonify({"error": "私密傳音不需要公開審核"}), 400
+    now = utc_now()
+    connection.execute(
+        """
+        UPDATE section_messages
+        SET status = ?, moderated_at = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (status, now, now, message_id),
+    )
+    connection.commit()
+    log_audit(
+        "conversation_moderated",
+        message["public_id"],
+        f"visibility={message['visibility']};status={status}",
+    )
+    return jsonify({"ok": True, "status": status})
+
+
+@admin_bp.post("/api/conversations/reply")
+@admin_required
+def reply_to_conversation():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    visibility = str(data.get("visibility", "")).strip().lower()
+    if visibility not in {"public", "private"}:
+        return jsonify({"error": "不支援的傳音範圍"}), 400
+    body, error = normalize_message_body(data.get("body", ""), visibility)
+    if error:
+        return jsonify({"error": error}), 400
+
+    connection = get_db()
+    reply_to = None
+    reply_to_id = data.get("reply_to_id")
+    if reply_to_id not in {None, ""}:
+        try:
+            reply_to_id = int(reply_to_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "回覆目標無效"}), 400
+        reply_to = connection.execute(
+            "SELECT * FROM section_messages WHERE id = ?", (reply_to_id,)
+        ).fetchone()
+        if reply_to is None:
+            return jsonify({"error": "找不到原始傳音"}), 404
+        if reply_to["visibility"] != visibility:
+            return jsonify({"error": "公開與私密回覆不可混用"}), 400
+
+    customer_public_id = str(data.get("customer_public_id", "")).strip()[:80]
+    customer = None
+    if customer_public_id:
+        customer = connection.execute(
+            "SELECT * FROM customers WHERE public_id = ? AND status = 'active'",
+            (customer_public_id,),
+        ).fetchone()
+        if customer is None:
+            return jsonify({"error": "找不到可用客戶"}), 404
+    elif reply_to is not None and reply_to["customer_id"] is not None:
+        customer = connection.execute(
+            "SELECT * FROM customers WHERE id = ? AND status = 'active'",
+            (reply_to["customer_id"],),
+        ).fetchone()
+    if visibility == "private" and customer is None:
+        return jsonify({"error": "私密傳音必須指定客戶"}), 400
+    if (
+        reply_to is not None
+        and customer is not None
+        and reply_to["customer_id"] is not None
+        and reply_to["customer_id"] != customer["id"]
+    ):
+        return jsonify({"error": "指定客戶與原始傳音不一致"}), 400
+
+    if reply_to is not None:
+        section_key = reply_to["section_key"]
+        idea_id = reply_to["idea_id"]
+    else:
+        context = resolve_section_context(
+            data.get("section_key", ""), data.get("idea_slug", "")
+        )
+        if context is None:
+            return jsonify({"error": "找不到傳音區塊"}), 404
+        section_key = context["key"]
+        idea_id = context["idea"]["id"] if context["idea"] else None
+
+    now = utc_now()
+    cursor = connection.execute(
+        """
+        INSERT INTO section_messages
+            (public_id, section_key, idea_id, author_type, customer_id, reply_to_id,
+             visibility, status, body, moderated_at, created_at, updated_at)
+        VALUES (?, ?, ?, 'admin', ?, ?, ?, 'published', ?, ?, ?, ?)
+        """,
+        (
+            f"MSG-{secrets.token_hex(8).upper()}",
+            section_key,
+            idea_id,
+            customer["id"] if customer else None,
+            reply_to_id,
+            visibility,
+            body,
+            now,
+            now,
+            now,
+        ),
+    )
+    connection.commit()
+    row = connection.execute(
+        f"{message_query()} WHERE section_messages.id = ?", (cursor.lastrowid,)
+    ).fetchone()
+    delivery_status = _notify_customer_conversation_reply(
+        connection, customer, visibility
+    )
+    log_audit(
+        "conversation_replied",
+        row["public_id"],
+        f"visibility={visibility};section={section_key};target={'yes' if customer else 'no'};notice={delivery_status}",
+    )
+    response = jsonify(
+        {"ok": True, "message": serialize_message(row, admin_view=True)}
+    )
+    response.status_code = 201
+    return response
 
 
 @admin_bp.post("/api/settings/price")

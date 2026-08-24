@@ -17,7 +17,7 @@
   {% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='mobile-card-type-v1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v15.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css', v='mobile-card-type-v1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css', v='hybrid-conversations-v1') }}">
 </head>
 <body class="{% block site_scope_class %}public-site{% endblock %} {% block body_class %}{% endblock %}">
   <a class="skip-link" href="#main">跳至主要內容</a>
@@ -57,5 +57,6 @@
     <p class="footer-note">{% block footer_note %}已購買的客戶可至 <a href="{{ url_for('access.customer_login_page') }}">客戶登入</a> 取回內容；需要協助時，請由傳音閣聯繫客服。{% endblock %}</p>
   </footer>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='conversations.js', v='hybrid-v1') }}" defer></script>
 </body>
 </html>

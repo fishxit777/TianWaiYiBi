@@ -7,7 +7,7 @@
   <title>營運後台｜天外一筆</title>
   <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css', v='hybrid-conversations-v1') }}">
 </head>
 <body class="admin-page admin-ops-page">
   <a class="skip-link" href="#admin-root">跳至主要內容</a>
@@ -21,6 +21,7 @@
       <button type="button" data-admin-view="orders"><i>單</i><span>交易訂單</span><b id="nav-order-count" hidden></b></button>
       <button type="button" data-admin-view="ideas"><i>策</i><span>仙策內容</span></button>
       <button type="button" data-admin-view="customers"><i>客</i><span>客戶開通</span><b id="nav-customer-count" hidden></b></button>
+      <button type="button" data-admin-view="conversations"><i>談</i><span>傳音對話</span><b id="nav-conversation-count" hidden></b></button>
       <button type="button" data-admin-view="integrations"><i>接</i><span>系統串接</span></button>
       <button type="button" data-admin-view="security"><i>安</i><span>安全稽核</span></button>
     </nav>
@@ -111,6 +112,36 @@
       </div>
     </section>
 
+    <section id="conversations-admin" class="admin-workspace" data-admin-panel="conversations" hidden>
+      <div class="workspace-heading"><div><span class="workspace-kicker">DIALOGUES</span><h2>傳音對話</h2><p>公開留言先審後發；私密內容只在指定客戶與守閣者之間流動。</p></div></div>
+      <div id="conversation-metrics" class="conversation-admin-metrics" aria-live="polite"></div>
+      <div class="conversation-admin-toolbar admin-panel">
+        <div id="conversation-filters" class="order-filters" role="group" aria-label="傳音狀態篩選">
+          <button class="is-active" type="button" data-conversation-filter="pending" aria-pressed="true">待審核 <b id="conversation-count-pending">0</b></button>
+          <button type="button" data-conversation-filter="private" aria-pressed="false">私密 <b id="conversation-count-private">0</b></button>
+          <button type="button" data-conversation-filter="public" aria-pressed="false">已公開 <b id="conversation-count-public">0</b></button>
+          <button type="button" data-conversation-filter="all" aria-pressed="false">全部 <b id="conversation-count-all">0</b></button>
+        </div>
+        <p>訊息正文不會寄到外部通知；所有管理操作都保留稽核紀錄。</p>
+      </div>
+      <div class="conversation-admin-layout">
+        <section class="admin-panel conversation-review-panel" aria-labelledby="conversation-review-title">
+          <div class="panel-heading"><div><span>REVIEW QUEUE</span><h3 id="conversation-review-title">傳音佇列</h3></div><strong id="conversation-result-count" class="panel-count">0</strong></div>
+          <div id="conversation-admin-list" class="conversation-admin-list"></div>
+        </section>
+        <form id="conversation-reply-form" class="admin-panel conversation-reply-panel">
+          <div class="panel-heading"><div><span>KEEPER REPLY</span><h3 id="conversation-reply-title">新指定傳音</h3></div><button id="conversation-reply-reset" type="button" hidden>取消回覆</button></div>
+          <input id="conversation-reply-to" type="hidden">
+          <label>傳音區塊<select id="conversation-section" required></select></label>
+          <label>傳音範圍<select id="conversation-visibility" required><option value="private">私密傳音</option><option value="public">公開回覆</option></select></label>
+          <label>指定客戶<select id="conversation-customer"><option value="">不指定客戶</option></select></label>
+          <label>守閣者回覆<textarea id="conversation-reply-body" minlength="2" maxlength="800" rows="8" placeholder="請勿輸入密碼、驗證碼、復原碼或付款資料。" required></textarea></label>
+          <p id="conversation-reply-status" class="form-status" role="status" aria-live="polite"></p>
+          <button class="admin-primary-button" type="submit">送出傳音</button>
+        </form>
+      </div>
+    </section>
+
     <section id="integrations-admin" class="admin-workspace" data-admin-panel="integrations" hidden>
       <div class="workspace-heading"><div><span class="workspace-kicker">INTEGRATIONS</span><h2>系統串接</h2><p>一眼確認官網、LINE、金流與 Email 是否具備正式營運條件。</p></div></div>
       <div id="integration-summary" class="integration-summary"></div><div id="integration-grid" class="integration-grid"></div>
@@ -148,6 +179,6 @@
       <footer><button type="button" data-close-dialog>取消</button><button class="save-idea" type="submit">儲存仙策內容</button></footer>
     </form>
   </dialog>
-  <script src="{{ url_for('static', filename='admin.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin.js', v='hybrid-conversations-v1') }}" defer></script>
 </body>
 </html>

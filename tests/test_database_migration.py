@@ -29,6 +29,7 @@ def _source_database(path):
 
 
 def test_migration_table_order_keeps_foreign_key_dependencies():
+    assert MIGRATION_TABLES.index("customers") < MIGRATION_TABLES.index("section_messages")
     assert MIGRATION_TABLES.index("customers") < MIGRATION_TABLES.index("customer_devices")
     assert MIGRATION_TABLES.index("ideas") < MIGRATION_TABLES.index("orders")
     assert MIGRATION_TABLES.index("orders") < MIGRATION_TABLES.index("activation_codes")

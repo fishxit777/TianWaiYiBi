@@ -19,6 +19,7 @@ MIGRATION_TABLES = (
     "settings",
     "ideas",
     "customers",
+    "section_messages",
     "customer_devices",
     "orders",
     "order_consents",
