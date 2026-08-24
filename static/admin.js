@@ -216,6 +216,53 @@
     });
   }
 
+  function renderPaymentVerification(data) {
+    const state = document.querySelector('#payment-verification-state');
+    const createButton = document.querySelector('#create-payment-verification');
+    const checkoutLink = document.querySelector('#open-payment-verification');
+    const refundButton = document.querySelector('#confirm-payment-verification-refund');
+    clear(state);
+    checkoutLink.hidden = true;
+    refundButton.hidden = true;
+    createButton.disabled = !data?.ready;
+
+    if (!data?.ready) {
+      state.append(
+        node('strong', '', '驗證模式尚未就緒'),
+        node('span', '', '需同時具備正式綠界、HTTPS 回呼、Email 交付、驗證收件人與獨立啟用開關。')
+      );
+      return;
+    }
+
+    const latest = data.latest;
+    if (!latest) {
+      state.append(
+        node('strong', '', '可以建立一筆隔離的 NT$1 訂單'),
+        node('span', '', '公開仙策價格與一般結帳仍維持原狀。')
+      );
+      return;
+    }
+
+    const statusText = orderLabels[latest.status] || latest.status;
+    state.append(
+      node('strong', '', `${latest.order_no}・${money(latest.amount)}・${statusText}`),
+      node('span', '', latest.activated ? 'Email、一次性開通與內容讀取已完成。' : (latest.status === 'paid' ? '已付款，請先由 Email 完成開通與內容讀取。' : `建立 ${dateText(latest.created_at)}`))
+    );
+    createButton.disabled = ['pending', 'paid'].includes(latest.status);
+    if (latest.status === 'pending' && latest.checkout_url) {
+      checkoutLink.href = latest.checkout_url;
+      checkoutLink.hidden = false;
+    }
+    if (latest.status === 'paid') {
+      refundButton.hidden = false;
+      refundButton.disabled = !latest.activated;
+      refundButton.dataset.orderNo = latest.order_no;
+    }
+    if (latest.status === 'refunded') {
+      state.append(node('small', '', `本地權限已撤回・${dateText(latest.refunded_at)}`));
+    }
+  }
+
   function setEditorValue(id, value) {
     const input = document.querySelector(id);
     if (input) input.value = value ?? '';
@@ -663,6 +710,7 @@
     renderRevenue(data.revenue_days || []);
     renderTrafficSources(data.traffic_sources || []);
     renderIntegrations(data.integration_status || {});
+    renderPaymentVerification(data.payment_verification || {});
     renderIdeas(data.ideas || []);
     renderOrders();
     renderCustomerAccess(data.customer_access || {});
@@ -773,6 +821,31 @@
       const result = await api('/admin/api/security/notifications/retry', {method: 'POST'});
       await loadDashboard(`私下警示已重試 ${result.processed} 筆，送達 ${result.sent} 筆。`);
     } catch (error) { showError(error); }
+  });
+  document.querySelector('#create-payment-verification').addEventListener('click', async () => {
+    const button = document.querySelector('#create-payment-verification');
+    button.disabled = true;
+    try {
+      const result = await api('/admin/api/payment-verification/orders', {
+        method: 'POST', body: JSON.stringify({confirm_amount: 1})
+      });
+      await loadDashboard(`NT$1 驗證訂單 ${result.order_no} 已建立，尚未扣款。`);
+    } catch (error) { showError(error); }
+    finally { if (!dashboard?.payment_verification?.latest) button.disabled = false; }
+  });
+  document.querySelector('#confirm-payment-verification-refund').addEventListener('click', async () => {
+    const button = document.querySelector('#confirm-payment-verification-refund');
+    const orderNo = button.dataset.orderNo || '';
+    const confirmation = window.prompt('只有在綠界後台已明確顯示退款／取消授權成功後才能繼續。請輸入完整驗證訂單編號：', '');
+    if (confirmation === null) return;
+    button.disabled = true;
+    try {
+      await api(`/admin/api/payment-verification/orders/${encodeURIComponent(orderNo)}/refund-confirmation`, {
+        method: 'POST',
+        body: JSON.stringify({external_refund_confirmed: true, confirmation})
+      });
+      await loadDashboard('綠界退款確認已記錄，本地驗證權限已撤回。');
+    } catch (error) { showError(error); button.disabled = false; }
   });
   document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => editor.close()));
   editor.addEventListener('click', (event) => { if (event.target === editor) editor.close(); });

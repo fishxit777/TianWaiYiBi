@@ -77,7 +77,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前本機自動驗證結果為 `108 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
+目前本機自動驗證結果為 `135 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
 
 ## 公開部署
 
@@ -99,7 +99,9 @@ python -m pytest -q
 - `ECPAY_HASH_KEY`
 - `ECPAY_HASH_IV`
 - `ECPAY_STORE_ID`（固定使用 `TWYB`，供綠界後台對帳及 callback 隔離）
-- `SMTP_PASSWORD`
+- `ECPAY_VERIFICATION_ENABLED`（只在執行隔離 NT$1 正式驗收時暫設為 `true`；不會開放一般商品收款）
+- `PAYMENT_VERIFICATION_EMAIL`（只供管理員本人接收 NT$1 驗證開通信）
+- `SMTP_HOST`、`SMTP_PORT`、`SMTP_SECURITY`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`MAIL_FROM`
 
 GitHub Actions 已設定 `NEON_BACKUP_DATABASE_URL` 與 `BACKUP_PUBLIC_KEY_PEM`；前者是唯讀備份角色，後者只有公鑰。離線私鑰不得上傳。完整金鑰、備份與還原流程見 `docs/postgres-backup-recovery.md`。
 

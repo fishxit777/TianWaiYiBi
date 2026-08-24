@@ -102,7 +102,7 @@ def _notify_customer_conversation_reply(connection, customer, visibility):
     order = connection.execute(
         """
         SELECT id FROM orders
-        WHERE customer_id = ? AND status = 'paid'
+        WHERE customer_id = ? AND status = 'paid' AND purpose = 'sale'
         ORDER BY paid_at DESC, id DESC LIMIT 1
         """,
         (customer["id"],),
@@ -459,10 +459,15 @@ def dashboard():
 @admin_bp.get("/api/dashboard")
 @admin_required
 def dashboard_data():
-    from .payments import payment_checkout_status
+    from .payments import (
+        checkout_url_for,
+        payment_checkout_status,
+        verification_payment_token,
+    )
 
     connection = get_db()
     checkout_status = payment_checkout_status()
+    verification_status = payment_checkout_status(verification=True)
     metrics = connection.execute(
         """
         SELECT
@@ -471,6 +476,7 @@ def dashboard_data():
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_orders,
             COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS revenue
         FROM orders
+        WHERE purpose = 'sale'
         """
     ).fetchone()
     views = connection.execute(
@@ -490,9 +496,9 @@ def dashboard_data():
     customer_metrics = connection.execute(
         """
         SELECT
-            COUNT(DISTINCT CASE WHEN orders.status = 'paid' THEN orders.customer_email END) AS paid_customers,
-            COUNT(DISTINCT CASE WHEN orders.status = 'paid' THEN orders.id END) AS paid_entitlements,
-            COUNT(DISTINCT CASE WHEN orders.status = 'paid' AND activation_codes.used_at IS NOT NULL THEN orders.id END) AS activated_entitlements
+            COUNT(DISTINCT CASE WHEN orders.status = 'paid' AND orders.purpose = 'sale' THEN orders.customer_email END) AS paid_customers,
+            COUNT(DISTINCT CASE WHEN orders.status = 'paid' AND orders.purpose = 'sale' THEN orders.id END) AS paid_entitlements,
+            COUNT(DISTINCT CASE WHEN orders.status = 'paid' AND orders.purpose = 'sale' AND activation_codes.used_at IS NOT NULL THEN orders.id END) AS activated_entitlements
         FROM orders
         LEFT JOIN activation_codes ON activation_codes.order_id = orders.id
         """
@@ -500,15 +506,25 @@ def dashboard_data():
     active_customer_sessions = connection.execute(
         """
         SELECT COUNT(DISTINCT customer_email) AS count
-        FROM customer_sessions
+        FROM customer_sessions AS sessions
         WHERE revoked_at IS NULL AND expires_at > ?
+          AND EXISTS (
+              SELECT 1 FROM orders
+              WHERE orders.customer_id = sessions.customer_id
+                AND orders.status = 'paid' AND orders.purpose = 'sale'
+          )
         """,
         (utc_now(),),
     ).fetchone()["count"]
     trusted_devices = connection.execute(
         """
-        SELECT COUNT(*) AS count FROM customer_devices
+        SELECT COUNT(*) AS count FROM customer_devices AS devices
         WHERE revoked_at IS NULL AND trusted_until > ?
+          AND EXISTS (
+              SELECT 1 FROM orders
+              WHERE orders.customer_id = devices.customer_id
+                AND orders.status = 'paid' AND orders.purpose = 'sale'
+          )
         """,
         (utc_now(),),
     ).fetchone()["count"]
@@ -541,7 +557,7 @@ def dashboard_data():
         FROM orders
         JOIN ideas ON ideas.id = orders.idea_id
         LEFT JOIN customers ON customers.id = orders.customer_id
-        WHERE orders.status = 'paid'
+        WHERE orders.status = 'paid' AND orders.purpose = 'sale'
         ORDER BY orders.paid_at DESC, orders.id DESC
         LIMIT 40
         """,
@@ -597,7 +613,7 @@ def dashboard_data():
         """
         SELECT substr(paid_at, 1, 10) AS day, COALESCE(SUM(amount), 0) AS revenue
         FROM orders
-        WHERE status = 'paid' AND paid_at >= ?
+        WHERE status = 'paid' AND purpose = 'sale' AND paid_at >= ?
         GROUP BY substr(paid_at, 1, 10)
         ORDER BY day
         """,
@@ -635,7 +651,8 @@ def dashboard_data():
         WHERE customers.status = 'active'
           AND EXISTS (
               SELECT 1 FROM orders
-              WHERE orders.customer_id = customers.id AND orders.status = 'paid'
+              WHERE orders.customer_id = customers.id
+                AND orders.status = 'paid' AND orders.purpose = 'sale'
           )
         ORDER BY customers.created_at DESC, customers.id DESC
         LIMIT 200
@@ -646,6 +663,40 @@ def dashboard_data():
     ).fetchall()
     global_price = get_setting_int("idea_price", 199)
     base_url = os.environ.get("BASE_URL", "http://127.0.0.1:5088").strip()
+    verification_order = connection.execute(
+        """
+        SELECT orders.*, ideas.title,
+               CASE WHEN EXISTS (
+                   SELECT 1 FROM activation_codes
+                   WHERE activation_codes.order_id = orders.id
+                     AND activation_codes.used_at IS NOT NULL
+               ) THEN 1 ELSE 0 END AS activated
+        FROM orders JOIN ideas ON ideas.id = orders.idea_id
+        WHERE orders.purpose = 'verification'
+        ORDER BY orders.id DESC LIMIT 1
+        """
+    ).fetchone()
+    verification_latest = None
+    if verification_order is not None:
+        verification_latest = {
+            "order_no": verification_order["order_no"],
+            "title": verification_order["title"],
+            "amount": int(verification_order["amount"]),
+            "status": verification_order["status"],
+            "activated": bool(verification_order["activated"]),
+            "created_at": verification_order["created_at"],
+            "paid_at": verification_order["paid_at"],
+            "refunded_at": verification_order["refunded_at"],
+            "checkout_url": (
+                checkout_url_for(
+                    verification_payment_token(verification_order["order_no"]),
+                    verification=True,
+                )
+                if verification_order["status"] == "pending"
+                and verification_status["ready"]
+                else None
+            ),
+        }
     return jsonify(
         {
             "metrics": {
@@ -689,6 +740,7 @@ def dashboard_data():
                     "status": row["status"],
                     "created_at": row["created_at"],
                     "paid_at": row["paid_at"],
+                    "purpose": row["purpose"],
                 }
                 for row in orders
             ],
@@ -788,6 +840,13 @@ def dashboard_data():
                 ) >= 32,
                 "line_events": int(line_event_count or 0),
             },
+            "payment_verification": {
+                "ready": verification_status["ready"],
+                "enabled": verification_status.get("verification_enabled", False),
+                "mode": verification_status["mode"],
+                "amount": 1,
+                "latest": verification_latest,
+            },
             "security_config": {
                 "admin_password_argon2": admin_password_hash_configured(),
                 "allowlist_required": os.environ.get("ADMIN_IP_ALLOWLIST_REQUIRED", "false").lower()
@@ -811,6 +870,220 @@ def dashboard_data():
                 "verification_code_minutes": 10,
             },
         }
+    )
+
+
+@admin_bp.post("/api/payment-verification/orders")
+@admin_required
+def create_payment_verification_order():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    confirm_amount = data.get("confirm_amount")
+    if isinstance(confirm_amount, bool) or confirm_amount != 1:
+        return jsonify({"error": "請明確確認本次驗證金額為 NT$1"}), 400
+
+    from .payments import (
+        checkout_url_for,
+        payment_checkout_status,
+        verification_payment_token,
+    )
+    from .security import derive_access_token, derive_activation_token, hash_token, safe_user_agent
+
+    status = payment_checkout_status(verification=True)
+    if not status["ready"] or status["provider"] != "ecpay":
+        return jsonify({"error": "NT$1 正式驗證模式尚未安全就緒"}), 409
+
+    connection = get_db()
+    active = connection.execute(
+        """
+        SELECT * FROM orders
+        WHERE purpose = 'verification' AND status IN ('pending', 'paid')
+        ORDER BY id DESC LIMIT 1
+        """
+    ).fetchone()
+    if active is not None:
+        if active["status"] == "paid":
+            return jsonify({"error": "上一筆 NT$1 驗證訂單尚未完成退款與撤權"}), 409
+        payment_token = verification_payment_token(active["order_no"])
+        return jsonify(
+            {
+                "order_no": active["order_no"],
+                "amount": int(active["amount"]),
+                "checkout_url": checkout_url_for(payment_token, verification=True),
+                "payment_provider": "ecpay",
+                "result": "existing_pending",
+            }
+        )
+
+    idea = connection.execute(
+        "SELECT id FROM ideas WHERE published = 1 ORDER BY sort_order, id LIMIT 1"
+    ).fetchone()
+    if idea is None:
+        return jsonify({"error": "目前沒有可供驗證開通的仙策"}), 409
+
+    verification_email = os.environ.get("PAYMENT_VERIFICATION_EMAIL", "").strip().lower()
+    order_no = (
+        f"TWYBV{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+        f"{secrets.token_hex(4).upper()[:7]}"
+    )
+    payment_token = verification_payment_token(order_no)
+    access_token = derive_access_token(payment_token)
+    activation_token = derive_activation_token(order_no)
+    now = utc_now()
+    cursor = connection.execute(
+        """
+        INSERT INTO orders
+            (order_no, idea_id, customer_name, customer_email, amount, status,
+             purpose, payment_provider, payment_token_hash, access_token_hash,
+             activation_token_hash, created_at)
+        VALUES (?, ?, '金流驗收', ?, 1, 'pending', 'verification', ?, ?, ?, ?, ?)
+        """,
+        (
+            order_no,
+            idea["id"],
+            verification_email,
+            status["provider"],
+            hash_token(payment_token),
+            hash_token(access_token),
+            hash_token(activation_token),
+            now,
+        ),
+    )
+    connection.execute(
+        """
+        INSERT INTO order_consents
+            (order_id, terms_version, purchase_notice_consent, digital_content_consent,
+             ip, user_agent, accepted_at)
+        VALUES (?, '2026-08-24-payment-verification-v1', 1, 1, ?, ?, ?)
+        """,
+        (cursor.lastrowid, get_client_ip(), safe_user_agent(), now),
+    )
+    connection.commit()
+    log_audit("create_payment_verification_order", order_no, "amount=1;purpose=verification")
+    return (
+        jsonify(
+            {
+                "order_no": order_no,
+                "amount": 1,
+                "checkout_url": checkout_url_for(payment_token, verification=True),
+                "payment_provider": "ecpay",
+                "result": "created",
+            }
+        ),
+        201,
+    )
+
+
+@admin_bp.post(
+    "/api/payment-verification/orders/<order_no>/refund-confirmation"
+)
+@admin_required
+def confirm_payment_verification_refund(order_no):
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    confirmation = str(data.get("confirmation", ""))
+    if data.get("external_refund_confirmed") is not True or not secrets.compare_digest(
+        confirmation, str(order_no)
+    ):
+        return jsonify({"error": "請先在綠界確認退款成功，再輸入完整驗證訂單編號"}), 400
+
+    connection = get_db()
+    order = connection.execute(
+        "SELECT * FROM orders WHERE order_no = ?", (str(order_no)[:20],)
+    ).fetchone()
+    if order is None:
+        return jsonify({"error": "找不到驗證訂單"}), 404
+    if order["status"] == "refunded":
+        return jsonify(
+            {"result": "already_refunded", "status": "refunded", "order_no": order["order_no"]}
+        )
+    if (
+        order["purpose"] != "verification"
+        or int(order["amount"]) != 1
+        or order["status"] != "paid"
+        or order["payment_provider"] != "ecpay-production"
+        or not str(order["payment_method"] or "").lower().startswith("credit_")
+        or not order["payment_ref"]
+    ):
+        return jsonify({"error": "此訂單不符合 NT$1 正式信用卡退款撤權條件"}), 409
+
+    now = utc_now()
+    updated = connection.execute(
+        """
+        UPDATE orders SET status = 'refunded', refunded_at = ?
+        WHERE id = ? AND status = 'paid' AND purpose = 'verification' AND amount = 1
+        """,
+        (now, order["id"]),
+    )
+    if updated.rowcount != 1:
+        connection.rollback()
+        return jsonify({"error": "訂單狀態已變更，請重新整理確認"}), 409
+    connection.execute(
+        """
+        INSERT INTO refund_events
+            (event_id, order_id, provider, amount, method, result, created_at)
+        VALUES (?, ?, 'ecpay-production', 1, 'ecpay-dashboard', 'confirmed', ?)
+        """,
+        (f"ecpay-dashboard:{order['order_no']}", order["id"], now),
+    )
+    connection.execute(
+        """
+        UPDATE activation_codes SET revoked_at = ?
+        WHERE order_id = ? AND revoked_at IS NULL
+        """,
+        (now, order["id"]),
+    )
+    connection.execute(
+        """
+        UPDATE customer_login_codes SET revoked_at = ?
+        WHERE customer_email = ? AND used_at IS NULL AND revoked_at IS NULL
+        """,
+        (now, order["customer_email"]),
+    )
+    remaining = connection.execute(
+        """
+        SELECT 1 FROM orders
+        WHERE customer_id = ? AND status = 'paid' AND id <> ?
+        LIMIT 1
+        """,
+        (order["customer_id"], order["id"]),
+    ).fetchone()
+    if order["customer_id"] is not None and remaining is None:
+        connection.execute(
+            """
+            UPDATE customer_sessions
+            SET revoked_at = ?, revoked_reason = 'verification_refunded'
+            WHERE customer_id = ? AND revoked_at IS NULL
+            """,
+            (now, order["customer_id"]),
+        )
+        connection.execute(
+            """
+            UPDATE customer_devices
+            SET revoked_at = ?, revoked_reason = 'verification_refunded'
+            WHERE customer_id = ? AND revoked_at IS NULL
+            """,
+            (now, order["customer_id"]),
+        )
+    connection.execute(
+        """
+        INSERT INTO analytics_events (event_name, idea_id, source, session_id, created_at)
+        VALUES ('payment_verification_refunded', ?, 'ecpay-production', NULL, ?)
+        """,
+        (order["idea_id"], now),
+    )
+    connection.commit()
+    log_audit(
+        "confirm_payment_verification_refund",
+        order["order_no"],
+        "amount=1;provider=ecpay-production;entitlement_revoked",
+    )
+    return jsonify(
+        {"result": "refund_confirmed", "status": "refunded", "order_no": order["order_no"]}
     )
 
 

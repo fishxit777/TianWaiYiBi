@@ -76,6 +76,12 @@ class PostgresConnection:
     def rollback(self):
         self._connection.rollback()
 
+    @property
+    def in_transaction(self):
+        from psycopg.pq import TransactionStatus
+
+        return self._connection.info.transaction_status != TransactionStatus.IDLE
+
     def close(self):
         self._connection.close()
 
@@ -384,6 +390,13 @@ def migrate_database(connection):
         connection.execute("ALTER TABLE orders ADD COLUMN activation_token_hash TEXT")
     if "customer_id" not in _column_names(connection, "orders"):
         connection.execute("ALTER TABLE orders ADD COLUMN customer_id INTEGER REFERENCES customers(id)")
+    order_columns = _column_names(connection, "orders")
+    if "purpose" not in order_columns:
+        connection.execute("ALTER TABLE orders ADD COLUMN purpose TEXT NOT NULL DEFAULT 'sale'")
+    if "payment_method" not in order_columns:
+        connection.execute("ALTER TABLE orders ADD COLUMN payment_method TEXT")
+    if "refunded_at" not in order_columns:
+        connection.execute("ALTER TABLE orders ADD COLUMN refunded_at TEXT")
 
     session_columns = _column_names(connection, "customer_sessions")
     if "customer_id" not in session_columns:
@@ -476,6 +489,12 @@ def migrate_database(connection):
     )
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders (customer_id, status)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_orders_purpose_status ON orders (purpose, status, id)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_refund_events_order ON refund_events (order_id, created_at DESC)"
     )
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_customer_session_customer_expiry ON customer_sessions (customer_id, expires_at DESC)"

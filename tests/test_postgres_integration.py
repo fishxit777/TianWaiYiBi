@@ -51,6 +51,16 @@ def test_real_postgres_schema_seed_insert_and_row_mapping(monkeypatch):
             create_challenge("authentication")
         assert authentication_challenge_allowed() is False
 
+    with app.test_request_context("/activate/postgres-session-check"):
+        from tianwai.access import _create_customer_session
+
+        raw_session, raw_device, session_id = _create_customer_session(
+            "postgres-session-check@example.com"
+        )
+        assert raw_session
+        assert session_id > 0
+        assert isinstance(raw_device, str)
+
     response = app.test_client().get("/healthz")
     assert response.status_code == 200
     assert "postgresql" not in response.get_data(as_text=True).lower()

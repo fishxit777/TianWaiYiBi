@@ -31,6 +31,7 @@ MIGRATION_TABLES = (
     "notification_queue",
     "email_events",
     "payment_events",
+    "refund_events",
     "analytics_events",
     "line_events",
     "admin_sessions",

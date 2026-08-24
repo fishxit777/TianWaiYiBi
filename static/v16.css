@@ -434,6 +434,13 @@
 .integration-next b { color: #8a682d; font-size: 9px; letter-spacing: .12em; }
 .integration-next span { color: #4e535e; font-size: 11px; line-height: 1.55; }
 .plain-ops-note p { color: #626670; font-size: 11px; }
+.payment-verification-panel { margin-top: 18px; }
+.payment-verification-state { display: grid; gap: 5px; padding: 16px; border: 1px solid #d9d3c4; background: #fbfaf6; }
+.payment-verification-state strong { color: #292d39; }
+.payment-verification-state span, .payment-verification-state small { color: #666b75; font-size: 11px; line-height: 1.6; }
+.payment-verification-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 13px; align-items: center; }
+.payment-verification-actions > * { width: auto; min-height: 42px; }
+.payment-verification-warning { margin: 12px 0 0; color: #7a554f; font-size: 11px; line-height: 1.7; }
 
 .security-config-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; justify-content: stretch; width: 100%; }
 .admin-ops-page .security-flag { min-height: 86px; padding: 14px; border-radius: 8px; }

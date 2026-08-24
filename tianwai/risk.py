@@ -40,7 +40,11 @@ def record_access_event(
 ):
     """Write an append-only, HMAC-chained access event and open incidents when needed."""
     connection = get_db()
-    if not connection.in_transaction:
+    if getattr(connection, "backend", "sqlite") == "postgresql":
+        if not connection.in_transaction:
+            connection.execute("BEGIN")
+        connection.execute("SELECT pg_advisory_xact_lock(?)", (846929142,))
+    elif not connection.in_transaction:
         connection.execute("BEGIN IMMEDIATE")
     event_id = f"AE-{secrets.token_hex(8).upper()}"
     now = utc_now()

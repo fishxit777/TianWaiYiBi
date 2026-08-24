@@ -353,17 +353,26 @@ def _daily_metrics():
                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
                SUM(CASE WHEN status IN ('cancelled', 'refunded') THEN 1 ELSE 0 END) AS reversed,
                COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS revenue
-        FROM orders WHERE created_at >= ? AND created_at <= ?
+        FROM orders
+        WHERE purpose = 'sale' AND created_at >= ? AND created_at <= ?
         """,
         (start_utc, now_utc),
     ).fetchone()
     access = connection.execute(
         """
         SELECT
-          (SELECT COUNT(*) FROM orders WHERE status = 'paid') AS entitlements,
-          (SELECT COUNT(DISTINCT order_id) FROM activation_codes WHERE used_at IS NOT NULL) AS activated,
-          (SELECT COUNT(*) FROM customer_sessions WHERE revoked_at IS NULL AND expires_at > ?) AS sessions,
-          (SELECT COUNT(*) FROM customer_devices WHERE revoked_at IS NULL AND trusted_until > ?) AS devices
+          (SELECT COUNT(*) FROM orders WHERE status = 'paid' AND purpose = 'sale') AS entitlements,
+          (SELECT COUNT(DISTINCT activation_codes.order_id)
+             FROM activation_codes JOIN orders ON orders.id = activation_codes.order_id
+            WHERE activation_codes.used_at IS NOT NULL AND orders.purpose = 'sale') AS activated,
+          (SELECT COUNT(*) FROM customer_sessions AS sessions
+            WHERE revoked_at IS NULL AND expires_at > ?
+              AND EXISTS (SELECT 1 FROM orders WHERE orders.customer_id = sessions.customer_id
+                            AND orders.status = 'paid' AND orders.purpose = 'sale')) AS sessions,
+          (SELECT COUNT(*) FROM customer_devices AS devices
+            WHERE revoked_at IS NULL AND trusted_until > ?
+              AND EXISTS (SELECT 1 FROM orders WHERE orders.customer_id = devices.customer_id
+                            AND orders.status = 'paid' AND orders.purpose = 'sale')) AS devices
         """,
         (now_utc, now_utc),
     ).fetchone()

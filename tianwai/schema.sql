@@ -46,13 +46,16 @@ CREATE TABLE IF NOT EXISTS orders (
     customer_email TEXT NOT NULL,
     amount INTEGER NOT NULL CHECK (amount >= 0),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled', 'refunded')),
+    purpose TEXT NOT NULL DEFAULT 'sale' CHECK (purpose IN ('sale', 'verification')),
     payment_provider TEXT NOT NULL DEFAULT 'mock',
+    payment_method TEXT,
     payment_ref TEXT,
     payment_token_hash TEXT NOT NULL UNIQUE,
     access_token_hash TEXT NOT NULL UNIQUE,
     activation_token_hash TEXT UNIQUE,
     created_at TEXT NOT NULL,
     paid_at TEXT,
+    refunded_at TEXT,
     customer_id INTEGER REFERENCES customers(id)
 );
 
@@ -215,6 +218,17 @@ CREATE TABLE IF NOT EXISTS payment_events (
     order_id INTEGER REFERENCES orders(id),
     provider TEXT NOT NULL,
     payload_hash TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS refund_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id TEXT NOT NULL UNIQUE,
+    order_id INTEGER NOT NULL REFERENCES orders(id),
+    provider TEXT NOT NULL,
+    amount INTEGER NOT NULL CHECK (amount >= 0),
+    method TEXT NOT NULL,
     result TEXT NOT NULL,
     created_at TEXT NOT NULL
 );

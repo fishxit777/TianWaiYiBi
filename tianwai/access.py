@@ -297,7 +297,14 @@ def _create_customer_session(email):
 
     customer = _ensure_customer(email)
     connection = get_db()
-    connection.execute("BEGIN IMMEDIATE")
+    if getattr(connection, "backend", "sqlite") == "postgresql":
+        if not connection.in_transaction:
+            connection.execute("BEGIN")
+        connection.execute(
+            "SELECT id FROM customers WHERE id = ? FOR UPDATE", (customer["id"],)
+        )
+    else:
+        connection.execute("BEGIN IMMEDIATE")
     now = _now()
     now_iso = _iso(now)
     raw_device = request.cookies.get(DEVICE_COOKIE, "")

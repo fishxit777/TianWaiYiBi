@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote_plus
@@ -18,6 +19,7 @@ payments_bp = Blueprint("payments", __name__)
 ECPAY_STAGE_URL = "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
 ECPAY_PRODUCTION_URL = "https://payment.ecpay.com.tw/Cashier/AioCheckOut/V5"
 TAIPEI_TIMEZONE = timezone(timedelta(hours=8))
+EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
 def _enabled(name, default=False):
@@ -43,7 +45,7 @@ def _ecpay_config():
     }
 
 
-def payment_checkout_status():
+def payment_checkout_status(verification=False):
     requested = os.environ.get("PAYMENT_PROVIDER", "mock").strip().lower()
     if requested == "ecpay":
         config = _ecpay_config()
@@ -58,15 +60,31 @@ def payment_checkout_status():
         base_url = os.environ.get("BASE_URL", "").strip().lower()
         callback_ready = base_url.startswith("https://") or bool(current_app.config.get("TESTING"))
         live_confirmed = config["mode"] != "production" or _enabled("ECPAY_LIVE_CONFIRMED", False)
-        ready = credentials_ready and email_delivery_ready() and callback_ready and live_confirmed
+        verification_email = os.environ.get("PAYMENT_VERIFICATION_EMAIL", "").strip().lower()
+        verification_ready = bool(
+            config["mode"] == "production"
+            and _enabled("ECPAY_VERIFICATION_ENABLED", False)
+            and EMAIL_PATTERN.fullmatch(verification_email)
+        )
+        ready = bool(
+            credentials_ready
+            and email_delivery_ready()
+            and callback_ready
+            and (verification_ready if verification else live_confirmed)
+        )
         return {
             "provider": "ecpay" if ready else "unavailable",
-            "label": "綠界測試金流" if config["mode"] == "stage" else "綠界正式金流",
+            "label": (
+                "綠界 NT$1 驗證模式"
+                if verification and config["mode"] == "production"
+                else ("綠界測試金流" if config["mode"] == "stage" else "綠界正式金流")
+            ),
             "ready": ready,
             "credentials_ready": credentials_ready,
             "email_ready": email_delivery_ready(),
             "callback_ready": callback_ready,
             "live_confirmed": live_confirmed,
+            "verification_enabled": verification_ready,
             "mode": config["mode"],
         }
     development_ready = bool(current_app.config.get("TESTING")) or _enabled("ENABLE_DEV_TOOLS", False)
@@ -80,13 +98,18 @@ def payment_checkout_status():
     }
 
 
-def checkout_url_for(payment_token):
-    status = payment_checkout_status()
+def checkout_url_for(payment_token, verification=False):
+    status = payment_checkout_status(verification=verification)
     if not status["ready"]:
         return None
     if status["provider"] == "ecpay":
         return url_for("payments.ecpay_payment_page", payment_token=payment_token)
     return url_for("payments.mock_payment_page", payment_token=payment_token)
+
+
+def verification_payment_token(order_no):
+    """Return a stable high-entropy checkout capability for one admin test order."""
+    return derive_activation_token(f"payment-verification:{order_no}")
 
 
 def ecpay_check_mac_value(parameters, hash_key, hash_iv):
@@ -128,6 +151,7 @@ def _ecpay_payload(parameters):
         "amount": parameters.get("TradeAmt"),
         "status": status,
         "payment_ref": trade_no or order_no,
+        "payment_method": str(parameters.get("PaymentType", ""))[:80],
     }
 
 
@@ -147,6 +171,7 @@ def process_payment_event(payload, raw_body, provider="mock"):
     event_id = str(payload.get("event_id", ""))[:120]
     order_no = str(payload.get("order_no", ""))[:80]
     payment_ref = str(payload.get("payment_ref", ""))[:160]
+    payment_method = str(payload.get("payment_method", ""))[:80]
     status = str(payload.get("status", "")).lower()
     try:
         amount = int(payload.get("amount"))
@@ -191,6 +216,27 @@ def process_payment_event(payload, raw_body, provider="mock"):
         )
         return {"error": "付款金額不符"}, 400
 
+    if order["purpose"] == "verification" and not payment_method.lower().startswith("credit_"):
+        connection.execute(
+            """
+            INSERT INTO payment_events (event_id, order_id, provider, payload_hash, result, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                event_id,
+                order["id"],
+                provider,
+                payload_hash,
+                "verification_payment_method_rejected",
+                utc_now(),
+            ),
+        )
+        connection.commit()
+        log_security_event(
+            "payment_method_mismatch", "high", "rejected", f"order={order_no}"
+        )
+        return {"error": "驗證訂單只接受信用卡一次付清"}, 400
+
     if status != "paid":
         connection.execute(
             """
@@ -203,16 +249,21 @@ def process_payment_event(payload, raw_body, provider="mock"):
         return {"result": "ignored"}, 200
 
     try:
-        connection.execute("BEGIN IMMEDIATE")
+        backend = getattr(connection, "backend", "sqlite")
+        if backend != "postgresql":
+            connection.execute("BEGIN IMMEDIATE")
+        fresh_order_query = "SELECT status FROM orders WHERE id = ?"
+        if backend == "postgresql":
+            fresh_order_query += " FOR UPDATE"
+        fresh_order = connection.execute(
+            fresh_order_query, (order["id"],)
+        ).fetchone()
         duplicate = connection.execute(
             "SELECT result FROM payment_events WHERE event_id = ?", (event_id,)
         ).fetchone()
         if duplicate is not None:
             connection.rollback()
             return {"result": "duplicate"}, 200
-        fresh_order = connection.execute(
-            "SELECT status FROM orders WHERE id = ?", (order["id"],)
-        ).fetchone()
         result = "paid"
         if fresh_order["status"] == "paid":
             result = "already_paid"
@@ -220,10 +271,11 @@ def process_payment_event(payload, raw_body, provider="mock"):
             connection.execute(
                 """
                 UPDATE orders
-                SET status = 'paid', payment_provider = ?, payment_ref = ?, paid_at = ?
+                SET status = 'paid', payment_provider = ?, payment_method = ?,
+                    payment_ref = ?, paid_at = ?
                 WHERE id = ? AND status = 'pending'
                 """,
-                (provider, payment_ref, utc_now(), order["id"]),
+                (provider, payment_method, payment_ref, utc_now(), order["id"]),
             )
             connection.execute(
                 """
@@ -324,13 +376,6 @@ def mock_payment_complete():
 
 @payments_bp.get("/pay/ecpay/<payment_token>")
 def ecpay_payment_page(payment_token):
-    status = payment_checkout_status()
-    if not status["ready"] or status["provider"] != "ecpay":
-        return render_template(
-            "message.html",
-            title="綠界付款尚未啟用",
-            message="目前缺少正式商店或寄信設定，尚未建立任何扣款。",
-        ), 503
     order = get_db().execute(
         """
         SELECT orders.*, ideas.title FROM orders JOIN ideas ON ideas.id = orders.idea_id
@@ -340,6 +385,13 @@ def ecpay_payment_page(payment_token):
     ).fetchone()
     if order is None:
         return render_template("message.html", title="付款連結無效", message="請返回重新建立訂單。"), 404
+    status = payment_checkout_status(verification=order["purpose"] == "verification")
+    if not status["ready"] or status["provider"] != "ecpay":
+        return render_template(
+            "message.html",
+            title="綠界付款尚未啟用",
+            message="目前缺少正式商店或寄信設定，尚未建立任何扣款。",
+        ), 503
     if order["status"] == "paid":
         return redirect(
             url_for(
@@ -356,16 +408,27 @@ def ecpay_payment_page(payment_token):
         "MerchantTradeDate": datetime.now(TAIPEI_TIMEZONE).strftime("%Y/%m/%d %H:%M:%S"),
         "PaymentType": "aio",
         "TotalAmount": str(int(order["amount"])),
-        "TradeDesc": "Tianwai Yibi digital content",
-        "ItemName": str(order["title"])[:100],
+        "TradeDesc": (
+            "Tianwai Yibi payment verification"
+            if order["purpose"] == "verification"
+            else "Tianwai Yibi digital content"
+        ),
+        "ItemName": (
+            "Tianwai Yibi payment verification"
+            if order["purpose"] == "verification"
+            else str(order["title"])[:100]
+        ),
         "ReturnURL": f"{base_url}/payments/ecpay/notify",
-        "ChoosePayment": "ALL",
+        "ChoosePayment": "Credit" if order["purpose"] == "verification" else "ALL",
         "EncryptType": "1",
         "OrderResultURL": f"{base_url}/payments/ecpay/result",
         "ClientBackURL": f"{base_url}/",
         "NeedExtraPaidInfo": "N",
         "StoreID": config["store_id"],
     }
+    if order["purpose"] == "verification":
+        parameters["UnionPay"] = "2"
+        parameters["BindingCard"] = "0"
     parameters["CheckMacValue"] = ecpay_check_mac_value(
         parameters, config["hash_key"], config["hash_iv"]
     )

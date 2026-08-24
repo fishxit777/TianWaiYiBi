@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from tianwai.db import _migrate_section_messages, _migrate_section_messages_postgres
+from tianwai.db import _migrate_section_messages, _migrate_section_messages_postgres, get_db
 
 from scripts.migrate_sqlite_to_postgres import (
     MIGRATION_TABLES,
@@ -36,6 +36,7 @@ def test_migration_table_order_keeps_foreign_key_dependencies():
     assert MIGRATION_TABLES.index("customers") < MIGRATION_TABLES.index("customer_devices")
     assert MIGRATION_TABLES.index("ideas") < MIGRATION_TABLES.index("orders")
     assert MIGRATION_TABLES.index("orders") < MIGRATION_TABLES.index("activation_codes")
+    assert MIGRATION_TABLES.index("orders") < MIGRATION_TABLES.index("refund_events")
     assert MIGRATION_TABLES.index("access_events") < MIGRATION_TABLES.index("risk_incidents")
 
 
@@ -168,3 +169,20 @@ def test_postgres_conversation_migration_serializes_worker_startup():
     assert "pg_advisory_xact_lock" in source
     assert "ADD COLUMN IF NOT EXISTS visitor_token_hash" in source
     assert "ADD COLUMN IF NOT EXISTS source_hash" in source
+
+
+def test_payment_verification_schema_is_present_without_changing_existing_order_defaults(app):
+    with app.app_context():
+        connection = get_db()
+        order_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(orders)").fetchall()
+        }
+        tables = {
+            row["name"]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+        }
+
+        assert {"purpose", "payment_method", "refunded_at"} <= order_columns
+        assert "refund_events" in tables
