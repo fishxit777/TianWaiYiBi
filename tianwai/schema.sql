@@ -131,8 +131,10 @@ CREATE TABLE IF NOT EXISTS section_messages (
     public_id TEXT NOT NULL UNIQUE,
     section_key TEXT NOT NULL,
     idea_id INTEGER REFERENCES ideas(id),
-    author_type TEXT NOT NULL CHECK (author_type IN ('customer', 'admin')),
+    author_type TEXT NOT NULL CHECK (author_type IN ('customer', 'visitor', 'admin')),
     customer_id INTEGER REFERENCES customers(id),
+    visitor_token_hash TEXT,
+    source_hash TEXT,
     reply_to_id INTEGER REFERENCES section_messages(id),
     visibility TEXT NOT NULL CHECK (visibility IN ('public', 'private')),
     status TEXT NOT NULL CHECK (status IN ('pending', 'published', 'hidden')),
@@ -140,8 +142,13 @@ CREATE TABLE IF NOT EXISTS section_messages (
     moderated_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    CHECK (author_type = 'admin' OR customer_id IS NOT NULL),
-    CHECK (visibility = 'public' OR customer_id IS NOT NULL)
+    CHECK (
+        author_type = 'admin'
+        OR (author_type = 'customer' AND customer_id IS NOT NULL AND visitor_token_hash IS NULL)
+        OR (author_type = 'visitor' AND customer_id IS NULL AND visitor_token_hash IS NOT NULL)
+    ),
+    CHECK (visibility = 'public' OR customer_id IS NOT NULL),
+    CHECK (author_type <> 'visitor' OR visibility = 'public')
 );
 
 CREATE TABLE IF NOT EXISTS access_events (

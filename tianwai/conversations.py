@@ -9,7 +9,8 @@ from flask import Blueprint, current_app, jsonify, request
 
 from .access import current_customer_session
 from .db import get_db, utc_now
-from .security import require_public_csrf
+from .security import get_client_ip, hash_scoped_token, require_public_csrf
+from .turnstile import CONVERSATION_ACTION, turnstile_configured, verify_turnstile
 
 
 conversations_bp = Blueprint(
@@ -20,9 +21,17 @@ IDEA_SECTION = "idea-detail"
 CUSTOMER_COLORS = ("jade", "gold", "azure", "violet", "coral", "silver")
 SHORT_WINDOW_LIMIT = 5
 DAILY_LIMIT = 30
+VISITOR_SHORT_WINDOW_LIMIT = 3
+VISITOR_DAILY_LIMIT = 10
 BODY_MIN_LENGTH = 2
 BODY_MAX_LENGTH = 800
-PUBLIC_LINK_PATTERN = re.compile(r"(?:https?://|www\.)", re.IGNORECASE)
+VISITOR_BODY_MAX_LENGTH = 500
+VISITOR_COOKIE = "twyb_visitor"
+VISITOR_COOKIE_DAYS = 365
+VISITOR_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_-]{40,60}$")
+PUBLIC_LINK_PATTERN = re.compile(
+    r"(?:https?://|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,24}\b)", re.IGNORECASE
+)
 MARKUP_PATTERN = re.compile(r"<[^>]*>")
 
 
@@ -38,6 +47,20 @@ def customer_identity(public_id, viewer=False):
         "label": f"同道・{suffix}",
         "color": CUSTOMER_COLORS[color_index],
         "badge": "你的識別" if viewer else "同道",
+    }
+
+
+def visitor_identity(visitor_token_hash, viewer=False):
+    normalized = str(visitor_token_hash or "")
+    suffix = (normalized[:6] or "無名").upper()
+    color_index = hashlib.sha256(normalized.encode("utf-8")).digest()[0] % len(
+        CUSTOMER_COLORS
+    )
+    return {
+        "alias": f"訪客・{suffix}",
+        "label": f"訪客・{suffix}",
+        "color": CUSTOMER_COLORS[color_index],
+        "badge": "你的訪客代號" if viewer else "訪客",
     }
 
 
@@ -74,10 +97,10 @@ def resolve_section_context(section_key, idea_slug="", include_unpublished=False
     }
 
 
-def normalize_message_body(value, visibility):
+def normalize_message_body(value, visibility, max_length=BODY_MAX_LENGTH):
     body = str(value or "").replace("\r\n", "\n").replace("\r", "\n").strip()
-    if len(body) < BODY_MIN_LENGTH or len(body) > BODY_MAX_LENGTH:
-        return None, f"留言需介於 {BODY_MIN_LENGTH} 至 {BODY_MAX_LENGTH} 字"
+    if len(body) < BODY_MIN_LENGTH or len(body) > max_length:
+        return None, f"留言需介於 {BODY_MIN_LENGTH} 至 {max_length} 字"
     if MARKUP_PATTERN.search(body) or any(
         ord(character) < 32 and character not in "\n\t" for character in body
     ):
@@ -97,14 +120,28 @@ def message_query():
     """
 
 
-def serialize_message(row, viewer_customer_id=None, admin_view=False):
+def serialize_message(
+    row, viewer_customer_id=None, viewer_visitor_hash=None, admin_view=False
+):
     customer = (
         customer_identity(row["customer_public_id"])
         if row["customer_public_id"]
         else None
     )
-    author = keeper_identity() if row["author_type"] == "admin" else customer
+    visitor = (
+        visitor_identity(row["visitor_token_hash"])
+        if row["visitor_token_hash"]
+        else None
+    )
+    if row["author_type"] == "admin":
+        author = keeper_identity()
+    elif row["author_type"] == "visitor":
+        author = visitor
+    else:
+        author = customer
     badges = []
+    if row["author_type"] == "visitor":
+        badges.append("訪客")
     if row["status"] == "pending":
         badges.append("等待公開")
     elif row["visibility"] == "private":
@@ -118,16 +155,25 @@ def serialize_message(row, viewer_customer_id=None, admin_view=False):
         "idea_slug": row["idea_slug"],
         "author_type": row["author_type"],
         "author": author,
-        "target": customer if row["author_type"] == "admin" and customer else None,
+        "target": (customer or visitor) if row["author_type"] == "admin" else None,
         "visibility": row["visibility"],
         "status": row["status"],
         "badges": badges,
         "body": row["body"],
         "reply_to_id": row["reply_to_id"],
         "mine": bool(
-            viewer_customer_id
-            and row["author_type"] == "customer"
-            and row["customer_id"] == viewer_customer_id
+            (
+                viewer_customer_id
+                and row["author_type"] == "customer"
+                and row["customer_id"] == viewer_customer_id
+            )
+            or (
+                viewer_visitor_hash
+                and row["author_type"] == "visitor"
+                and hmac.compare_digest(
+                    str(row["visitor_token_hash"]), str(viewer_visitor_hash)
+                )
+            )
         ),
         "created_at": row["created_at"],
     }
@@ -171,6 +217,62 @@ def _rate_limited(customer_id):
     return int(short_count or 0) >= SHORT_WINDOW_LIMIT or int(
         daily_count or 0
     ) >= DAILY_LIMIT
+
+
+def _visitor_credential(create=False):
+    raw_token = str(request.cookies.get(VISITOR_COOKIE, ""))
+    if not VISITOR_TOKEN_PATTERN.fullmatch(raw_token):
+        if not create:
+            return None, None
+        raw_token = secrets.token_urlsafe(32)
+    return raw_token, hash_scoped_token("conversation-visitor", raw_token)
+
+
+def _visitor_source_hash():
+    return hash_scoped_token("conversation-source", get_client_ip())
+
+
+def _visitor_rate_limited(visitor_token_hash, source_hash):
+    now = datetime.now(timezone.utc)
+    short_start = (now - timedelta(minutes=10)).isoformat(timespec="seconds")
+    day_start = (now - timedelta(days=1)).isoformat(timespec="seconds")
+    connection = get_db()
+    short_count = connection.execute(
+        """
+        SELECT COUNT(*) AS count FROM section_messages
+        WHERE author_type = 'visitor'
+          AND (visitor_token_hash = ? OR source_hash = ?)
+          AND created_at >= ?
+        """,
+        (visitor_token_hash, source_hash, short_start),
+    ).fetchone()["count"]
+    daily_count = connection.execute(
+        """
+        SELECT COUNT(*) AS count FROM section_messages
+        WHERE author_type = 'visitor'
+          AND (visitor_token_hash = ? OR source_hash = ?)
+          AND created_at >= ?
+        """,
+        (visitor_token_hash, source_hash, day_start),
+    ).fetchone()["count"]
+    return int(short_count or 0) >= VISITOR_SHORT_WINDOW_LIMIT or int(
+        daily_count or 0
+    ) >= VISITOR_DAILY_LIMIT
+
+
+def _set_visitor_cookie(response, raw_token):
+    secure = bool(current_app.config.get("SESSION_COOKIE_SECURE")) or request.is_secure
+    if request.headers.get("X-Forwarded-Proto", "").lower() == "https":
+        secure = True
+    response.set_cookie(
+        VISITOR_COOKIE,
+        raw_token,
+        max_age=VISITOR_COOKIE_DAYS * 24 * 60 * 60,
+        secure=secure,
+        httponly=True,
+        samesite="Lax",
+        path="/",
+    )
 
 
 def _no_store(response):
@@ -283,14 +385,24 @@ def list_messages(section_key):
         return jsonify({"error": "找不到傳音區塊"}), 404
 
     customer_session = current_customer_session()
+    _visitor_raw, visitor_token_hash = _visitor_credential()
     if visibility == "private" and customer_session is None:
         return _no_store(jsonify({"error": "請先登入客戶專區"})), 401
 
     conditions, parameters = _context_conditions(context)
     if visibility == "public":
         if customer_session is None:
-            status_condition = "section_messages.status = 'published'"
-            parameters.append("public")
+            if visitor_token_hash:
+                status_condition = """(
+                    section_messages.status = 'published'
+                    OR (section_messages.status = 'pending'
+                        AND section_messages.author_type = 'visitor'
+                        AND section_messages.visitor_token_hash = ?)
+                )"""
+                parameters.extend(["public", visitor_token_hash])
+            else:
+                status_condition = "section_messages.status = 'published'"
+                parameters.append("public")
         else:
             status_condition = """(
                 section_messages.status = 'published'
@@ -331,12 +443,17 @@ def list_messages(section_key):
         f"FROM section_messages WHERE {marker_where}",
         tuple(marker_parameters),
     ).fetchone()["id"]
-    viewer = {"authenticated": customer_session is not None}
+    viewer = {
+        "authenticated": customer_session is not None,
+        "visitor_submission_enabled": turnstile_configured(),
+    }
     if customer_session is not None:
         viewer.update(customer_identity(customer_session["customer_public_id"], viewer=True))
         viewer["activity_scope"] = customer_activity_scope(
             customer_session["customer_public_id"]
         )
+    elif visitor_token_hash:
+        viewer.update(visitor_identity(visitor_token_hash, viewer=True))
     response = jsonify(
         {
             "section": {"key": context["key"], "label": context["label"]},
@@ -349,6 +466,9 @@ def list_messages(section_key):
                     viewer_customer_id=(
                         customer_session["customer_id"] if customer_session else None
                     ),
+                    viewer_visitor_hash=(
+                        visitor_token_hash if customer_session is None else None
+                    ),
                 )
                 for row in rows
             ],
@@ -360,8 +480,6 @@ def list_messages(section_key):
 @conversations_bp.post("/<section_key>/messages")
 def create_message(section_key):
     customer_session = current_customer_session()
-    if customer_session is None:
-        return _no_store(jsonify({"error": "請先登入客戶專區"})), 401
     csrf_error = require_public_csrf()
     if csrf_error:
         return csrf_error
@@ -369,14 +487,42 @@ def create_message(section_key):
     visibility = str(data.get("visibility", "public")).strip().lower()
     if visibility not in {"public", "private"}:
         return jsonify({"error": "不支援的傳音範圍"}), 400
+    if customer_session is None and visibility == "private":
+        return _no_store(jsonify({"error": "請先登入客戶專區"})), 401
     context = resolve_section_context(section_key, data.get("idea_slug", ""))
     if context is None:
         return jsonify({"error": "找不到傳音區塊"}), 404
-    body, error = normalize_message_body(data.get("body", ""), visibility)
+    visitor_raw = None
+    visitor_token_hash = None
+    source_hash = None
+    if customer_session is None:
+        if not turnstile_configured():
+            return _no_store(jsonify({"error": "訪客留言目前暫停，請稍後再試"})), 503
+        if str(data.get("website", "")).strip():
+            return jsonify({"error": "留言未通過安全檢查"}), 400
+        if not verify_turnstile(
+            data.get("turnstile_token", ""),
+            get_client_ip(),
+            expected_action=CONVERSATION_ACTION,
+        ):
+            return jsonify({"error": "請完成訪客安全驗證後再送出"}), 403
+        visitor_raw, visitor_token_hash = _visitor_credential(create=True)
+        source_hash = _visitor_source_hash()
+    body, error = normalize_message_body(
+        data.get("body", ""),
+        visibility,
+        max_length=(
+            VISITOR_BODY_MAX_LENGTH if customer_session is None else BODY_MAX_LENGTH
+        ),
+    )
     if error:
         return jsonify({"error": error}), 400
-    if _rate_limited(customer_session["customer_id"]):
+    if customer_session is not None and _rate_limited(customer_session["customer_id"]):
         return jsonify({"error": "傳音過於頻繁，請稍後再試"}), 429
+    if customer_session is None and _visitor_rate_limited(
+        visitor_token_hash, source_hash
+    ):
+        return jsonify({"error": "訪客傳音過於頻繁，請稍後再試"}), 429
 
     now = utc_now()
     connection = get_db()
@@ -384,14 +530,18 @@ def create_message(section_key):
         """
         INSERT INTO section_messages
             (public_id, section_key, idea_id, author_type, customer_id,
-             visibility, status, body, created_at, updated_at)
-        VALUES (?, ?, ?, 'customer', ?, ?, ?, ?, ?, ?)
+             visitor_token_hash, source_hash, visibility, status, body,
+             created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             f"MSG-{secrets.token_hex(8).upper()}",
             context["key"],
             context["idea"]["id"] if context["idea"] else None,
-            customer_session["customer_id"],
+            "customer" if customer_session is not None else "visitor",
+            customer_session["customer_id"] if customer_session is not None else None,
+            visitor_token_hash,
+            source_hash,
             visibility,
             "pending" if visibility == "public" else "published",
             body,
@@ -408,9 +558,15 @@ def create_message(section_key):
         {
             "ok": True,
             "message": serialize_message(
-                row, viewer_customer_id=customer_session["customer_id"]
+                row,
+                viewer_customer_id=(
+                    customer_session["customer_id"] if customer_session else None
+                ),
+                viewer_visitor_hash=visitor_token_hash,
             ),
         }
     )
     response.status_code = 201
+    if customer_session is None:
+        _set_visitor_cookie(response, visitor_raw)
     return _no_store(response)

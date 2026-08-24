@@ -903,6 +903,12 @@ def reply_to_conversation():
         and reply_to["customer_id"] != customer["id"]
     ):
         return jsonify({"error": "指定客戶與原始傳音不一致"}), 400
+    if (
+        reply_to is not None
+        and reply_to["author_type"] == "visitor"
+        and customer is not None
+    ):
+        return jsonify({"error": "訪客傳音不可改指定給客戶"}), 400
 
     if reply_to is not None:
         if reply_to["section_key"] != IDEA_SECTION or reply_to["idea_id"] is None:
@@ -922,15 +928,21 @@ def reply_to_conversation():
     cursor = connection.execute(
         """
         INSERT INTO section_messages
-            (public_id, section_key, idea_id, author_type, customer_id, reply_to_id,
-             visibility, status, body, moderated_at, created_at, updated_at)
-        VALUES (?, ?, ?, 'admin', ?, ?, ?, 'published', ?, ?, ?, ?)
+            (public_id, section_key, idea_id, author_type, customer_id,
+             visitor_token_hash, reply_to_id, visibility, status, body,
+             moderated_at, created_at, updated_at)
+        VALUES (?, ?, ?, 'admin', ?, ?, ?, ?, 'published', ?, ?, ?, ?)
         """,
         (
             f"MSG-{secrets.token_hex(8).upper()}",
             section_key,
             idea_id,
             customer["id"] if customer else None,
+            (
+                reply_to["visitor_token_hash"]
+                if reply_to is not None and reply_to["customer_id"] is None
+                else None
+            ),
             reply_to_id,
             visibility,
             body,

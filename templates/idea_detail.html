@@ -2,6 +2,9 @@
 {% from "_conversation_widget.html" import conversation_widget %}
 {% block title %}{{ idea['title'] }}｜{{ idea['role'] }}｜仙策閣{% endblock %}
 {% block body_class %}detail-page accent-{{ idea['accent'] }}{% endblock %}
+{% block page_scripts_head %}
+{% if conversation_turnstile_enabled %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>{% endif %}
+{% endblock %}
 {% block content %}
 <section class="detail-hero section-shell">
   <a class="back-link" href="{{ url_for('public.home') }}#ideas">← 返回六脈仙策</a>
@@ -35,5 +38,5 @@
     </div>
   </div>
 </section>
-{{ conversation_widget('idea-detail', '仙策・' ~ idea['title'], idea['slug']) }}
+{{ conversation_widget('idea-detail', '仙策・' ~ idea['title'], idea['slug'], turnstile_site_key) }}
 {% endblock %}

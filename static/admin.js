@@ -106,7 +106,7 @@
     const items = [
       {count: data.metrics.pending_orders, title: '待付款訂單', detail: '確認付款進度與異常交易', view: 'orders', tone: 'gold'},
       {count: pendingAccess, title: '已付款、尚未開通', detail: '確認開通資料是否順利交付', view: 'customers', tone: 'jade'},
-      {count: pendingConversations, title: '公開傳音待審核', detail: '公開、隱藏或回覆客戶留言', view: 'conversations', tone: 'gold'},
+      {count: pendingConversations, title: '公開傳音待審核', detail: '公開、隱藏或回覆訪客與客戶留言', view: 'conversations', tone: 'gold'},
       {count: disconnected, title: '串接尚未就緒', detail: '上線前完成必要服務設定', view: 'integrations', tone: 'violet'},
       {count: riskEvents, title: '高風險安全事件', detail: '檢查拒絕與封鎖紀錄', view: 'security', tone: 'red'}
     ].filter((item) => item.count > 0);
@@ -623,7 +623,9 @@
       const identity = node('div', 'conversation-admin-identity');
       identity.append(node('i', '', message.author?.label === '守閣者' ? '守' : (message.author?.label || '同').slice(-2)));
       const identityCopy = node('span');
-      identityCopy.append(node('strong', '', message.author?.label || '同道'), node('small', '', message.customer_public_id || '守閣者'));
+      const identityKind = message.customer_public_id
+        || (message.author_type === 'visitor' ? '匿名訪客' : '守閣者');
+      identityCopy.append(node('strong', '', message.author?.label || '同道'), node('small', '', identityKind));
       identity.append(identityCopy);
       const scope = node('span', `conversation-scope ${message.visibility}`, message.visibility === 'private' ? '私密' : (message.status === 'pending' ? '待審核' : (message.status === 'hidden' ? '已隱藏' : '公開')));
       head.append(identity, scope);
@@ -642,8 +644,8 @@
         hide.addEventListener('click', () => moderateConversation(message, 'hidden'));
         actions.append(hide);
       }
-      if (message.author_type === 'customer' && message.status !== 'hidden') {
-        const reply = node('button', 'conversation-reply', message.visibility === 'private' ? '私密回覆' : '指定回覆');
+      if (['customer', 'visitor'].includes(message.author_type) && message.status !== 'hidden') {
+        const reply = node('button', 'conversation-reply', message.visibility === 'private' ? '私密回覆' : '公開回覆');
         reply.type = 'button';
         reply.addEventListener('click', () => openConversationReply(message));
         actions.append(reply);

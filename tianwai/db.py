@@ -249,8 +249,137 @@ def _column_names(connection, table):
     return {row["name"] for row in connection.execute(f"PRAGMA table_info({table})").fetchall()}
 
 
+def _migrate_section_messages_sqlite(connection):
+    """Rebuild the legacy table because SQLite cannot alter CHECK constraints."""
+    connection.commit()
+    connection.execute("PRAGMA foreign_keys = OFF")
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        for index_name in (
+            "idx_section_messages_public",
+            "idx_section_messages_private",
+            "idx_section_messages_moderation",
+            "idx_section_messages_visitor",
+            "idx_section_messages_source",
+        ):
+            connection.execute(f"DROP INDEX IF EXISTS {index_name}")
+        connection.execute("ALTER TABLE section_messages RENAME TO section_messages_legacy")
+        connection.execute(
+            """
+            CREATE TABLE section_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                public_id TEXT NOT NULL UNIQUE,
+                section_key TEXT NOT NULL,
+                idea_id INTEGER REFERENCES ideas(id),
+                author_type TEXT NOT NULL CHECK (author_type IN ('customer', 'visitor', 'admin')),
+                customer_id INTEGER REFERENCES customers(id),
+                visitor_token_hash TEXT,
+                source_hash TEXT,
+                reply_to_id INTEGER REFERENCES section_messages(id),
+                visibility TEXT NOT NULL CHECK (visibility IN ('public', 'private')),
+                status TEXT NOT NULL CHECK (status IN ('pending', 'published', 'hidden')),
+                body TEXT NOT NULL CHECK (length(body) BETWEEN 2 AND 800),
+                moderated_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                CHECK (
+                    author_type = 'admin'
+                    OR (author_type = 'customer' AND customer_id IS NOT NULL AND visitor_token_hash IS NULL)
+                    OR (author_type = 'visitor' AND customer_id IS NULL AND visitor_token_hash IS NOT NULL)
+                ),
+                CHECK (visibility = 'public' OR customer_id IS NOT NULL),
+                CHECK (author_type <> 'visitor' OR visibility = 'public')
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO section_messages
+                (id, public_id, section_key, idea_id, author_type, customer_id,
+                 reply_to_id, visibility, status, body, moderated_at, created_at, updated_at)
+            SELECT id, public_id, section_key, idea_id, author_type, customer_id,
+                   reply_to_id, visibility, status, body, moderated_at, created_at, updated_at
+            FROM section_messages_legacy
+            """
+        )
+        connection.execute("DROP TABLE section_messages_legacy")
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.execute("PRAGMA foreign_keys = ON")
+
+
+def _migrate_section_messages_postgres(connection):
+    connection.execute("SELECT pg_advisory_xact_lock(?)", (20260824,))
+    if {"visitor_token_hash", "source_hash"} <= _column_names(
+        connection, "section_messages"
+    ):
+        return
+    connection.execute(
+        "ALTER TABLE section_messages ADD COLUMN IF NOT EXISTS visitor_token_hash TEXT"
+    )
+    connection.execute(
+        "ALTER TABLE section_messages ADD COLUMN IF NOT EXISTS source_hash TEXT"
+    )
+    constraints = connection.execute(
+        """
+        SELECT conname AS name, pg_get_constraintdef(oid) AS definition
+        FROM pg_constraint
+        WHERE conrelid = 'section_messages'::regclass AND contype = 'c'
+        """
+    ).fetchall()
+    for constraint in constraints:
+        definition = str(constraint["definition"] or "").lower()
+        name = str(constraint["name"] or "")
+        if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", name):
+            raise RuntimeError("section_messages constraint name is invalid")
+        if "author_type" in definition or (
+            "visibility" in definition and "customer_id" in definition
+        ):
+            connection.execute(f'ALTER TABLE section_messages DROP CONSTRAINT "{name}"')
+    connection.execute(
+        """
+        ALTER TABLE section_messages
+        ADD CONSTRAINT section_messages_author_type_valid
+        CHECK (author_type IN ('customer', 'visitor', 'admin'))
+        """
+    )
+    connection.execute(
+        """
+        ALTER TABLE section_messages
+        ADD CONSTRAINT section_messages_author_identity_valid
+        CHECK (
+            author_type = 'admin'
+            OR (author_type = 'customer' AND customer_id IS NOT NULL AND visitor_token_hash IS NULL)
+            OR (author_type = 'visitor' AND customer_id IS NULL AND visitor_token_hash IS NOT NULL)
+        )
+        """
+    )
+    connection.execute(
+        """
+        ALTER TABLE section_messages
+        ADD CONSTRAINT section_messages_visibility_identity_valid
+        CHECK ((visibility = 'public' OR customer_id IS NOT NULL)
+               AND (author_type <> 'visitor' OR visibility = 'public'))
+        """
+    )
+
+
+def _migrate_section_messages(connection):
+    columns = _column_names(connection, "section_messages")
+    if {"visitor_token_hash", "source_hash"} <= columns:
+        return
+    if getattr(connection, "backend", "sqlite") == "postgresql":
+        _migrate_section_messages_postgres(connection)
+    else:
+        _migrate_section_messages_sqlite(connection)
+
+
 def migrate_database(connection):
     """Apply additive SQLite migrations for databases created by earlier releases."""
+    _migrate_section_messages(connection)
     if "activation_token_hash" not in _column_names(connection, "orders"):
         connection.execute("ALTER TABLE orders ADD COLUMN activation_token_hash TEXT")
     if "customer_id" not in _column_names(connection, "orders"):
@@ -350,6 +479,12 @@ def migrate_database(connection):
     )
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_customer_session_customer_expiry ON customer_sessions (customer_id, expires_at DESC)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_section_messages_visitor ON section_messages (visitor_token_hash, created_at DESC)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_section_messages_source ON section_messages (source_hash, created_at DESC)"
     )
     connection.commit()
 

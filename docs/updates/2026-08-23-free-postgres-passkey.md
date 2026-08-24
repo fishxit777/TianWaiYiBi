@@ -64,6 +64,16 @@ Passkey 同時具有防盜與防駭效果；加密備份主要是防破壞後無
 - `python -m pytest -q` 為 121 passed、1 skipped，Python／JavaScript 語法、相依、diff 與機密樣式檢查通過。桌機及 390×844 隔離瀏覽器驗證沒有水平溢位；正式提交 `f9f4c70` 已部署為 `volume-two-conversations-v2`，匿名活動 API 無私密欄位，舊首頁卷別 API 回 404。
 - 本次沒有變更 PostgreSQL schema、Neon 連線、備份角色、RSA／AES 金鑰、Passkey、復原碼、Turnstile、付款或管理登入；正式煙霧測試也沒有建立留言或使用真實客戶資料。
 
+## 2026-08-24 卷二匿名公開傳音 V3
+
+- 匿名只代表官網不要求登入及不公開真實身分，不代表無限制。訪客只可投稿公開傳音，而且每則固定為 `pending`；私密傳音仍需有效客戶 session，訪客端無法選擇或繞過。
+- 訪客第一次投稿時取得 256-bit 隨機 HttpOnly／SameSite=Lax Cookie；資料庫只保存以 `APP_SECRET_KEY` 分域 HMAC 後的訪客雜湊。來源 IP 也只以另一用途分域的 HMAC 保存於留言列，原始 Cookie、原始 IP、Email 與內部客戶 ID 都不會進入公開／管理傳音 API。
+- 同一訪客可看自己的待審留言，其他匿名訪客在核准前看不到。公開後顯示穩定的 `訪客・XXXXXX`、識別色與「訪客」文字徽章；管理員公開回覆時會顯示回覆該匿名代號，但訪客沒有私密收件權限。
+- 防濫用採 CSRF、Cloudflare Turnstile 獨立 `public-conversation` action、精確 hostname、蜜罐、2～500 字、純文字、網址／HTML 拒絕、訪客與來源雙重限速（10 分鐘 3 則、24 小時 10 則）。Turnstile 未設定或驗證失敗時採失敗關閉，不會降級成無驗證匿名投稿。
+- SQLite 舊表因 CHECK constraint 無法原地修改，採交易式重建並保留既有 ID／內容／回覆關聯；PostgreSQL 採 additive columns 後更新明確命名的作者與可見性約束，並以交易 advisory lock 防止 Gunicorn 多 worker 同時啟動時競爭遷移。SQLite 舊資料升級與 PostgreSQL worker 鎖定防線已有自動測試；正式 PostgreSQL 遷移仍以部署健康檢查作最後證據。
+- `python -m pytest -q` 為 127 passed、1 skipped；Python compileall、JavaScript syntax、`pip check`、diff 與機密樣式檢查通過。桌機及 390×844 本機瀏覽器實看匿名公開、手機 Turnstile 窄版與私密登入分流；正式站未建立測試留言，也沒有消耗復原碼、撤銷 Passkey 或重跑備份還原。
+- 本次只重用既有正式 Turnstile widget 的公鑰／私密設定，不新增或傳送任何機密；沒有變更 Neon 連線、備份角色、RSA／AES 金鑰、Passkey、復原碼、付款或管理登入。
+
 ## 刻意未執行的破壞性操作
 
 - 沒有在正式站消耗復原碼做管理帳號災難復原；該流程會撤銷兩把 Passkey 與全部管理 session，不應只為資料庫備份驗收而執行。

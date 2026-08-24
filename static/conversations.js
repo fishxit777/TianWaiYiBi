@@ -38,15 +38,25 @@
     const timeline = widget.querySelector('[data-conversation-messages]');
     const form = widget.querySelector('[data-conversation-form]');
     const textarea = form.querySelector('textarea');
+    const honeypot = form.querySelector('input[name="website"]');
     const formLabel = form.querySelector('[data-conversation-form-label]');
     const count = form.querySelector('[data-conversation-count]');
+    const limit = form.querySelector('[data-conversation-limit]');
+    const visitorCheck = form.querySelector('[data-conversation-visitor-check]');
+    const turnstileMount = form.querySelector('[data-conversation-turnstile]');
     const loginNote = widget.querySelector('[data-conversation-login-note]');
+    const loginCopy = widget.querySelector('[data-conversation-login-copy]');
     const viewerKey = widget.querySelector('[data-conversation-viewer-key]');
     const sectionKey = widget.dataset.sectionKey;
     const ideaSlug = widget.dataset.ideaSlug || '';
     let visibility = 'public';
     let loaded = false;
     let controller = null;
+    let viewerState = {authenticated: false, visitor_submission_enabled: false};
+    let turnstileWidgetId = null;
+    let turnstileToken = '';
+    let turnstileWaits = 0;
+    let turnstileTimer = null;
 
     const endpoint = () => {
       const query = new URLSearchParams({visibility});
@@ -81,28 +91,82 @@
     };
     const renderEmpty = () => {
       const empty = element('div', 'conversation-empty');
+      const visitorCanPost = !viewerState.authenticated && viewerState.visitor_submission_enabled;
       empty.append(
         element('span', '', visibility === 'public' ? '◇' : '封'),
         element('strong', '', visibility === 'public' ? '此卷尚無公開傳音' : '這裡還沒有私密對話'),
-        element('p', '', visibility === 'public' ? '若你已是客戶，可以留下第一道回聲。' : '只有你與守閣者能看見這裡的內容。')
+        element('p', '', visibility === 'public'
+          ? (visitorCanPost ? '不必登入，也可以匿名留下第一道回聲。' : '已購客戶登入後可以留下第一道回聲。')
+          : '只有你與守閣者能看見這裡的內容。')
       );
       timeline.append(empty);
     };
+    const resetTurnstile = () => {
+      turnstileToken = '';
+      if (turnstileWidgetId !== null && window.turnstile?.reset) {
+        try { window.turnstile.reset(turnstileWidgetId); } catch (_error) { /* retry on next render */ }
+      }
+    };
+    const ensureTurnstile = () => {
+      if (visitorCheck.hidden || !turnstileMount?.dataset.sitekey || turnstileWidgetId !== null) return;
+      if (!window.turnstile?.render) {
+        turnstileWaits += 1;
+        if (turnstileWaits <= 40) {
+          clearTimeout(turnstileTimer);
+          turnstileTimer = setTimeout(ensureTurnstile, 250);
+        } else {
+          status.textContent = '訪客安全確認暫時無法載入，請稍後重新整理。';
+        }
+        return;
+      }
+      try {
+        turnstileWidgetId = window.turnstile.render(turnstileMount, {
+          sitekey: turnstileMount.dataset.sitekey,
+          action: turnstileMount.dataset.action,
+          theme: 'dark',
+          language: 'zh-tw',
+          size: window.matchMedia('(max-width: 480px)').matches ? 'compact' : 'flexible',
+          callback: (token) => { turnstileToken = token || ''; },
+          'expired-callback': () => { turnstileToken = ''; },
+          'error-callback': () => {
+            turnstileToken = '';
+            status.textContent = '訪客安全確認未完成，請稍後重試。';
+          }
+        });
+      } catch (_error) {
+        turnstileWidgetId = null;
+        status.textContent = '訪客安全確認暫時無法載入，請稍後重新整理。';
+      }
+    };
     const updateViewer = (viewer) => {
-      const authenticated = Boolean(viewer?.authenticated);
-      form.hidden = !authenticated;
-      loginNote.hidden = authenticated;
-      if (authenticated) {
+      viewerState = viewer || {authenticated: false, visitor_submission_enabled: false};
+      const authenticated = Boolean(viewerState.authenticated);
+      const visitorCanPost = !authenticated && visibility === 'public' && Boolean(viewerState.visitor_submission_enabled);
+      form.hidden = !(authenticated || visitorCanPost);
+      visitorCheck.hidden = !visitorCanPost;
+      loginNote.hidden = authenticated || visitorCanPost;
+      if (authenticated || viewerState.alias) {
         viewerKey.hidden = false;
-        applyIdentity(viewerKey, viewer.color);
-        viewerKey.querySelector('b').textContent = `${viewer.alias}（你）`;
+        applyIdentity(viewerKey, viewerState.color);
+        viewerKey.querySelector('b').textContent = `${viewerState.alias}（你）`;
       } else {
         viewerKey.hidden = true;
       }
-      formLabel.textContent = visibility === 'public' ? '留下公開傳音' : '只給守閣者的私密傳音';
+      if (!loginNote.hidden) {
+        loginCopy.textContent = visibility === 'private'
+          ? '私密傳音只開放已驗證客戶，登入後即可開啟。'
+          : '訪客留言目前暫停；已購客戶登入後仍可公開留言。';
+      }
+      const maxLength = visitorCanPost ? 500 : 800;
+      textarea.maxLength = maxLength;
+      limit.textContent = String(maxLength);
+      formLabel.textContent = visibility === 'public'
+        ? (visitorCanPost ? '匿名留下公開傳音' : '留下公開傳音')
+        : '只給守閣者的私密傳音';
       textarea.placeholder = visibility === 'public'
-        ? '寫下你的想法或疑問；公開傳音請勿放入個人資料或網址。'
+        ? '寫下你的想法或疑問；請勿放入個人資料、網址或 HTML。'
         : '只有你與守閣者能看見；仍請勿輸入密碼、驗證碼或付款資料。';
+      if (visitorCanPost) ensureTurnstile();
     };
     const showLoginRequired = () => {
       timeline.replaceChildren();
@@ -110,6 +174,8 @@
       empty.append(element('span', '', '封'), element('strong', '', '登入後開啟私密傳音'), element('p', '', '此處不會向其他訪客顯示，也不使用顏色代替權限。'));
       timeline.append(empty);
       form.hidden = true;
+      visitorCheck.hidden = true;
+      loginCopy.textContent = '私密傳音只開放已驗證客戶，登入後即可開啟。';
       loginNote.hidden = false;
       status.textContent = '私密傳音需要客戶身分驗證。';
     };
@@ -150,7 +216,9 @@
       const privateMode = visibility === 'private';
       privacy.querySelector('span').textContent = privateMode ? '封' : '眾';
       privacy.querySelector('strong').textContent = privateMode ? '僅你與守閣者可見' : '所有訪客可閱讀';
-      privacyCopy.textContent = privateMode ? '私密內容不會進入公開審核區，也不會顯示給其他客戶。' : '已驗證客戶的留言會先由守閣者審核，再對外公開。';
+      privacyCopy.textContent = privateMode
+        ? '私密內容不會進入公開審核區，也不會顯示給其他客戶。'
+        : '訪客與已驗證客戶的留言都會先由守閣者審核，再對外公開。';
       loadMessages();
     };
     trigger.addEventListener('click', () => {
@@ -179,11 +247,18 @@
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const submit = form.querySelector('button[type="submit"]');
+      const visitorSubmission = !viewerState.authenticated;
+      if (visitorSubmission && !turnstileToken) {
+        status.textContent = '請先完成訪客安全確認。';
+        ensureTurnstile();
+        return;
+      }
       submit.disabled = true;
       status.textContent = '正在送出傳音…';
       try {
-        const payload = {visibility, body: textarea.value};
+        const payload = {visibility, body: textarea.value, website: honeypot.value};
         if (ideaSlug) payload.idea_slug = ideaSlug;
+        if (visitorSubmission) payload.turnstile_token = turnstileToken;
         const response = await fetch(`/api/conversations/${encodeURIComponent(sectionKey)}/messages`, {
           method: 'POST', credentials: 'same-origin',
           headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
@@ -192,6 +267,7 @@
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || '傳音未能送出');
         textarea.value = '';
+        honeypot.value = '';
         count.textContent = '0';
         await loadMessages();
         status.textContent = visibility === 'public'
@@ -200,6 +276,7 @@
       } catch (error) {
         status.textContent = error.message || '傳音未能送出，請稍後再試。';
       } finally {
+        if (visitorSubmission) resetTurnstile();
         submit.disabled = false;
       }
     });

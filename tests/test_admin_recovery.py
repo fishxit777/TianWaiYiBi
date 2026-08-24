@@ -227,6 +227,12 @@ def test_turnstile_requires_success_exact_action_and_hostname(app, monkeypatch):
             ),
         )
         assert verify_turnstile("single-use-token", "127.0.0.1") is True
+        assert (
+            verify_turnstile(
+                "single-use-token", "127.0.0.1", expected_action="public-conversation"
+            )
+            is False
+        )
 
         monkeypatch.setattr(
             "tianwai.turnstile.urllib.request.urlopen",

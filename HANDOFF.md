@@ -64,10 +64,14 @@
 - 客戶公開身分只顯示由匿名客戶代碼穩定產生的 `同道・XXXX` 與固定識別色，不公開訂單姓名、Email 或內部客戶 ID。顏色只套在頭像、名稱與色條，正文維持高對比中性色；每則訊息仍有名稱與 `守閣者`、`同道`、`等待公開`、`指定給你` 等文字徽章。
 - 後台「傳音對話」工作區只列出卷二六脈，可篩選待審核、私密、已公開與全部訊息，一鍵公開、隱藏或指定回覆；不物理刪除訊息，所有審核／回覆寫入 `audit_logs`。新客戶傳音的 LINE／Gmail 管理提醒不含客戶身分與正文；客戶回覆提醒信也只要求登入查看，不外送站內內容。
 - 傳音防濫用已完成：2～800 字、純文字、前端只用 `textContent`、公開網址拒絕、CSRF、客戶狀態檢查、每 10 分鐘 5 則／每日 30 則限制、公開先審後發、私密與 API 全部 `no-store`。付款、登入、開通與安全頁面不放傳音元件。
+- 卷二匿名公開傳音 V3 已完成：未登入訪客可在六個仙策詳情頁直接留下公開傳音，固定先進待審；私密傳音仍只限已驗證客戶。每名訪客顯示穩定的 `訪客・XXXXXX` 與「訪客」文字徽章，顏色只作輔助；同一訪客可看自己的待審內容，其他訪客在核准前看不到。
+- 訪客防濫用不依賴公開身分：CSRF、Turnstile `public-conversation` action／hostname 伺服器驗證、蜜罐、2～500 字、網址／HTML 拒絕、每 10 分鐘 3 則與每日 10 則雙層限速。資料庫只保存由伺服器金鑰 HMAC 的訪客／來源雜湊，不保存原始訪客 Cookie；API 與後台回應也不回傳這兩個雜湊。後台可核准、隱藏及公開回覆訪客，但不能把訪客留言轉成私密回覆。
 - 完整 40 點問題、影響與對應修正記錄於 `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`；本次只改呈現層與互動狀態，沒有改動付款、開通、可信裝置、風險分級或資料庫規則。
 
 ## 驗證結果
 
+- 2026-08-24 卷二匿名公開傳音 V3：`python -m pytest -q` 為 127 passed、1 skipped；Python compileall、三支 JavaScript `node --check`、`pip check`、機密樣式掃描與 `git diff --check` 全部通過。舊 SQLite 留言表實際升級測試保留原資料；PostgreSQL 遷移以交易 advisory lock 防止 Gunicorn 多 worker 同時啟動競爭，正式資料庫升級結果另以部署健康檢查確認。
+- V3 本機瀏覽器 QA：桌機與 390×844 手機均只在仙策詳情頁出現匿名公開留言；公開頁顯示先審說明、訪客 500 字上限與人機確認，手機使用窄版安全元件且沒有裁切。切換私密分頁後匿名表單隱藏，只顯示客戶登入入口；未送出任何正式留言，也未觸碰 Passkey、復原碼或備份。
 - 2026-08-24 卷二限定傳音 V2：`python -m pytest -q` 為 121 passed、1 skipped；Python compileall、`node --check static/app.js`、`node --check static/conversations.js`、`node --check static/admin.js`、`pip check`、機密樣式掃描與 `git diff --check` 全部通過。
 - 卷二 V2 本機瀏覽器 QA：桌機與 390×844 手機首頁均為 0 個完整留言元件、6 個仙策活動提示掛點；仙策詳情頁只有自己的 1 個完整傳音元件。實際以隔離假資料驗證「已有傳音 → 展開閱讀 → 新增公開內容 → 新傳音」狀態轉換；390px viewport 的 document scroll width 為 375px，沒有水平溢位，console 0 error／0 warning。隔離資料庫驗收後已刪除。
 - 卷二 V2 已由提交 `f9f4c70` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=volume-two-conversations-v2`；正式首頁為 0 個完整留言元件與 6 個提示掛點，仙策詳情為 1 個獨立元件。匿名活動 API 回 6 個仙策、0 個私密欄位並帶 `no-store`；舊 `home-world` 傳音 API 回 404。正式公開訊息目前為 0，因此畫面不顯示虛假的「已有傳音」；煙霧測試未建立留言、未登入客戶、未消耗復原碼或變更 Passkey。
@@ -134,7 +138,7 @@
 - `/customer/library`：已購內容庫
 - `/library/orders/<order_no>`：需客戶 session 的付費內容
 - `/api/conversations/<section_key>`：讀取公開或該客戶自己的私密分區傳音
-- `/api/conversations/<section_key>/messages`：有效客戶工作階段提交公開待審或私密傳音
+- `/api/conversations/<section_key>/messages`：訪客經安全驗證提交公開待審傳音；有效客戶工作階段可提交公開待審或私密傳音
 - `/orders/<access_token>`：舊網址相容轉址，不再直接顯示付費內容
 - `/dev/line`：LINE Bot 模擬器
 - `/line/webhook`：正式 LINE webhook 入口

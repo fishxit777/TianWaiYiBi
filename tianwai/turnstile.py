@@ -1,4 +1,4 @@
-"""Minimal server-side Cloudflare Turnstile validation for emergency recovery."""
+"""Minimal server-side Cloudflare Turnstile validation for sensitive public flows."""
 
 import json
 import os
@@ -12,6 +12,7 @@ from flask import current_app
 
 SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 RECOVERY_ACTION = "admin-recovery"
+CONVERSATION_ACTION = "public-conversation"
 
 
 def turnstile_site_key():
@@ -29,7 +30,7 @@ def _expected_hostname():
     return str(urlparse(os.environ.get("BASE_URL", "")).hostname or "").lower()
 
 
-def verify_turnstile(token, remote_ip):
+def verify_turnstile(token, remote_ip, expected_action=RECOVERY_ACTION):
     """Fail closed: validate a short-lived, single-use token with Cloudflare."""
     value = str(token or "")
     if not value or len(value) > 2048 or not turnstile_configured():
@@ -54,7 +55,11 @@ def verify_turnstile(token, remote_ip):
             result = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
         return False
-    if result.get("success") is not True or result.get("action") != RECOVERY_ACTION:
+    allowed_actions = {RECOVERY_ACTION, CONVERSATION_ACTION}
+    action = str(expected_action or "")
+    if action not in allowed_actions:
+        return False
+    if result.get("success") is not True or result.get("action") != action:
         return False
     expected = _expected_hostname()
     hostname = str(result.get("hostname", "")).strip().lower()

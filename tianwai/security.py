@@ -431,7 +431,7 @@ def add_security_headers(response):
         response.headers["Content-Security-Policy"] = response.headers["Content-Security-Policy"].replace(
             "frame-ancestors 'self'", "frame-ancestors 'none'"
         )
-    if request.path.startswith("/admin/recovery"):
+    if request.path.startswith("/admin/recovery") or request.path.startswith("/ideas/"):
         policy = response.headers["Content-Security-Policy"]
         policy = policy.replace("script-src 'self'", "script-src 'self' https://challenges.cloudflare.com")
         policy = policy.replace("connect-src 'self'", "connect-src 'self' https://challenges.cloudflare.com")

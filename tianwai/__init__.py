@@ -71,9 +71,13 @@ def create_app(test_config=None):
 
     @app.context_processor
     def inject_globals():
+        from .turnstile import turnstile_configured, turnstile_site_key
+
         return {
             "csrf_token": get_public_csrf_token,
             "line_add_friend_url": app.config["LINE_ADD_FRIEND_URL"],
+            "conversation_turnstile_enabled": turnstile_configured(),
+            "turnstile_site_key": turnstile_site_key(),
         }
 
     @app.get("/healthz")
@@ -83,7 +87,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "volume-two-conversations-v2",
+                "release": "volume-two-anonymous-conversations-v3",
             }
         )
 

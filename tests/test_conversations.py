@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from conftest import login_admin, set_public_csrf
+from tianwai.conversations import _visitor_rate_limited
 from tianwai.db import get_db
 from tianwai.security import hash_token
 
@@ -68,6 +69,17 @@ def _post_message(client, csrf, slug="mvp-sword-cut", **overrides):
     )
 
 
+def _enable_visitor_comments(monkeypatch):
+    monkeypatch.setenv("TURNSTILE_SITE_KEY", "test-public-site-key")
+    monkeypatch.setenv("TURNSTILE_SECRET_KEY", "test-private-secret-key")
+    monkeypatch.setattr(
+        "tianwai.conversations.verify_turnstile",
+        lambda token, ip, expected_action: bool(
+            token == "valid-visitor-token" and expected_action == "public-conversation"
+        ),
+    )
+
+
 def test_conversation_schema_exists_in_both_database_dialects(app):
     with app.app_context():
         columns = get_db().execute("PRAGMA table_info(section_messages)").fetchall()
@@ -77,6 +89,8 @@ def test_conversation_schema_exists_in_both_database_dialects(app):
             "idea_id",
             "author_type",
             "customer_id",
+            "visitor_token_hash",
+            "source_hash",
             "reply_to_id",
             "visibility",
             "status",
@@ -92,7 +106,7 @@ def test_conversation_schema_exists_in_both_database_dialects(app):
     assert "CREATE TABLE IF NOT EXISTS section_messages" in postgres_schema
 
 
-def test_public_read_is_anonymous_but_writing_and_private_read_require_login(client):
+def test_public_read_is_anonymous_and_private_read_still_requires_login(client):
     public = client.get(_conversation_url())
     assert public.status_code == 200
     assert public.get_json()["messages"] == []
@@ -102,7 +116,152 @@ def test_public_read_is_anonymous_but_writing_and_private_read_require_login(cli
     rejected = _post_message(client, set_public_csrf(client))
 
     assert private.status_code == 401
-    assert rejected.status_code == 401
+    assert rejected.status_code == 503
+
+
+def test_visitor_public_message_requires_turnstile_and_only_owner_sees_pending(
+    app, client, monkeypatch
+):
+    _enable_visitor_comments(monkeypatch)
+    csrf = set_public_csrf(client, "visitor-public-csrf")
+
+    missing_challenge = _post_message(client, csrf)
+    private = _post_message(
+        client,
+        csrf,
+        visibility="private",
+        turnstile_token="valid-visitor-token",
+    )
+    created = _post_message(
+        client,
+        csrf,
+        turnstile_token="valid-visitor-token",
+    )
+
+    assert missing_challenge.status_code == 403
+    assert private.status_code == 401
+    assert created.status_code == 201
+    message = created.get_json()["message"]
+    assert message["status"] == "pending"
+    assert message["mine"] is True
+    assert message["author"]["alias"].startswith("訪客・")
+    assert message["badges"] == ["訪客", "等待公開"]
+    assert "visitor_token_hash" not in str(created.get_json())
+    assert "source_hash" not in str(created.get_json())
+
+    cookie = created.headers.get("Set-Cookie", "")
+    assert "twyb_visitor=" in cookie
+    assert "HttpOnly" in cookie
+    assert "SameSite=Lax" in cookie
+    own = client.get(_conversation_url()).get_json()
+    assert [item["id"] for item in own["messages"]] == [message["id"]]
+    assert own["viewer"]["alias"] == message["author"]["alias"]
+
+    other = app.test_client()
+    assert other.get(_conversation_url()).get_json()["messages"] == []
+
+
+def test_visitor_validation_honeypot_and_strict_rate_limit(app, client, monkeypatch):
+    _enable_visitor_comments(monkeypatch)
+    csrf = set_public_csrf(client, "visitor-validation-csrf")
+
+    invalid_challenge = _post_message(client, csrf, turnstile_token="invalid")
+    markup = _post_message(
+        client,
+        csrf,
+        body="<b>不應接受</b>",
+        turnstile_token="valid-visitor-token",
+    )
+    public_link = _post_message(
+        client,
+        csrf,
+        body="請看 malicious.example",
+        turnstile_token="valid-visitor-token",
+    )
+    too_long = _post_message(
+        client,
+        csrf,
+        body="字" * 501,
+        turnstile_token="valid-visitor-token",
+    )
+    honeypot = _post_message(
+        client,
+        csrf,
+        website="spam.example",
+        turnstile_token="valid-visitor-token",
+    )
+
+    assert invalid_challenge.status_code == 403
+    assert markup.status_code == 400
+    assert public_link.status_code == 400
+    assert too_long.status_code == 400
+    assert honeypot.status_code == 400
+
+    for index in range(3):
+        response = _post_message(
+            client,
+            csrf,
+            body=f"匿名合法測試留言第 {index + 1} 則",
+            turnstile_token="valid-visitor-token",
+        )
+        assert response.status_code == 201
+    limited = _post_message(
+        client,
+        csrf,
+        body="匿名第四則應被限制",
+        turnstile_token="valid-visitor-token",
+    )
+    assert limited.status_code == 429
+
+    other = app.test_client()
+    source_limited = _post_message(
+        other,
+        set_public_csrf(other, "visitor-source-limit-csrf"),
+        body="清除訪客 Cookie 仍不應繞過來源限速",
+        turnstile_token="valid-visitor-token",
+    )
+    assert source_limited.status_code == 429
+
+    with app.app_context():
+        rows = get_db().execute(
+            "SELECT visitor_token_hash, source_hash FROM section_messages WHERE author_type = 'visitor'"
+        ).fetchall()
+        assert len(rows) == 3
+        assert all(len(row["visitor_token_hash"]) == 64 for row in rows)
+        assert all(len(row["source_hash"]) == 64 for row in rows)
+
+
+def test_visitor_daily_limit_applies_outside_the_short_window(app):
+    visitor_hash = "a" * 64
+    source_hash = "b" * 64
+    created_at = _iso(datetime.now(timezone.utc) - timedelta(hours=1))
+    with app.app_context():
+        connection = get_db()
+        idea = connection.execute(
+            "SELECT id FROM ideas WHERE slug = 'mvp-sword-cut'"
+        ).fetchone()
+        for index in range(10):
+            connection.execute(
+                """
+                INSERT INTO section_messages
+                    (public_id, section_key, idea_id, author_type,
+                     visitor_token_hash, source_hash, visibility, status,
+                     body, created_at, updated_at)
+                VALUES (?, 'idea-detail', ?, 'visitor', ?, ?, 'public',
+                        'pending', ?, ?, ?)
+                """,
+                (
+                    f"MSG-DAILY-{index}",
+                    idea["id"],
+                    visitor_hash,
+                    source_hash,
+                    f"每日限制測試 {index}",
+                    created_at,
+                    created_at,
+                ),
+            )
+        connection.commit()
+        assert _visitor_rate_limited(visitor_hash, source_hash) is True
 
 
 def test_public_customer_message_waits_for_moderation_and_does_not_expose_identity(app, client):
@@ -312,6 +471,53 @@ def test_admin_can_approve_hide_and_reply_without_public_customer_data(app, clie
         assert {"conversation_moderated", "conversation_replied"} <= actions
 
 
+def test_admin_can_approve_and_publicly_reply_to_visitor(app, client, monkeypatch):
+    _enable_visitor_comments(monkeypatch)
+    csrf = set_public_csrf(client, "visitor-admin-csrf")
+    pending = _post_message(
+        client,
+        csrf,
+        turnstile_token="valid-visitor-token",
+    ).get_json()["message"]
+
+    admin_csrf = login_admin(client)
+    approved = client.post(
+        f"/admin/api/conversations/{pending['id']}/moderate",
+        json={"status": "published"},
+        headers={"X-CSRF-Token": admin_csrf},
+    )
+    replied = client.post(
+        "/admin/api/conversations/reply",
+        json={
+            "section_key": "idea-detail",
+            "idea_slug": "mvp-sword-cut",
+            "visibility": "public",
+            "reply_to_id": pending["id"],
+            "body": "守閣者已收到這道訪客傳音。",
+        },
+        headers={"X-CSRF-Token": admin_csrf},
+    )
+
+    assert approved.status_code == 200
+    assert replied.status_code == 201
+    public = app.test_client().get(_conversation_url()).get_json()["messages"]
+    assert public[0]["badges"] == ["訪客"]
+    assert public[1]["target"]["alias"] == public[0]["author"]["alias"]
+
+    private_reply = client.post(
+        "/admin/api/conversations/reply",
+        json={
+            "section_key": "idea-detail",
+            "idea_slug": "mvp-sword-cut",
+            "visibility": "private",
+            "reply_to_id": pending["id"],
+            "body": "訪客不能收到私密回覆。",
+        },
+        headers={"X-CSRF-Token": admin_csrf},
+    )
+    assert private_reply.status_code == 400
+
+
 def test_admin_conversation_mutations_require_admin_csrf(app, client):
     _login_customer(app, client)
     public_csrf = set_public_csrf(client, "conversation-admin-csrf-check")
@@ -325,9 +531,13 @@ def test_admin_conversation_mutations_require_admin_csrf(app, client):
     assert rejected.status_code == 403
 
 
-def test_public_pages_render_reusable_accessible_conversation_widgets(client):
-    home = client.get("/").get_data(as_text=True)
-    detail = client.get("/ideas/mvp-sword-cut").get_data(as_text=True)
+def test_public_pages_render_reusable_accessible_conversation_widgets(client, monkeypatch):
+    monkeypatch.setenv("TURNSTILE_SITE_KEY", "test-public-site-key")
+    monkeypatch.setenv("TURNSTILE_SECRET_KEY", "test-private-secret-key")
+    home_response = client.get("/")
+    detail_response = client.get("/ideas/mvp-sword-cut")
+    home = home_response.get_data(as_text=True)
+    detail = detail_response.get_data(as_text=True)
 
     assert home.count('data-conversation-widget') == 0
     assert home.count('data-idea-activity') == 6
@@ -341,6 +551,20 @@ def test_public_pages_render_reusable_accessible_conversation_widgets(client):
     assert 'data-section-key="idea-detail"' in detail
     assert 'data-idea-slug="mvp-sword-cut"' in detail
     assert 'id="conversation-idea-detail-mvp-sword-cut"' in detail
+    assert 'data-conversation-turnstile' in detail
+    assert 'data-sitekey="test-public-site-key"' in detail
+    assert 'api.js?render=explicit' in detail
+    assert 'data-action="public-conversation"' in detail
+    assert "訪客可免登入公開留言" in detail
+    assert "https://challenges.cloudflare.com" not in home_response.headers[
+        "Content-Security-Policy"
+    ]
+    assert "https://challenges.cloudflare.com" in detail_response.headers[
+        "Content-Security-Policy"
+    ]
+    assert "frame-src https://challenges.cloudflare.com" in detail_response.headers[
+        "Content-Security-Policy"
+    ]
 
 
 def test_idea_activity_exposes_only_safe_public_and_customer_reply_markers(app, client):

@@ -676,6 +676,7 @@
 .public-site .conversation-panel[hidden],
 .public-site .conversation-composer[hidden],
 .public-site .conversation-login-note[hidden],
+.public-site .conversation-visitor-check[hidden],
 .public-site .identity-key[hidden] { display: none !important; }
 .public-site .conversation-panel {
   position: relative;
@@ -753,6 +754,10 @@
 .public-site .conversation-composer label > span { color: #e6d49f; font-family: var(--display); font-size: 15px; letter-spacing: .06em; }
 .public-site .conversation-composer textarea { width: 100%; resize: vertical; min-height: 100px; padding: 12px; color: #eeeadd; border: 1px solid rgba(255,255,255,.14); border-radius: 0; background: rgba(255,255,255,.045); font-family: var(--serif); font-size: 14px; line-height: 1.7; }
 .public-site .conversation-composer textarea::placeholder { color: rgba(235, 229, 212, .36); }
+.public-site .conversation-honeypot { position: absolute !important; left: -10000px !important; width: 1px !important; height: 1px !important; overflow: hidden !important; }
+.public-site .conversation-visitor-check { display: grid; gap: 7px; padding: 12px; border-left: 2px solid rgba(142, 220, 203, .55); background: rgba(142, 220, 203, .055); }
+.public-site .conversation-visitor-check > div { display: grid; width: 100%; min-height: 65px; place-items: start; overflow: hidden; }
+.public-site .conversation-visitor-check small { color: rgba(235, 229, 212, .56); font-size: 10px; line-height: 1.6; }
 .public-site .conversation-composer footer { display: flex; justify-content: space-between; gap: 15px; align-items: center; }
 .public-site .conversation-composer footer small { color: rgba(235, 229, 212, .45); font-size: 9px; }
 .public-site .conversation-composer button { min-height: 40px; padding: 9px 16px; color: #102020; border: 0; background: #bfe9df; box-shadow: 4px 4px 0 rgba(111, 64, 73, .4); cursor: pointer; font-weight: 800; letter-spacing: .06em; }
@@ -768,6 +773,7 @@
 [data-identity-color="silver"] { --identity: #cbd5e1 !important; }
 
 @media (max-width: 720px) {
+  .public-site .conversation-visitor-check > div { min-height: 140px; place-items: center; }
   .conversation-admin-metrics { grid-template-columns: 1fr; }
   .conversation-admin-toolbar { display: grid; }
   .conversation-admin-toolbar > p { text-align: left; }
