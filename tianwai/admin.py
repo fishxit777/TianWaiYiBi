@@ -60,6 +60,7 @@ from .conversations import (
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+PAYMENT_VERIFICATION_AMOUNT = 5
 
 IDEA_ACCENTS = {"cinnabar", "jade", "gold", "azure", "violet", "silver"}
 IDEA_TEXT_RULES = {
@@ -881,8 +882,8 @@ def create_payment_verification_order():
         return guard
     data = request.get_json(silent=True) or {}
     confirm_amount = data.get("confirm_amount")
-    if isinstance(confirm_amount, bool) or confirm_amount != 1:
-        return jsonify({"error": "請明確確認本次驗證金額為 NT$1"}), 400
+    if isinstance(confirm_amount, bool) or confirm_amount != PAYMENT_VERIFICATION_AMOUNT:
+        return jsonify({"error": "請明確確認本次驗證金額為 NT$5"}), 400
 
     from .payments import (
         checkout_url_for,
@@ -893,7 +894,7 @@ def create_payment_verification_order():
 
     status = payment_checkout_status(verification=True)
     if not status["ready"] or status["provider"] != "ecpay":
-        return jsonify({"error": "NT$1 正式驗證模式尚未安全就緒"}), 409
+        return jsonify({"error": "NT$5 正式驗證模式尚未安全就緒"}), 409
 
     connection = get_db()
     active = connection.execute(
@@ -906,7 +907,7 @@ def create_payment_verification_order():
     replaced_order_no = None
     if active is not None:
         if active["status"] == "paid":
-            return jsonify({"error": "上一筆 NT$1 驗證訂單尚未完成退款與撤權"}), 409
+            return jsonify({"error": "上一筆 NT$5 驗證訂單尚未完成退款與撤權"}), 409
         retry_order_no = str(data.get("retry_order_no") or "").strip()
         if not retry_order_no:
             payment_token = verification_payment_token(active["order_no"])
@@ -951,12 +952,13 @@ def create_payment_verification_order():
             (order_no, idea_id, customer_name, customer_email, amount, status,
              purpose, payment_provider, payment_token_hash, access_token_hash,
              activation_token_hash, created_at)
-        VALUES (?, ?, '金流驗收', ?, 1, 'pending', 'verification', ?, ?, ?, ?, ?)
+        VALUES (?, ?, '金流驗收', ?, ?, 'pending', 'verification', ?, ?, ?, ?, ?)
         """,
         (
             order_no,
             idea["id"],
             verification_email,
+            PAYMENT_VERIFICATION_AMOUNT,
             status["provider"],
             hash_token(payment_token),
             hash_token(access_token),
@@ -978,14 +980,18 @@ def create_payment_verification_order():
         log_audit(
             "replace_pending_payment_verification_order",
             replaced_order_no,
-            f"replacement={order_no};amount=1;purpose=verification",
+            f"replacement={order_no};amount={PAYMENT_VERIFICATION_AMOUNT};purpose=verification",
         )
-    log_audit("create_payment_verification_order", order_no, "amount=1;purpose=verification")
+    log_audit(
+        "create_payment_verification_order",
+        order_no,
+        f"amount={PAYMENT_VERIFICATION_AMOUNT};purpose=verification",
+    )
     return (
         jsonify(
             {
                 "order_no": order_no,
-                "amount": 1,
+                "amount": PAYMENT_VERIFICATION_AMOUNT,
                 "checkout_url": checkout_url_for(payment_token, verification=True),
                 "payment_provider": "ecpay",
                 "result": "replaced" if replaced_order_no else "created",
@@ -1022,21 +1028,21 @@ def confirm_payment_verification_refund(order_no):
         )
     if (
         order["purpose"] != "verification"
-        or int(order["amount"]) != 1
+        or int(order["amount"]) != PAYMENT_VERIFICATION_AMOUNT
         or order["status"] != "paid"
         or order["payment_provider"] != "ecpay-production"
         or not str(order["payment_method"] or "").lower().startswith("credit_")
         or not order["payment_ref"]
     ):
-        return jsonify({"error": "此訂單不符合 NT$1 正式信用卡退款撤權條件"}), 409
+        return jsonify({"error": "此訂單不符合 NT$5 正式信用卡退款撤權條件"}), 409
 
     now = utc_now()
     updated = connection.execute(
         """
         UPDATE orders SET status = 'refunded', refunded_at = ?
-        WHERE id = ? AND status = 'paid' AND purpose = 'verification' AND amount = 1
+        WHERE id = ? AND status = 'paid' AND purpose = 'verification' AND amount = ?
         """,
-        (now, order["id"]),
+        (now, order["id"], PAYMENT_VERIFICATION_AMOUNT),
     )
     if updated.rowcount != 1:
         connection.rollback()
@@ -1045,9 +1051,14 @@ def confirm_payment_verification_refund(order_no):
         """
         INSERT INTO refund_events
             (event_id, order_id, provider, amount, method, result, created_at)
-        VALUES (?, ?, 'ecpay-production', 1, 'ecpay-dashboard', 'confirmed', ?)
+        VALUES (?, ?, 'ecpay-production', ?, 'ecpay-dashboard', 'confirmed', ?)
         """,
-        (f"ecpay-dashboard:{order['order_no']}", order["id"], now),
+        (
+            f"ecpay-dashboard:{order['order_no']}",
+            order["id"],
+            PAYMENT_VERIFICATION_AMOUNT,
+            now,
+        ),
     )
     connection.execute(
         """
@@ -1099,7 +1110,7 @@ def confirm_payment_verification_refund(order_no):
     log_audit(
         "confirm_payment_verification_refund",
         order["order_no"],
-        "amount=1;provider=ecpay-production;entitlement_revoked",
+        f"amount={PAYMENT_VERIFICATION_AMOUNT};provider=ecpay-production;entitlement_revoked",
     )
     return jsonify(
         {"result": "refund_confirmed", "status": "refunded", "order_no": order["order_no"]}

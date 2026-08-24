@@ -75,7 +75,7 @@ def payment_checkout_status(verification=False):
         return {
             "provider": "ecpay" if ready else "unavailable",
             "label": (
-                "綠界 NT$1 驗證模式"
+                "綠界 NT$5 驗證模式"
                 if verification and config["mode"] == "production"
                 else ("綠界測試金流" if config["mode"] == "stage" else "綠界正式金流")
             ),

@@ -23,7 +23,7 @@ def _create_verification_order(client, monkeypatch):
     csrf = login_admin(client)
     response = client.post(
         "/admin/api/payment-verification/orders",
-        json={"confirm_amount": 1},
+        json={"confirm_amount": 5},
         headers={"X-CSRF-Token": csrf},
     )
     assert response.status_code == 201
@@ -38,7 +38,7 @@ def _paid_notice(order, payment_type="Credit_CreditCard"):
         "RtnCode": "1",
         "RtnMsg": "Success",
         "TradeNo": "2608241234567890",
-        "TradeAmt": "1",
+        "TradeAmt": "5",
         "PaymentDate": "2026/08/24 12:34:56",
         "PaymentType": payment_type,
         "PaymentTypeChargeFee": "1",
@@ -56,32 +56,32 @@ def _paid_notice(order, payment_type="Credit_CreditCard"):
 def test_verification_order_requires_admin_csrf_and_explicit_live_switch(client, monkeypatch):
     _configure_live_verification(monkeypatch)
     unauthenticated = client.post(
-        "/admin/api/payment-verification/orders", json={"confirm_amount": 1}
+        "/admin/api/payment-verification/orders", json={"confirm_amount": 5}
     )
     assert unauthenticated.status_code == 401
 
     csrf = login_admin(client)
     no_csrf = client.post(
-        "/admin/api/payment-verification/orders", json={"confirm_amount": 1}
+        "/admin/api/payment-verification/orders", json={"confirm_amount": 5}
     )
     assert no_csrf.status_code == 403
 
     monkeypatch.setenv("ECPAY_VERIFICATION_ENABLED", "false")
     disabled = client.post(
         "/admin/api/payment-verification/orders",
-        json={"confirm_amount": 1},
+        json={"confirm_amount": 5},
         headers={"X-CSRF-Token": csrf},
     )
     assert disabled.status_code == 409
 
 
-def test_verification_order_is_one_dollar_credit_only_without_opening_public_sales(
+def test_verification_order_uses_ecpay_minimum_credit_amount_without_opening_public_sales(
     client, app, monkeypatch
 ):
     csrf, order = _create_verification_order(client, monkeypatch)
 
     assert csrf
-    assert order["amount"] == 1
+    assert order["amount"] == 5
     assert order["order_no"].startswith("TWYBV")
     assert len(order["order_no"]) <= 20
     assert order["checkout_url"].startswith("/pay/ecpay/")
@@ -90,7 +90,7 @@ def test_verification_order_is_one_dollar_credit_only_without_opening_public_sal
 
     redirect_page = client.get(order["checkout_url"])
     assert redirect_page.status_code == 200
-    assert b'name="TotalAmount" value="1"' in redirect_page.data
+    assert b'name="TotalAmount" value="5"' in redirect_page.data
     assert b'name="ChoosePayment" value="Credit"' in redirect_page.data
     assert b'name="UnionPay" value="2"' in redirect_page.data
     assert b'name="BindingCard" value="0"' in redirect_page.data
@@ -120,7 +120,7 @@ def test_verification_order_is_one_dollar_credit_only_without_opening_public_sal
             "SELECT amount, purpose, status FROM orders WHERE order_no = ?",
             (order["order_no"],),
         ).fetchone()
-        assert dict(stored) == {"amount": 1, "purpose": "verification", "status": "pending"}
+        assert dict(stored) == {"amount": 5, "purpose": "verification", "status": "pending"}
 
 
 def test_pending_verification_order_can_be_safely_replaced_for_a_fresh_ecpay_session(
@@ -130,7 +130,7 @@ def test_pending_verification_order_can_be_safely_replaced_for_a_fresh_ecpay_ses
 
     existing = client.post(
         "/admin/api/payment-verification/orders",
-        json={"confirm_amount": 1},
+        json={"confirm_amount": 5},
         headers={"X-CSRF-Token": csrf},
     )
     assert existing.status_code == 200
@@ -139,14 +139,14 @@ def test_pending_verification_order_can_be_safely_replaced_for_a_fresh_ecpay_ses
 
     wrong = client.post(
         "/admin/api/payment-verification/orders",
-        json={"confirm_amount": 1, "retry_order_no": "TWYBV-WRONG"},
+        json={"confirm_amount": 5, "retry_order_no": "TWYBV-WRONG"},
         headers={"X-CSRF-Token": csrf},
     )
     assert wrong.status_code == 409
 
     replacement = client.post(
         "/admin/api/payment-verification/orders",
-        json={"confirm_amount": 1, "retry_order_no": first["order_no"]},
+        json={"confirm_amount": 5, "retry_order_no": first["order_no"]},
         headers={"X-CSRF-Token": csrf},
     )
     assert replacement.status_code == 201
@@ -164,7 +164,7 @@ def test_pending_verification_order_can_be_safely_replaced_for_a_fresh_ecpay_ses
         ]
 
 
-def test_live_one_dollar_callback_delivers_activates_then_refund_confirmation_revokes_access(
+def test_live_minimum_amount_callback_delivers_activates_then_refund_confirmation_revokes_access(
     client, app, monkeypatch
 ):
     csrf, order = _create_verification_order(client, monkeypatch)
@@ -237,7 +237,7 @@ def test_live_one_dollar_callback_delivers_activates_then_refund_confirmation_re
         assert device["revoked_at"]
         assert device["revoked_reason"] == "verification_refunded"
         assert dict(refund_event) == {
-            "amount": 1,
+            "amount": 5,
             "method": "ecpay-dashboard",
             "result": "confirmed",
         }
@@ -257,7 +257,7 @@ def test_verification_callback_rejects_wrong_amount_and_simulated_payment(
 
     simulated = _paid_notice(order)
     simulated["TradeNo"] = "2608249999999999"
-    simulated["TradeAmt"] = "1"
+    simulated["TradeAmt"] = "5"
     simulated["SimulatePaid"] = "1"
     simulated["CheckMacValue"] = ecpay_check_mac_value(
         simulated, "verification-hash-key", "verification-hash-iv"
@@ -287,7 +287,7 @@ def test_dashboard_excludes_verification_order_from_business_metrics(client, mon
     assert "verification-hash" not in serialized
 
 
-def test_admin_dashboard_has_separate_one_dollar_verification_controls(client):
+def test_admin_dashboard_has_separate_minimum_amount_verification_controls(client):
     login_admin(client)
     body = client.get("/admin").get_data(as_text=True)
 
@@ -295,8 +295,8 @@ def test_admin_dashboard_has_separate_one_dollar_verification_controls(client):
     assert 'id="create-payment-verification"' in body
     assert 'id="replace-payment-verification"' in body
     assert 'id="confirm-payment-verification-refund"' in body
-    assert "payment-verification-v3" in body
-    assert "NT$1 正式付款驗證" in body
+    assert "payment-verification-v4" in body
+    assert "NT$5 正式付款驗證" in body
 
 
 def test_payment_processing_locks_postgres_order_before_deduplication_update():
