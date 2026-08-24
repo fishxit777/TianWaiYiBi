@@ -9,4 +9,5 @@ data/*.db-*
 *.twybenc
 *backup-private*.pem
 *recovery-codes*.txt
+_local/
 

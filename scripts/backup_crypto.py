@@ -15,19 +15,20 @@ MAGIC = b"TWYBPG01"
 TAG_BYTES = 16
 CHUNK_BYTES = 1024 * 1024
 MAX_HEADER_BYTES = 64 * 1024
+MIN_RSA_BITS = 4096
 
 
 def _public_key_from_pem(pem):
     key = serialization.load_pem_public_key(bytes(pem))
-    if not isinstance(key, rsa.RSAPublicKey) or key.key_size < 3072:
-        raise ValueError("Backup public key must be RSA with at least 3072 bits")
+    if not isinstance(key, rsa.RSAPublicKey) or key.key_size < MIN_RSA_BITS:
+        raise ValueError(f"Backup public key must be RSA with at least {MIN_RSA_BITS} bits")
     return key
 
 
 def _private_key_from_pem(pem, password=None):
     key = serialization.load_pem_private_key(bytes(pem), password=password)
-    if not isinstance(key, rsa.RSAPrivateKey) or key.key_size < 3072:
-        raise ValueError("Backup private key must be RSA with at least 3072 bits")
+    if not isinstance(key, rsa.RSAPrivateKey) or key.key_size < MIN_RSA_BITS:
+        raise ValueError(f"Backup private key must be RSA with at least {MIN_RSA_BITS} bits")
     return key
 
 

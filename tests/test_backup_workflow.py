@@ -1,4 +1,6 @@
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 from cryptography.exceptions import InvalidTag
@@ -10,7 +12,7 @@ from scripts.backup_crypto import MAGIC, decrypt_file, encrypt_file
 
 @pytest.fixture(scope="module")
 def rsa_material():
-    private_key = rsa.generate_private_key(public_exponent=65537, key_size=3072)
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
     private_pem = private_key.private_bytes(
         serialization.Encoding.PEM,
         serialization.PrivateFormat.PKCS8,
@@ -58,15 +60,48 @@ def test_tampered_backup_fails_authentication(tmp_path, rsa_material):
 
 
 def test_backup_encryption_rejects_weak_rsa_key(tmp_path):
-    weak = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    weak = rsa.generate_private_key(public_exponent=65537, key_size=3072)
     weak_public = weak.public_key().public_bytes(
         serialization.Encoding.PEM,
         serialization.PublicFormat.SubjectPublicKeyInfo,
     )
     source = tmp_path / "source.dump"
     source.write_bytes(b"content")
-    with pytest.raises(ValueError, match="at least 3072 bits"):
+    with pytest.raises(ValueError, match="at least 4096 bits"):
         encrypt_file(source, tmp_path / "output.twybenc", weak_public)
+
+
+def test_explicit_offline_passwordless_generator_creates_matching_rsa4096_pair(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    private_path = tmp_path / "backup-private.pem"
+    public_path = tmp_path / "backup-public.pem"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "generate_backup_keypair.py"),
+            "--private-key",
+            str(private_path),
+            "--public-key",
+            str(public_path),
+            "--offline-passwordless",
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "PRIVATE KEY" not in result.stdout
+    private_key = serialization.load_pem_private_key(private_path.read_bytes(), password=None)
+    public_key = serialization.load_pem_public_key(public_path.read_bytes())
+    assert isinstance(private_key, rsa.RSAPrivateKey)
+    assert isinstance(public_key, rsa.RSAPublicKey)
+    assert private_key.key_size == 4096
+    assert public_key.key_size == 4096
+    assert private_key.public_key().public_numbers() == public_key.public_numbers()
 
 
 def test_workflow_uploads_only_validated_encrypted_artifact_with_free_limits():

@@ -13,8 +13,10 @@ def main():
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--private-key-file", required=True, type=Path)
     args = parser.parse_args()
-    password = getpass.getpass("Backup private-key passphrase: ").encode("utf-8")
-    decrypt_file(args.input, args.output, args.private_key_file.read_bytes(), password=password)
+    private_pem = args.private_key_file.read_bytes()
+    encrypted = private_pem.lstrip().startswith(b"-----BEGIN ENCRYPTED PRIVATE KEY-----")
+    password = getpass.getpass("Backup private-key passphrase: ").encode("utf-8") if encrypted else None
+    decrypt_file(args.input, args.output, private_pem, password=password)
     print(f"Decrypted archive created at {args.output}")
 
 
