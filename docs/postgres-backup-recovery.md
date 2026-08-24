@@ -29,7 +29,7 @@
    - `NEON_BACKUP_DATABASE_URL`：只讀備份專用 PostgreSQL 連線；主機名稱必須從 Neon 當下的 Connect 面板取得，不得手動猜測或省略叢集識別段。
    - `BACKUP_PUBLIC_KEY_PEM`：離線 RSA-4096 公鑰。
 4. 正式手動工作流 #3（run `32696239051`）已成功，只產生加密 Artifact；完整證據記錄於 `docs/updates/2026-08-23-free-postgres-passkey.md`。
-5. GitHub「Billing and licensing → Budgets and alerts」仍建議為 Actions 建立 `$0` metered budget、勾選 **Stop usage when budget limit is reached**，並開啟 included usage 90%／100% 通知。
+5. GitHub 帳號層級 budget 可能影響同一帳號的其他儲存庫，故不列為本專案設定步驟，也不擅自修改；它是可選的帳務成本控制，不是本次備份與還原的完成條件。
 
 ## 離線還原演練（每季一次）
 
@@ -64,7 +64,8 @@
 - PostgreSQL 17.11 隔離還原：`pg_restore` exit code 0，沒有診斷錯誤。
 - 正式來源與還原結果：24 張表、164 筆；24 張表逐表筆數與 SHA-256 全部一致。
 - 隔離叢集、明文 dump 與日誌已在核對後刪除；正式 Passkey、復原碼與管理 session 均未被撤銷或消耗。
+- 未使用且不擁有資料庫的臨時角色 `twyb_backup` 已永久刪除；production 只保留正式擁有者與唯讀備份角色 `twyb_backup_ro`。
 
 ## 免費額度保護
 
-GitHub Free 的 Actions 與 Artifact 額度可能調整，不能把文件中的數字當成永久保證。現行工作預估每天少於 3 分鐘，14 份各自受 25 MB 上限約束；仍應定期查看 GitHub 當月用量與預算通知。
+GitHub Free 的 Actions 與 Artifact 額度可能調整，不能把文件中的數字當成永久保證。現行工作預估每天少於 3 分鐘，14 份各自受 25 MB 上限約束；每月查看用量屬例行維運。帳號層級 budget 可由持有人日後依所有儲存庫的共同用量決定，不影響本專案災難復原已完成的結論。
