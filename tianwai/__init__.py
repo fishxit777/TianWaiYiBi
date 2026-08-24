@@ -83,7 +83,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "hybrid-section-conversations-v1",
+                "release": "volume-two-conversations-v2",
             }
         )
 

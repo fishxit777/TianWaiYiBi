@@ -16,6 +16,16 @@
     if (Number.isNaN(parsed.getTime())) return value.slice(0, 16).replace('T', ' ');
     return new Intl.DateTimeFormat('zh-TW', {month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'}).format(parsed);
   };
+  const activityStorageKey = (slug, visibility, scope = 'public') => `twyb:idea-transmission-seen:${slug}:${visibility}:${visibility === 'private' ? scope : 'public'}`;
+  const markActivitySeen = (slug, visibility, marker, scope = 'public') => {
+    if (!slug || !Number(marker)) return;
+    try {
+      localStorage.setItem(activityStorageKey(slug, visibility, scope), String(marker));
+      window.dispatchEvent(new CustomEvent('twyb:conversation-seen', {detail: {slug, visibility}}));
+    } catch (_error) {
+      // The conversation remains usable when storage is unavailable.
+    }
+  };
 
   widgets.forEach((widget) => {
     const trigger = widget.querySelector('[data-conversation-trigger]');
@@ -121,6 +131,7 @@
         (data.messages || []).forEach((message) => timeline.append(renderMessage(message)));
         if (!data.messages?.length) renderEmpty();
         status.textContent = data.messages?.length ? `已顯示 ${data.messages.length} 則${visibility === 'public' ? '公開' : '私密'}傳音。` : '此卷正等待第一道回聲。';
+        markActivitySeen(ideaSlug, visibility, data.latest_activity_id, data.viewer?.activity_scope || 'anonymous');
       } catch (error) {
         if (error.name === 'AbortError') return;
         timeline.replaceChildren();

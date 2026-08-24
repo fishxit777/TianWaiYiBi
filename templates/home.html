@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "_conversation_widget.html" import conversation_widget %}
 {% block title %}天外一筆・仙策閣｜想法販售・創意支援{% endblock %}
 {% block hero_image_preload %}
   <link rel="preload" href="{{ url_for('static', filename='brand/home-title-xianxia-v14.webp') }}" as="image" type="image/webp" fetchpriority="high">
@@ -38,8 +37,6 @@
   <div class="cloud cloud-a" aria-hidden="true"></div>
   <div class="cloud cloud-b" aria-hidden="true"></div>
 </section>
-{{ conversation_widget('home-hero', '卷首・一筆開天') }}
-
 <section id="world-note" class="world-note section-shell reveal">
   <div class="world-chapter-mark" aria-label="卷一・擇法">
     <span>卷一</span>
@@ -55,12 +52,13 @@
     <span class="ink-line" aria-hidden="true"></span>
   </div>
 </section>
-{{ conversation_widget('home-world', '卷一・擇法') }}
-
 <section id="ideas" class="ideas-section section-shell">
   <header class="section-heading reveal">
     <div>
       <p class="section-index">卷二・六脈仙策</p>
+      <p class="ideas-activity-summary" data-ideas-activity-summary role="status" aria-live="polite" hidden>
+        <span aria-hidden="true"></span><strong>六脈已有傳音</strong><small>查看下方標記仙策</small>
+      </p>
       <h2>依難題，選你的<br class="mobile-title-break">同道。</h2>
       <p class="section-deck">先選你想解決的局，再看哪位修士的專長最接近。每脈都有清楚用途、交付內容與統一試行價。</p>
     </div>
@@ -78,7 +76,7 @@
 
   <div class="idea-grid">
     {% for idea in ideas %}
-    <article class="idea-card accent-{{ idea['accent'] }} reveal" data-tags="{{ idea['tags'] }}">
+    <article class="idea-card accent-{{ idea['accent'] }} reveal" data-tags="{{ idea['tags'] }}" data-idea-slug="{{ idea['slug'] }}">
       <a class="idea-card-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}" aria-label="查看{{ idea['role'] }}：{{ idea['title'] }}">
         <div class="idea-card-top">
           <span class="idea-number">0{{ loop.index }}</span>
@@ -94,14 +92,16 @@
         </div>
         <footer>
           <span>NT${{ idea['price_override'] if idea['price_override'] is not none else global_price }}</span>
-          <strong>翻閱心法 <span aria-hidden="true">↗</span></strong>
+          <span class="idea-card-actions">
+            <em class="idea-activity-badge" data-idea-activity data-idea-slug="{{ idea['slug'] }}" role="status" aria-live="polite" hidden></em>
+            <strong>翻閱心法 <span aria-hidden="true">↗</span></strong>
+          </span>
         </footer>
       </a>
     </article>
     {% endfor %}
   </div>
 </section>
-{{ conversation_widget('home-ideas', '卷二・六脈仙策') }}
 
 <section id="how" class="how-section section-shell">
   <div class="how-intro reveal">
@@ -115,7 +115,6 @@
     <li class="reveal delay-2"><span>參</span><div><h3>照表執行驗證</h3><p>用行動與數字判斷，不用感覺自我說服。</p></div></li>
   </ol>
 </section>
-{{ conversation_widget('home-how', '卷三・入世之法') }}
 
 <section id="creed" class="creed-section section-shell">
   <header class="creed-heading reveal">
@@ -130,7 +129,6 @@
     <article class="reveal"><span>一程</span><h3>長路共修</h3><p>不求一夜飛昇，只求每次選擇都更接近可持續、可複用、能累積的成果。</p></article>
   </div>
 </section>
-{{ conversation_widget('home-creed', '卷四・仙閣心訣') }}
 
 <section id="transmission" class="line-portal section-shell reveal">
   <img class="line-glyph" src="{{ url_for('static', filename='brand/line-avatar-1254.png') }}" alt="天外一筆仙策靈使傳音法印">
@@ -144,5 +142,4 @@
   <a class="button button-ghost" href="{{ url_for('public.transmission') }}"><span>傳音給守閣者</span><small>開啟 LINE 接引</small></a>
   <p class="transmission-assurance"><span>由本人接續</span><span>不索取密碼</span><span>付款問題可詢問</span></p>
 </section>
-{{ conversation_widget('home-transmission', '卷五・傳音閣') }}
 {% endblock %}

@@ -1,5 +1,118 @@
 (() => {
   const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const activityStorageKey = (slug, visibility, scope = 'public') => `twyb:idea-transmission-seen:${slug}:${visibility}:${visibility === 'private' ? scope : 'public'}`;
+  const readActivityMarker = (slug, visibility, scope = 'public') => {
+    try {
+      const value = Number.parseInt(localStorage.getItem(activityStorageKey(slug, visibility, scope)) || '0', 10);
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    } catch (_error) {
+      return 0;
+    }
+  };
+  const activityTargets = [...document.querySelectorAll('[data-idea-activity]')];
+  const activitySummary = document.querySelector('[data-ideas-activity-summary]');
+  const activityNav = document.querySelector('[data-ideas-nav-activity]');
+
+  const setActivityState = (node, label, state) => {
+    if (!node) return;
+    node.textContent = label;
+    node.dataset.state = state;
+    node.hidden = false;
+  };
+
+  const clearActivityState = (node) => {
+    if (!node) return;
+    node.hidden = true;
+    node.textContent = '';
+    delete node.dataset.state;
+  };
+
+  const loadIdeaActivity = async () => {
+    if (!activityTargets.length && !activitySummary && !activityNav) return;
+    try {
+      const response = await fetch('/api/conversations/idea-activity', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {'Accept': 'application/json'}
+      });
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data.ideas)) throw new Error('activity unavailable');
+      const activityBySlug = new Map(data.ideas.map((item) => [item.slug, item]));
+      const activityScope = data.viewer?.activity_scope || 'anonymous';
+      let hasExisting = false;
+      let hasNewPublic = false;
+      let hasPrivateReply = false;
+
+      const stateFor = (item) => {
+        const seenPublic = readActivityMarker(item.slug, 'public');
+        const seenPrivate = readActivityMarker(item.slug, 'private', activityScope);
+        if (Number(item.latest_private_reply_id || 0) > seenPrivate) {
+          return {label: '有新回覆', state: 'reply'};
+        }
+        if (seenPublic > 0 && Number(item.latest_public_id || 0) > seenPublic) {
+          return {label: '新傳音', state: 'unread'};
+        }
+        if (Number(item.public_count || 0) > 0) {
+          return {label: '已有傳音', state: 'existing'};
+        }
+        return null;
+      };
+
+      data.ideas.forEach((item) => {
+        const activityState = stateFor(item);
+        if (activityState?.state === 'reply') hasPrivateReply = true;
+        else if (activityState?.state === 'unread') hasNewPublic = true;
+        else if (activityState?.state === 'existing') hasExisting = true;
+      });
+
+      activityTargets.forEach((target) => {
+        const item = activityBySlug.get(target.dataset.ideaSlug || '');
+        if (!item) {
+          clearActivityState(target);
+          return;
+        }
+        const activityState = stateFor(item);
+        if (activityState) {
+          setActivityState(target, activityState.label, activityState.state);
+        } else {
+          clearActivityState(target);
+        }
+      });
+
+      const aggregateLabel = hasPrivateReply
+        ? '六脈有新回覆'
+        : (hasNewPublic ? '六脈有新傳音' : (hasExisting ? '六脈已有傳音' : ''));
+      const aggregateState = hasPrivateReply ? 'reply' : (hasNewPublic ? 'unread' : 'existing');
+      if (aggregateLabel) {
+        if (activitySummary) {
+          activitySummary.querySelector('strong').textContent = aggregateLabel;
+          activitySummary.dataset.state = aggregateState;
+          activitySummary.hidden = false;
+        }
+        setActivityState(
+          activityNav,
+          hasPrivateReply ? '新回覆' : (hasNewPublic ? '新傳音' : '有傳音'),
+          aggregateState
+        );
+      } else {
+        if (activitySummary) {
+          activitySummary.hidden = true;
+          delete activitySummary.dataset.state;
+        }
+        clearActivityState(activityNav);
+      }
+    } catch (_error) {
+      activityTargets.forEach(clearActivityState);
+      if (activitySummary) activitySummary.hidden = true;
+      clearActivityState(activityNav);
+    }
+  };
+
+  loadIdeaActivity();
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) loadIdeaActivity();
+  });
+  window.addEventListener('twyb:conversation-seen', loadIdeaActivity);
 
   document.querySelectorAll('[data-filter]').forEach((button) => {
     button.addEventListener('click', () => {

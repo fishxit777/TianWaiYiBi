@@ -50,7 +50,7 @@ from .recovery import (
 )
 from .turnstile import turnstile_configured, turnstile_site_key, verify_turnstile
 from .conversations import (
-    HOME_SECTIONS,
+    IDEA_SECTION,
     customer_identity,
     message_query,
     normalize_message_body,
@@ -620,10 +620,13 @@ def dashboard_data():
             SUM(CASE WHEN visibility = 'public' AND status = 'published' THEN 1 ELSE 0 END) AS public_count,
             SUM(CASE WHEN visibility = 'private' AND status = 'published' THEN 1 ELSE 0 END) AS private_count
         FROM section_messages
+        WHERE section_key = 'idea-detail' AND idea_id IS NOT NULL
         """
     ).fetchone()
     conversation_rows = connection.execute(
-        f"{message_query()} ORDER BY section_messages.id DESC LIMIT 100"
+        f"{message_query()} WHERE section_messages.section_key = 'idea-detail' "
+        "AND section_messages.idea_id IS NOT NULL "
+        "ORDER BY section_messages.id DESC LIMIT 100"
     ).fetchall()
     conversation_customers = connection.execute(
         """
@@ -758,11 +761,8 @@ def dashboard_data():
                 for row in conversation_customers
             ],
             "conversation_sections": [
-                {"key": key, "label": label, "idea_slug": ""}
-                for key, label in HOME_SECTIONS.items()
-            ] + [
                 {
-                    "key": "idea-detail",
+                    "key": IDEA_SECTION,
                     "label": f"仙策・{row['title']}",
                     "idea_slug": row["slug"],
                 }
@@ -905,6 +905,8 @@ def reply_to_conversation():
         return jsonify({"error": "指定客戶與原始傳音不一致"}), 400
 
     if reply_to is not None:
+        if reply_to["section_key"] != IDEA_SECTION or reply_to["idea_id"] is None:
+            return jsonify({"error": "只支援六脈仙策傳音"}), 404
         section_key = reply_to["section_key"]
         idea_id = reply_to["idea_id"]
     else:

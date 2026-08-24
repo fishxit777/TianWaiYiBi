@@ -1,6 +1,6 @@
 {% macro conversation_widget(section_key, section_label, idea_slug='') %}
 {% set widget_id = 'conversation-' ~ section_key ~ ('-' ~ idea_slug if idea_slug else '') %}
-<aside class="conversation-dock section-shell" data-conversation-widget data-section-key="{{ section_key }}" data-section-label="{{ section_label }}"{% if idea_slug %} data-idea-slug="{{ idea_slug }}"{% endif %}>
+<aside id="{{ widget_id }}" class="conversation-dock section-shell" data-conversation-widget data-section-key="{{ section_key }}" data-section-label="{{ section_label }}"{% if idea_slug %} data-idea-slug="{{ idea_slug }}"{% endif %}>
   <button class="conversation-trigger" type="button" aria-expanded="false" aria-controls="{{ widget_id }}-panel" data-conversation-trigger>
     <span class="conversation-trigger-mark" aria-hidden="true">談</span>
     <span class="conversation-trigger-copy"><small>{{ section_label }}</small><strong>在此卷留下傳音</strong></span>

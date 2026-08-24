@@ -47,14 +47,22 @@ def _login_customer(app, client, public_id="TYB-COMMENT-A001", email="comment-a@
     return customer["id"]
 
 
-def _post_message(client, csrf, **overrides):
+def _conversation_url(visibility="public", slug="mvp-sword-cut"):
+    return (
+        "/api/conversations/idea-detail"
+        f"?visibility={visibility}&idea_slug={slug}"
+    )
+
+
+def _post_message(client, csrf, slug="mvp-sword-cut", **overrides):
     payload = {
         "visibility": "public",
         "body": "這一卷的方法很清楚，我想知道下一步。",
+        "idea_slug": slug,
     }
     payload.update(overrides)
     return client.post(
-        "/api/conversations/home-world/messages",
+        "/api/conversations/idea-detail/messages",
         json=payload,
         headers={"X-CSRF-Token": csrf},
     )
@@ -85,12 +93,12 @@ def test_conversation_schema_exists_in_both_database_dialects(app):
 
 
 def test_public_read_is_anonymous_but_writing_and_private_read_require_login(client):
-    public = client.get("/api/conversations/home-world?visibility=public")
+    public = client.get(_conversation_url())
     assert public.status_code == 200
     assert public.get_json()["messages"] == []
     assert public.get_json()["viewer"]["authenticated"] is False
 
-    private = client.get("/api/conversations/home-world?visibility=private")
+    private = client.get(_conversation_url("private"))
     rejected = _post_message(client, set_public_csrf(client))
 
     assert private.status_code == 401
@@ -106,7 +114,7 @@ def test_public_customer_message_waits_for_moderation_and_does_not_expose_identi
     assert created.get_json()["message"]["status"] == "pending"
     assert created.get_json()["message"]["badges"] == ["等待公開"]
 
-    own_view = client.get("/api/conversations/home-world?visibility=public").get_json()
+    own_view = client.get(_conversation_url()).get_json()
     assert len(own_view["messages"]) == 1
     assert own_view["messages"][0]["mine"] is True
     assert "comment-a@example.com" not in str(own_view)
@@ -120,9 +128,7 @@ def test_public_customer_message_waits_for_moderation_and_does_not_expose_identi
         assert "這一卷的方法很清楚" not in serialized_notifications
         assert "comment-a@example.com" not in serialized_notifications
 
-    anonymous = app.test_client().get(
-        "/api/conversations/home-world?visibility=public"
-    )
+    anonymous = app.test_client().get(_conversation_url())
     assert anonymous.status_code == 200
     assert anonymous.get_json()["messages"] == []
 
@@ -138,7 +144,7 @@ def test_private_messages_are_isolated_by_customer(app, client):
     )
     assert created.status_code == 201
 
-    own = client.get("/api/conversations/home-world?visibility=private")
+    own = client.get(_conversation_url("private"))
     assert [message["body"] for message in own.get_json()["messages"]] == [
         "這是只給守閣者看的內容。"
     ]
@@ -151,19 +157,19 @@ def test_private_messages_are_isolated_by_customer(app, client):
         public_id="TYB-COMMENT-B002",
         email="comment-b@example.com",
     )
-    other_view = other.get("/api/conversations/home-world?visibility=private")
+    other_view = other.get(_conversation_url("private"))
     assert other_view.status_code == 200
     assert other_view.get_json()["messages"] == []
 
 
 def test_alias_and_color_are_stable_but_color_is_not_the_only_identity(app, client):
     _login_customer(app, client)
-    first = client.get("/api/conversations/home-world?visibility=public").get_json()[
+    first = client.get(_conversation_url()).get_json()[
         "viewer"
     ]
-    second = client.get("/api/conversations/home-how?visibility=public").get_json()[
-        "viewer"
-    ]
+    second = client.get(
+        _conversation_url(slug="brand-world-forge")
+    ).get_json()["viewer"]
 
     assert first["alias"] == second["alias"]
     assert first["color"] == second["color"]
@@ -193,6 +199,18 @@ def test_customer_message_validation_rejects_markup_links_and_rate_limit(app, cl
 
 def test_invalid_section_and_unpublished_idea_context_are_rejected(app, client):
     assert client.get("/api/conversations/not-a-section?visibility=public").status_code == 404
+    for legacy_section in (
+        "home-hero",
+        "home-world",
+        "home-ideas",
+        "home-how",
+        "home-creed",
+        "home-transmission",
+    ):
+        assert (
+            client.get(f"/api/conversations/{legacy_section}?visibility=public").status_code
+            == 404
+        )
     assert (
         client.get(
             "/api/conversations/idea-detail?visibility=public&idea_slug=missing"
@@ -240,7 +258,8 @@ def test_admin_can_approve_hide_and_reply_without_public_customer_data(app, clie
     public_reply = client.post(
         "/admin/api/conversations/reply",
         json={
-            "section_key": "home-world",
+            "section_key": "idea-detail",
+            "idea_slug": "mvp-sword-cut",
             "visibility": "public",
             "customer_public_id": "TYB-COMMENT-A001",
             "reply_to_id": pending["id"],
@@ -251,7 +270,8 @@ def test_admin_can_approve_hide_and_reply_without_public_customer_data(app, clie
     private_reply = client.post(
         "/admin/api/conversations/reply",
         json={
-            "section_key": "home-world",
+            "section_key": "idea-detail",
+            "idea_slug": "mvp-sword-cut",
             "visibility": "private",
             "customer_public_id": "TYB-COMMENT-A001",
             "reply_to_id": private["id"],
@@ -262,16 +282,12 @@ def test_admin_can_approve_hide_and_reply_without_public_customer_data(app, clie
     assert public_reply.status_code == 201
     assert private_reply.status_code == 201
 
-    public_view = app.test_client().get(
-        "/api/conversations/home-world?visibility=public"
-    ).get_json()
+    public_view = app.test_client().get(_conversation_url()).get_json()
     assert len(public_view["messages"]) == 2
     assert public_view["messages"][1]["author"]["label"] == "守閣者"
     assert public_view["messages"][1]["target"]["alias"].startswith("同道・")
 
-    private_view = client.get(
-        "/api/conversations/home-world?visibility=private"
-    ).get_json()
+    private_view = client.get(_conversation_url("private")).get_json()
     assert any(message["body"] == "這則只回覆給你。" for message in private_view["messages"])
 
     hidden = client.post(
@@ -282,7 +298,7 @@ def test_admin_can_approve_hide_and_reply_without_public_customer_data(app, clie
     assert hidden.status_code == 200
     assert len(
         app.test_client()
-        .get("/api/conversations/home-world?visibility=public")
+        .get(_conversation_url())
         .get_json()["messages"]
     ) == 1
 
@@ -313,14 +329,88 @@ def test_public_pages_render_reusable_accessible_conversation_widgets(client):
     home = client.get("/").get_data(as_text=True)
     detail = client.get("/ideas/mvp-sword-cut").get_data(as_text=True)
 
-    assert home.count('data-conversation-widget') == 6
-    assert 'data-section-key="home-hero"' in home
-    assert 'data-section-key="home-transmission"' in home
-    assert "公開傳音" in home
-    assert "私密傳音" in home
-    assert "顏色僅供輔助辨識" in home
+    assert home.count('data-conversation-widget') == 0
+    assert home.count('data-idea-activity') == 6
+    assert 'data-ideas-activity-summary' in home
+    assert 'data-ideas-nav-activity' in home
+    assert 'data-section-key="home-hero"' not in home
+    assert 'data-section-key="home-transmission"' not in home
     assert home.count("conversations.js") == 1
 
     assert detail.count('data-conversation-widget') == 1
     assert 'data-section-key="idea-detail"' in detail
     assert 'data-idea-slug="mvp-sword-cut"' in detail
+    assert 'id="conversation-idea-detail-mvp-sword-cut"' in detail
+
+
+def test_idea_activity_exposes_only_safe_public_and_customer_reply_markers(app, client):
+    _login_customer(app, client)
+    csrf = set_public_csrf(client, "conversation-activity-csrf")
+    pending = _post_message(client, csrf).get_json()["message"]
+    private = _post_message(
+        client,
+        csrf,
+        visibility="private",
+        body="只給守閣者的活動測試。",
+    ).get_json()["message"]
+
+    before_approval = client.get("/api/conversations/idea-activity")
+    before_item = next(
+        item
+        for item in before_approval.get_json()["ideas"]
+        if item["slug"] == "mvp-sword-cut"
+    )
+    assert before_item["public_count"] == 0
+    assert before_item["latest_public_id"] == 0
+    assert before_item["private_reply_count"] == 0
+    assert before_item["latest_private_reply_id"] == 0
+    assert len(before_approval.get_json()["viewer"]["activity_scope"]) == 20
+    assert "TYB-COMMENT-A001" not in str(before_approval.get_json())
+    assert before_approval.headers["Cache-Control"].startswith("no-store")
+
+    admin_csrf = login_admin(client)
+    assert client.post(
+        f"/admin/api/conversations/{pending['id']}/moderate",
+        json={"status": "published"},
+        headers={"X-CSRF-Token": admin_csrf},
+    ).status_code == 200
+    reply = client.post(
+        "/admin/api/conversations/reply",
+        json={
+            "section_key": "idea-detail",
+            "idea_slug": "mvp-sword-cut",
+            "visibility": "private",
+            "customer_public_id": "TYB-COMMENT-A001",
+            "reply_to_id": private["id"],
+            "body": "守閣者的私密活動回覆。",
+        },
+        headers={"X-CSRF-Token": admin_csrf},
+    )
+    assert reply.status_code == 201
+
+    activity = client.get("/api/conversations/idea-activity").get_json()
+    item = next(
+        candidate
+        for candidate in activity["ideas"]
+        if candidate["slug"] == "mvp-sword-cut"
+    )
+    assert item["public_count"] == 1
+    assert item["latest_public_id"] == pending["id"]
+    assert item["private_reply_count"] == 1
+    assert item["latest_private_reply_id"] == reply.get_json()["message"]["id"]
+    assert "body" not in str(activity)
+    assert "customer" not in str(activity)
+    assert client.get(_conversation_url()).get_json()["latest_activity_id"] == pending["id"]
+    assert (
+        client.get(_conversation_url("private")).get_json()["latest_activity_id"]
+        == reply.get_json()["message"]["id"]
+    )
+
+    anonymous = app.test_client().get("/api/conversations/idea-activity").get_json()
+    anonymous_item = next(
+        candidate
+        for candidate in anonymous["ideas"]
+        if candidate["slug"] == "mvp-sword-cut"
+    )
+    assert "private_reply_count" not in anonymous_item
+    assert "latest_private_reply_id" not in anonymous_item

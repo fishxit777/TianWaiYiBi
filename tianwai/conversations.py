@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import os
 import re
 import secrets
@@ -15,14 +16,6 @@ conversations_bp = Blueprint(
     "conversations", __name__, url_prefix="/api/conversations"
 )
 
-HOME_SECTIONS = {
-    "home-hero": "卷首・一筆開天",
-    "home-world": "卷一・擇法",
-    "home-ideas": "卷二・六脈仙策",
-    "home-how": "卷三・入世之法",
-    "home-creed": "卷四・仙閣心訣",
-    "home-transmission": "卷五・傳音閣",
-}
 IDEA_SECTION = "idea-detail"
 CUSTOMER_COLORS = ("jade", "gold", "azure", "violet", "coral", "silver")
 SHORT_WINDOW_LIMIT = 5
@@ -57,10 +50,14 @@ def keeper_identity():
     }
 
 
+def customer_activity_scope(public_id):
+    """Create an opaque browser read-state scope without exposing customer IDs."""
+    secret = str(current_app.config["SECRET_KEY"]).encode("utf-8")
+    return hmac.new(secret, str(public_id).encode("utf-8"), hashlib.sha256).hexdigest()[:20]
+
+
 def resolve_section_context(section_key, idea_slug="", include_unpublished=False):
     key = str(section_key or "").strip().lower()
-    if key in HOME_SECTIONS:
-        return {"key": key, "label": HOME_SECTIONS[key], "idea": None}
     if key != IDEA_SECTION:
         return None
     slug = str(idea_slug or "").strip().lower()[:100]
@@ -206,6 +203,76 @@ def _notify_admin_new_message(context, visibility, public_id):
         current_app.logger.exception("Unable to queue conversation notification")
 
 
+@conversations_bp.get("/idea-activity")
+def idea_activity():
+    """Return activity markers only; never return message bodies or identities."""
+    customer_session = current_customer_session()
+    customer_id = customer_session["customer_id"] if customer_session else None
+    rows = get_db().execute(
+        """
+        SELECT ideas.slug,
+               SUM(CASE
+                   WHEN section_messages.visibility = 'public'
+                    AND section_messages.status = 'published'
+                   THEN 1 ELSE 0 END) AS public_count,
+               MAX(CASE
+                   WHEN section_messages.visibility = 'public'
+                    AND section_messages.status = 'published'
+                   THEN section_messages.id ELSE 0 END) AS latest_public_id,
+               SUM(CASE
+                   WHEN section_messages.visibility = 'private'
+                    AND section_messages.status = 'published'
+                    AND section_messages.author_type = 'admin'
+                    AND section_messages.customer_id = ?
+                   THEN 1 ELSE 0 END) AS private_reply_count,
+               MAX(CASE
+                   WHEN section_messages.visibility = 'private'
+                    AND section_messages.status = 'published'
+                    AND section_messages.author_type = 'admin'
+                    AND section_messages.customer_id = ?
+                   THEN section_messages.id ELSE 0 END) AS latest_private_reply_id
+        FROM ideas
+        LEFT JOIN section_messages
+          ON section_messages.idea_id = ideas.id
+         AND section_messages.section_key = 'idea-detail'
+        WHERE ideas.published = 1
+        GROUP BY ideas.id, ideas.slug, ideas.sort_order
+        ORDER BY ideas.sort_order, ideas.id
+        """,
+        (customer_id, customer_id),
+    ).fetchall()
+    ideas = []
+    for row in rows:
+        item = {
+            "slug": row["slug"],
+            "public_count": int(row["public_count"] or 0),
+            "latest_public_id": int(row["latest_public_id"] or 0),
+        }
+        if customer_session is not None:
+            item.update(
+                {
+                    "private_reply_count": int(row["private_reply_count"] or 0),
+                    "latest_private_reply_id": int(
+                        row["latest_private_reply_id"] or 0
+                    ),
+                }
+            )
+        ideas.append(item)
+    viewer = {"authenticated": customer_session is not None}
+    if customer_session is not None:
+        viewer["activity_scope"] = customer_activity_scope(
+            customer_session["customer_public_id"]
+        )
+    return _no_store(
+        jsonify(
+            {
+                "viewer": viewer,
+                "ideas": ideas,
+            }
+        )
+    )
+
+
 @conversations_bp.get("/<section_key>")
 def list_messages(section_key):
     visibility = str(request.args.get("visibility", "public")).strip().lower()
@@ -243,13 +310,38 @@ def list_messages(section_key):
         f"{message_query()} WHERE {where} ORDER BY section_messages.created_at, section_messages.id LIMIT 60",
         tuple(parameters),
     ).fetchall()
+    marker_conditions, marker_parameters = _context_conditions(context)
+    if visibility == "public":
+        marker_parameters.extend(["public", "published"])
+        marker_where = (
+            f"{marker_conditions} AND section_messages.visibility = ? "
+            "AND section_messages.status = ?"
+        )
+    else:
+        marker_parameters.extend(
+            ["private", "published", "admin", customer_session["customer_id"]]
+        )
+        marker_where = (
+            f"{marker_conditions} AND section_messages.visibility = ? "
+            "AND section_messages.status = ? AND section_messages.author_type = ? "
+            "AND section_messages.customer_id = ?"
+        )
+    latest_activity_id = get_db().execute(
+        f"SELECT COALESCE(MAX(section_messages.id), 0) AS id "
+        f"FROM section_messages WHERE {marker_where}",
+        tuple(marker_parameters),
+    ).fetchone()["id"]
     viewer = {"authenticated": customer_session is not None}
     if customer_session is not None:
         viewer.update(customer_identity(customer_session["customer_public_id"], viewer=True))
+        viewer["activity_scope"] = customer_activity_scope(
+            customer_session["customer_public_id"]
+        )
     response = jsonify(
         {
             "section": {"key": context["key"], "label": context["label"]},
             "visibility": visibility,
+            "latest_activity_id": int(latest_activity_id or 0),
             "viewer": viewer,
             "messages": [
                 serialize_message(

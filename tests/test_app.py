@@ -3,7 +3,7 @@ def test_healthz_reports_ready(client):
 
     assert response.status_code == 200
     assert response.get_json()["status"] == "ok"
-    assert response.get_json()["release"] == "hybrid-section-conversations-v1"
+    assert response.get_json()["release"] == "volume-two-conversations-v2"
 
 
 def test_security_headers_are_present(client):
