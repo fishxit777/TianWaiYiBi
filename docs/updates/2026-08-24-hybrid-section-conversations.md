@@ -33,6 +33,8 @@
 - 桌機首頁實看：6 個元件、公開／私密切換、空白與未登入狀態正常。
 - 390×844 公開站：viewport／scroll width 均 375px，元件 347px，無根頁面水平溢位。
 - 隔離假資料後台：待審、私密數量、客戶匿名色標、審核按鈕與指定回覆預填正常；手機後台無根頁面水平溢位。
+- 正式提交 `a38a8c2` 已部署；`/healthz` 回 200、`release=hybrid-section-conversations-v1`。首頁 6 個元件、仙策詳情元件與 `static/conversations.js` 皆為 200；匿名公開 API 為 200，匿名私密 API 為 401 且 `Cache-Control: no-store`。
+- 正式驗收全程只讀，沒有建立測試留言、外寄測試訊息、使用真實客戶資料、消耗復原碼或撤銷 Passkey。
 
 ## 不在本次範圍
 

@@ -69,6 +69,7 @@
 - 2026-08-24 分區混合傳音 V1：`python -m pytest -q` 為 120 passed、1 skipped；其中傳音／資料遷移專項 16 passed。Python compileall、`node --check static/conversations.js`、`node --check static/admin.js` 與 `git diff --check` 通過。
 - 傳音權限驗收：匿名只能讀已公開訊息；待審訊息只讓投稿者本人看見；兩個客戶的私密訊息互不可見；管理核准、隱藏、公開回覆、私密指定回覆與 CSRF 均通過。外部管理通知未包含測試正文或 Email。
 - 分區傳音瀏覽器 QA：桌機首頁確認 6 個元件與公開／私密切換；390×844 手機根頁面 viewport 375px／scroll width 375px、面板與展開列 347px，無水平溢位。隔離假資料後台確認待審／私密數量、匿名色標、公開／隱藏／指定回覆按鈕與回覆表單自動帶入正確客戶及區塊；手機後台同樣無水平溢位。
+- 分區混合傳音 V1 已由提交 `a38a8c2` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=hybrid-section-conversations-v1`；正式首頁含 6 個傳音元件與新版腳本，仙策詳情含自己的傳音區塊。匿名公開 API 回 200 且 viewer 未登入，匿名私密 API 回 401 並帶 `no-store`；公開頁仍沒有 `/admin` 連結。正式煙霧測試未建立留言、未使用真實客戶資料、未消耗復原碼或變更 Passkey。
 - 免費 PostgreSQL＋Passkey 正式版：`python -m pytest -q` 為 103 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 執行。Passkey／復原／加密備份專項、Python compile、JavaScript syntax、`pip check`、依賴稽核、機密掃描與 `git diff --check` 均通過。
 - 2026-08-24 公開管理入口情報最小化後的最終本機驗證：`python -m pytest -q` 為 110 passed、1 skipped；`verify_postgres_backup_restore.py` 的直接 CLI 與 module invocation 均通過。
 - PostgreSQL 17.11 隔離整合測試另以本機臨時資料庫實跑 1 passed：新 challenge IP／時間索引已實際建立，每分鐘上限在 PostgreSQL 後端同樣生效；測試叢集與日誌已刪除。
