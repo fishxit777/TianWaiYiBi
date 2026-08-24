@@ -22,7 +22,7 @@
 - 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項仙策內容、單品價格、排序與上下架。
 - 正式資料層已具備 PostgreSQL 相容 schema、SQLite 完整性遷移／核對工具與 PostgreSQL 17 CI；未設定 `DATABASE_URL` 時才退回本機 SQLite。
 - 管理後台已具備 WebAuthn Passkey：至少兩把金鑰就緒才可停用密碼；緊急復原需 Argon2id 密碼＋一次性復原碼＋Turnstile，成功後仍須重建兩把 Passkey。
-- 每日 PostgreSQL 備份先驗證再以 AES-256-GCM／RSA-OAEP 加密；GitHub 只保存 14 天加密 Artifact，離線私鑰不進雲端。
+- 每日 PostgreSQL 備份先驗證再以 AES-256-GCM／RSA-OAEP 加密；GitHub 只保存 14 天加密 Artifact，離線私鑰不進雲端。2026-08-24 已完成正式 run、下載、解密、PostgreSQL 17.11 隔離還原與 24 表／164 筆逐表 checksum 驗收。
 - V13 Logo 已整合官網、LINE 頭像、favicon 與後台；正式 LINE 官方帳號、Messaging API 與公開 webhook 已完成接線。
 - 公開官網只保留六脈仙策、仙閣心訣與真人客服傳音入口；Logo 審稿、本機模擬器與管理後台不出現在公開導覽或頁尾。
 - 整個公開官網已統一使用自架「莫大毛筆」繁體書法字系：正文用原筆、主標用同系加粗，保留真實墨邊與飛白；首頁、六脈、結帳、付款、交付、訊息與傳音頁皆一致，放大仍維持向量銳利。後台與開發工具維持清楚的操作字體。
@@ -75,7 +75,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前本機自動驗證結果為 `103 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
+目前本機自動驗證結果為 `108 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
 
 ## 公開部署
 
@@ -86,7 +86,7 @@ python -m pytest -q
 - `WEBAUTHN_RP_ID=tianwai-yibi.onrender.com`
 - `WEBAUTHN_ORIGIN=https://tianwai-yibi.onrender.com`
 - `TURNSTILE_SITE_KEY`、`TURNSTILE_SECRET_KEY`（只供管理緊急復原，正式 hostname 限制為官網）
-- `ADMIN_RECOVERY_ENABLED`（完成兩把 Passkey、離線復原碼與實際演練前保持 `false`）
+- `ADMIN_RECOVERY_ENABLED`（只有兩把 Passkey、離線復原碼與 Turnstile 均已正式驗收後才可設為 `true`；目前正式站已啟用）
 - `ADMIN_PASSWORD`（只作首次輪替前或本機臨時相容；Hash 驗收後應從正式環境移除）
 - `LINE_CHANNEL_SECRET`
 - `LINE_CHANNEL_ACCESS_TOKEN`
@@ -99,7 +99,7 @@ python -m pytest -q
 - `ECPAY_STORE_ID`（固定使用 `TWYB`，供綠界後台對帳及 callback 隔離）
 - `SMTP_PASSWORD`
 
-GitHub Actions 另需 `NEON_BACKUP_DATABASE_URL` 與 `BACKUP_PUBLIC_KEY_PEM`；不得上傳離線私鑰。完整金鑰、備份與還原流程見 `docs/postgres-backup-recovery.md`。
+GitHub Actions 已設定 `NEON_BACKUP_DATABASE_URL` 與 `BACKUP_PUBLIC_KEY_PEM`；前者是唯讀備份角色，後者只有公鑰。離線私鑰不得上傳。完整金鑰、備份與還原流程見 `docs/postgres-backup-recovery.md`。
 
 `APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。設定 `DATABASE_URL` 時正式服務改用 PostgreSQL；未設定時才使用 `DATABASE_PATH` 指定的 SQLite。未設定 `BASE_URL` 時，LINE 卡片連結會自動使用目前公開請求的 HTTPS 網域。
 
@@ -130,7 +130,7 @@ py -3 scripts\admin_credential_handoff.py
 視窗會保留到正式登入驗收成功，期間可再次複製真正登入密碼，避免部署後鎖死；
 未交付 verifier 前 30 分鐘自動失效，明文不會寫入磁碟。
 
-免費 Render 初版的 SQLite 檔案不是正式持久化資料庫，重新部署或重建執行個體時可能重建。可用於真人 LINE Bot、官網與需求驗證，但正式收款前必須換成持久化 PostgreSQL 或付費磁碟並建立備份。
+本機未設定 `DATABASE_URL` 時仍可使用 SQLite 開發資料庫；SQLite 不得當成 Render 正式持久化資料。正式站目前使用 Neon PostgreSQL，且已完成加密異地備份與實際還原驗收。
 
 ## 資料與價格
 
@@ -181,7 +181,7 @@ py -3 scripts\admin_credential_handoff.py
 - 綠界程式介面已完成；仍缺正式特店資料與 stage／正式小額驗收。
 - SMTP 程式介面已完成；仍缺寄信帳號、寄件網域與實際收信驗收。
 - 電子發票、退款後撤銷權益、付款失敗補單與客服 SOP。
-- 程式、遷移工具與加密備份已完成；仍待帳號持有人建立 Neon／Turnstile、設定 secrets、正式遷移與兩把 Passkey 實機驗收。目前正式 Render 仍使用非持久化 SQLite。
+- Neon PostgreSQL、Turnstile、兩把 Passkey、10 組復原碼、Passkey-only、GitHub 加密備份與隔離還原均已正式驗收；不得重做或以破壞性方式消耗復原碼。後續只需監控每日排程並每季做一次非正式庫還原演練。
 - Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET`、管理員收件地址及手動排程測試已完成；目前 Gmail 只缺 SMTP 寄件組態。
 - 在 Render 設定天外一筆專屬 `LINE_ADMIN_USER_ID` 後，實測一筆高風險私下推播；未設定時事件仍會完整留在後台佇列。
 

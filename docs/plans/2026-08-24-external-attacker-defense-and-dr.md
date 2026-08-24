@@ -1,5 +1,7 @@
 # External-Attacker Defense and Disaster-Recovery Implementation Plan
 
+**Status:** Completed and production-verified on 2026-08-24. GitHub Actions run `32696239051` succeeded; PostgreSQL 17.11 restore completed with 24 tables, 164 rows, and every per-table checksum matching. Plaintext and the disposable cluster were deleted after verification.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Complete a recoverable encrypted PostgreSQL backup while optimizing the security model for hostile outsiders rather than treating the owner or the local operator as adversaries.

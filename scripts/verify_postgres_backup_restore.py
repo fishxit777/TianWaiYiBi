@@ -8,6 +8,7 @@ connection string or a database row.
 import argparse
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,7 +16,13 @@ import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
 
-from scripts.migrate_sqlite_to_postgres import table_checksum
+try:
+    from scripts.migrate_sqlite_to_postgres import table_checksum
+except ModuleNotFoundError as exc:
+    if exc.name != "scripts":
+        raise
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from scripts.migrate_sqlite_to_postgres import table_checksum
 
 
 EMPTY_CHECKSUM = table_checksum([])

@@ -16,7 +16,7 @@
 
 ## 自動驗證
 
-- SQLite 全套測試：103 passed（正式文件更新後數量可能再增加）。
+- SQLite 全套測試：108 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
 - Passkey／復原專項：challenge 過期與重播、未知／撤銷 credential、CSRF、雙金鑰門檻、錯誤密碼不消耗復原碼、受限復原 session、Turnstile action／hostname 均有測試。
 - 備份專項：加密解密 round-trip、明文不可搜尋、竄改 GCM 驗證失敗、弱 RSA key 拒絕、workflow 只上傳加密檔。
 - PostgreSQL CI 工作流已推送：會在 PostgreSQL 17 service container 驗證 schema、seed、參數化 insert、lastrowid、dict row 與健康檢查；本次正式切換另以 Neon 遷移 checksum 與 Render 實際寫入驗證。
@@ -31,11 +31,22 @@
 6. 已產生 10 組一次性復原碼；正式資料庫只存 Argon2id 雜湊，持有人下載保留一份並刪除兩份重複下載副本。
 7. 已啟用 `ADMIN_RECOVERY_ENABLED=true` 與 Passkey 專用模式；未登入視角確認一般密碼表單消失，Passkey 按鈕、專用模式告知與緊急復原入口均存在，頁面不洩漏機密。
 8. Windows Hello 實機重新登入通過：先由 `/admin` 安全登出，確認 `/admin/login` 只有 Passkey，再完成本人驗證並成功回到 `/admin`；今日總覽與 Neon 營運資料正常載入。
+9. 2026-08-24 完成外部攻擊者威脅模型下的備份接線：RSA-4096 私鑰只存在實體離線 USB，GitHub 只取得公鑰；備份角色 `twyb_backup_ro` 為非 elevated member，預設交易 read-only，具備讀取但沒有資料異動／建物件權限。
+10. GitHub Actions `Encrypted PostgreSQL backup` run `32696239051`（#3）於提交 `cfc23e7` 成功，耗時 1 分鐘，只產生 Artifact `tianwai-yibi-postgres-32696239051-1`。下載 ZIP 為 77,382 bytes，GitHub 與本機 SHA-256 均為 `2C0D72C6ADC2789DB29BC40510B61C7E63C8F446E6428D342F30A326B2FBB303`。
+11. ZIP 只有 `tianwai-yibi-32696239051-1.twybenc`；加密檔 77,200 bytes、檔頭 `TWYBPG01`，沒有明文 dump。離線解密後的 PostgreSQL custom archive 為 76,375 bytes，`pg_restore --list` 取得 192 行 TOC 且驗證成功。
+12. PostgreSQL 17.11 隔離叢集只監聽 `127.0.0.1:55432`；還原至全新資料庫時 `pg_restore --no-owner --no-privileges` exit code 0、零診斷錯誤。正式來源與還原端均為 24 張表、164 筆，24 張表逐表筆數與 canonical SHA-256 全部一致，報告狀態為 `verified`。
+13. 驗收後已停止並刪除隔離叢集、明文 dump 與日誌；只在 Git 忽略的 `_local` 保留加密 Artifact 與不含資料列的校驗報告。正式兩把 Passkey、10 組復原碼與管理 session 全程未撤銷、未消耗。
 
-## 尚未冒充完成的項目
+## 2026-08-24 備份接線問題與修正
 
-1. 正式 GitHub Actions 尚未設定 `NEON_BACKUP_DATABASE_URL` 與 `BACKUP_PUBLIC_KEY_PEM`，也尚未產生／離線保存 RSA 私鑰。
-2. 尚未下載正式加密 Artifact 並在隔離 PostgreSQL 完成解密還原與 checksum 核對，因此災難復原仍是待完成。
-3. 沒有消耗復原碼做破壞性復原演練；完整復原會撤銷兩把 Passkey 與全部管理 session，不應只為一般驗收在正式站執行。
+1. 初次手動 run `32694432751`（#2）因手動組合的 Neon 主機名稱缺少目前叢集識別段而安全失敗；沒有 Artifact、沒有上傳明文。修正後規定備份主機名稱必須直接取自 Neon 當下 Connect 面板，不得依舊格式猜測。
+2. SQL 動態區塊產生的密碼雖可寫入 PostgreSQL verifier，但不作為 Neon 外部代理認證的可靠設定流程；實際採用 Neon 控制層輪替密碼，並在更新 GitHub Secret 前以目前正式端點實測 `twyb_backup_ro|on`。
+3. 還原驗收抓到 `verify_postgres_backup_restore.py` 直接執行時的套件匯入缺口；已補上專案根目錄 fallback 與 CLI 回歸測試，直接執行和 `python -m` 均可使用。
+
+## 刻意未執行的破壞性操作
+
+- 沒有在正式站消耗復原碼做管理帳號災難復原；該流程會撤銷兩把 Passkey 與全部管理 session，不應只為資料庫備份驗收而執行。
+- 沒有撤銷或重建任何正式 Passkey；本次證明的是資料庫備份可解密、可還原、資料完整，不等同於要觸發管理身分復原。
+- GitHub Actions `$0` hard-stop budget 尚未在本次驗收中核對，屬成本保護待辦，不影響本次備份內容與實際還原成功的結論。
 
 涉及機密或實體裝置同意的步驟，在真正操作成功前一律標示待完成；任何私鑰、密語、復原碼或資料庫連線值都不得寫入本文件。

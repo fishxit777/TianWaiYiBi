@@ -1,6 +1,12 @@
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 from scripts.verify_postgres_backup_restore import build_restore_report
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _entry(count, checksum):
@@ -59,3 +65,20 @@ def test_restore_report_contains_no_connection_or_row_values():
         "restored_checksum",
         "verified",
     }
+
+
+def test_restore_verifier_supports_direct_cli_invocation():
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(PROJECT_ROOT / "scripts" / "verify_postgres_backup_restore.py"),
+            "--help",
+        ],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "Verify a TianWaiYiBi PostgreSQL backup restore" in result.stdout
