@@ -123,6 +123,47 @@ def test_verification_order_is_one_dollar_credit_only_without_opening_public_sal
         assert dict(stored) == {"amount": 1, "purpose": "verification", "status": "pending"}
 
 
+def test_pending_verification_order_can_be_safely_replaced_for_a_fresh_ecpay_session(
+    client, app, monkeypatch
+):
+    csrf, first = _create_verification_order(client, monkeypatch)
+
+    existing = client.post(
+        "/admin/api/payment-verification/orders",
+        json={"confirm_amount": 1},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert existing.status_code == 200
+    assert existing.get_json()["result"] == "existing_pending"
+    assert existing.get_json()["order_no"] == first["order_no"]
+
+    wrong = client.post(
+        "/admin/api/payment-verification/orders",
+        json={"confirm_amount": 1, "retry_order_no": "TWYBV-WRONG"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert wrong.status_code == 409
+
+    replacement = client.post(
+        "/admin/api/payment-verification/orders",
+        json={"confirm_amount": 1, "retry_order_no": first["order_no"]},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert replacement.status_code == 201
+    replacement_data = replacement.get_json()
+    assert replacement_data["result"] == "replaced"
+    assert replacement_data["order_no"] != first["order_no"]
+
+    with app.app_context():
+        rows = get_db().execute(
+            "SELECT order_no, status FROM orders WHERE purpose = 'verification' ORDER BY id"
+        ).fetchall()
+        assert [(row["order_no"], row["status"]) for row in rows] == [
+            (first["order_no"], "cancelled"),
+            (replacement_data["order_no"], "pending"),
+        ]
+
+
 def test_live_one_dollar_callback_delivers_activates_then_refund_confirmation_revokes_access(
     client, app, monkeypatch
 ):

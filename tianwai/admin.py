@@ -903,19 +903,32 @@ def create_payment_verification_order():
         ORDER BY id DESC LIMIT 1
         """
     ).fetchone()
+    replaced_order_no = None
     if active is not None:
         if active["status"] == "paid":
             return jsonify({"error": "上一筆 NT$1 驗證訂單尚未完成退款與撤權"}), 409
-        payment_token = verification_payment_token(active["order_no"])
-        return jsonify(
-            {
-                "order_no": active["order_no"],
-                "amount": int(active["amount"]),
-                "checkout_url": checkout_url_for(payment_token, verification=True),
-                "payment_provider": "ecpay",
-                "result": "existing_pending",
-            }
+        retry_order_no = str(data.get("retry_order_no") or "").strip()
+        if not retry_order_no:
+            payment_token = verification_payment_token(active["order_no"])
+            return jsonify(
+                {
+                    "order_no": active["order_no"],
+                    "amount": int(active["amount"]),
+                    "checkout_url": checkout_url_for(payment_token, verification=True),
+                    "payment_provider": "ecpay",
+                    "result": "existing_pending",
+                }
+            )
+        if retry_order_no != active["order_no"]:
+            return jsonify({"error": "待付款驗證訂單已變更，請重新整理後再試"}), 409
+        cancelled = connection.execute(
+            "UPDATE orders SET status = 'cancelled' WHERE id = ? AND status = 'pending'",
+            (active["id"],),
         )
+        if cancelled.rowcount != 1:
+            connection.rollback()
+            return jsonify({"error": "待付款驗證訂單狀態已變更，請重新整理後再試"}), 409
+        replaced_order_no = active["order_no"]
 
     idea = connection.execute(
         "SELECT id FROM ideas WHERE published = 1 ORDER BY sort_order, id LIMIT 1"
@@ -961,6 +974,12 @@ def create_payment_verification_order():
         (cursor.lastrowid, get_client_ip(), safe_user_agent(), now),
     )
     connection.commit()
+    if replaced_order_no:
+        log_audit(
+            "replace_pending_payment_verification_order",
+            replaced_order_no,
+            f"replacement={order_no};amount=1;purpose=verification",
+        )
     log_audit("create_payment_verification_order", order_no, "amount=1;purpose=verification")
     return (
         jsonify(
@@ -969,7 +988,7 @@ def create_payment_verification_order():
                 "amount": 1,
                 "checkout_url": checkout_url_for(payment_token, verification=True),
                 "payment_provider": "ecpay",
-                "result": "created",
+                "result": "replaced" if replaced_order_no else "created",
             }
         ),
         201,

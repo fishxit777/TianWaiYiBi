@@ -220,9 +220,11 @@
     const state = document.querySelector('#payment-verification-state');
     const createButton = document.querySelector('#create-payment-verification');
     const checkoutLink = document.querySelector('#open-payment-verification');
+    const replaceButton = document.querySelector('#replace-payment-verification');
     const refundButton = document.querySelector('#confirm-payment-verification-refund');
     clear(state);
     checkoutLink.hidden = true;
+    replaceButton.hidden = true;
     refundButton.hidden = true;
     createButton.disabled = !data?.ready;
 
@@ -252,6 +254,8 @@
     if (latest.status === 'pending' && latest.checkout_url) {
       checkoutLink.href = latest.checkout_url;
       checkoutLink.hidden = false;
+      replaceButton.hidden = false;
+      replaceButton.dataset.orderNo = latest.order_no;
     }
     if (latest.status === 'paid') {
       refundButton.hidden = false;
@@ -832,6 +836,17 @@
       await loadDashboard(`NT$1 驗證訂單 ${result.order_no} 已建立，尚未扣款。`);
     } catch (error) { showError(error); }
     finally { if (!dashboard?.payment_verification?.latest) button.disabled = false; }
+  });
+  document.querySelector('#replace-payment-verification').addEventListener('click', async () => {
+    const button = document.querySelector('#replace-payment-verification');
+    const orderNo = button.dataset.orderNo || '';
+    button.disabled = true;
+    try {
+      const result = await api('/admin/api/payment-verification/orders', {
+        method: 'POST', body: JSON.stringify({confirm_amount: 1, retry_order_no: orderNo})
+      });
+      await loadDashboard(`舊付款頁已失效；新的 NT$1 驗證訂單 ${result.order_no} 已建立，尚未扣款。`);
+    } catch (error) { showError(error); button.disabled = false; }
   });
   document.querySelector('#confirm-payment-verification-refund').addEventListener('click', async () => {
     const button = document.querySelector('#confirm-payment-verification-refund');
