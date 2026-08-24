@@ -293,7 +293,9 @@ def test_admin_dashboard_has_separate_one_dollar_verification_controls(client):
 
     assert 'id="payment-verification-state"' in body
     assert 'id="create-payment-verification"' in body
+    assert 'id="replace-payment-verification"' in body
     assert 'id="confirm-payment-verification-refund"' in body
+    assert "payment-verification-v3" in body
     assert "NT$1 正式付款驗證" in body
 
 

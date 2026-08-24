@@ -227,6 +227,7 @@
     replaceButton.hidden = true;
     refundButton.hidden = true;
     createButton.disabled = !data?.ready;
+    replaceButton.disabled = !data?.ready;
 
     if (!data?.ready) {
       state.append(
@@ -255,6 +256,7 @@
       checkoutLink.href = latest.checkout_url;
       checkoutLink.hidden = false;
       replaceButton.hidden = false;
+      replaceButton.disabled = false;
       replaceButton.dataset.orderNo = latest.order_no;
     }
     if (latest.status === 'paid') {
