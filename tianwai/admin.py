@@ -60,7 +60,7 @@ from .conversations import (
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
-PAYMENT_VERIFICATION_AMOUNT = 5
+PAYMENT_VERIFICATION_AMOUNT = 6
 
 IDEA_ACCENTS = {"cinnabar", "jade", "gold", "azure", "violet", "silver"}
 IDEA_TEXT_RULES = {
@@ -883,7 +883,7 @@ def create_payment_verification_order():
     data = request.get_json(silent=True) or {}
     confirm_amount = data.get("confirm_amount")
     if isinstance(confirm_amount, bool) or confirm_amount != PAYMENT_VERIFICATION_AMOUNT:
-        return jsonify({"error": "請明確確認本次驗證金額為 NT$5"}), 400
+        return jsonify({"error": "請明確確認本次驗證金額為 NT$6"}), 400
 
     from .payments import (
         checkout_url_for,
@@ -894,7 +894,7 @@ def create_payment_verification_order():
 
     status = payment_checkout_status(verification=True)
     if not status["ready"] or status["provider"] != "ecpay":
-        return jsonify({"error": "NT$5 正式驗證模式尚未安全就緒"}), 409
+        return jsonify({"error": "NT$6 正式驗證模式尚未安全就緒"}), 409
 
     connection = get_db()
     active = connection.execute(
@@ -907,7 +907,7 @@ def create_payment_verification_order():
     replaced_order_no = None
     if active is not None:
         if active["status"] == "paid":
-            return jsonify({"error": "上一筆 NT$5 驗證訂單尚未完成退款與撤權"}), 409
+            return jsonify({"error": "上一筆 NT$6 驗證訂單尚未完成退款與撤權"}), 409
         retry_order_no = str(data.get("retry_order_no") or "").strip()
         if not retry_order_no:
             payment_token = verification_payment_token(active["order_no"])
@@ -1034,7 +1034,7 @@ def confirm_payment_verification_refund(order_no):
         or not str(order["payment_method"] or "").lower().startswith("credit_")
         or not order["payment_ref"]
     ):
-        return jsonify({"error": "此訂單不符合 NT$5 正式信用卡退款撤權條件"}), 409
+        return jsonify({"error": "此訂單不符合 NT$6 正式信用卡退款撤權條件"}), 409
 
     now = utc_now()
     updated = connection.execute(

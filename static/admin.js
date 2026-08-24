@@ -240,7 +240,7 @@
     const latest = data.latest;
     if (!latest) {
       state.append(
-        node('strong', '', '可以建立一筆隔離的 NT$5 訂單'),
+        node('strong', '', '可以建立一筆隔離的 NT$6 訂單'),
         node('span', '', '公開仙策價格與一般結帳仍維持原狀。')
       );
       return;
@@ -833,9 +833,9 @@
     button.disabled = true;
     try {
       const result = await api('/admin/api/payment-verification/orders', {
-        method: 'POST', body: JSON.stringify({confirm_amount: 5})
+        method: 'POST', body: JSON.stringify({confirm_amount: 6})
       });
-      await loadDashboard(`NT$5 驗證訂單 ${result.order_no} 已建立，尚未扣款。`);
+      await loadDashboard(`NT$6 驗證訂單 ${result.order_no} 已建立，尚未扣款。`);
     } catch (error) { showError(error); }
     finally { if (!dashboard?.payment_verification?.latest) button.disabled = false; }
   });
@@ -845,9 +845,9 @@
     button.disabled = true;
     try {
       const result = await api('/admin/api/payment-verification/orders', {
-        method: 'POST', body: JSON.stringify({confirm_amount: 5, retry_order_no: orderNo})
+        method: 'POST', body: JSON.stringify({confirm_amount: 6, retry_order_no: orderNo})
       });
-      await loadDashboard(`舊付款頁已失效；新的 NT$5 驗證訂單 ${result.order_no} 已建立，尚未扣款。`);
+      await loadDashboard(`舊付款頁已失效；新的 NT$6 驗證訂單 ${result.order_no} 已建立，尚未扣款。`);
     } catch (error) { showError(error); button.disabled = false; }
   });
   document.querySelector('#confirm-payment-verification-refund').addEventListener('click', async () => {

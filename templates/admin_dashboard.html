@@ -146,10 +146,10 @@
       <div class="workspace-heading"><div><span class="workspace-kicker">INTEGRATIONS</span><h2>系統串接</h2><p>一眼確認官網、LINE、金流與 Email 是否具備正式營運條件。</p></div></div>
       <div id="integration-summary" class="integration-summary"></div><div id="integration-grid" class="integration-grid"></div>
       <section class="admin-panel payment-verification-panel" aria-labelledby="payment-verification-title">
-        <div class="panel-heading"><div><span>LIVE PAYMENT CHECK</span><h3 id="payment-verification-title">NT$5 正式付款驗證</h3></div><strong class="panel-note">不改公開售價</strong></div>
+        <div class="panel-heading"><div><span>LIVE PAYMENT CHECK</span><h3 id="payment-verification-title">NT$6 正式付款驗證</h3></div><strong class="panel-note">不改公開售價</strong></div>
         <div id="payment-verification-state" class="payment-verification-state" aria-live="polite"></div>
         <div class="payment-verification-actions">
-          <button id="create-payment-verification" class="admin-primary-button" type="button">建立 NT$5 驗證訂單</button>
+          <button id="create-payment-verification" class="admin-primary-button" type="button">建立 NT$6 驗證訂單</button>
           <a id="open-payment-verification" class="admin-secondary-action" href="#" target="_blank" rel="noopener" hidden>前往綠界付款</a>
           <button id="replace-payment-verification" class="admin-secondary-action" type="button" hidden>付款頁失效，安全重建</button>
           <button id="confirm-payment-verification-refund" class="danger-action" type="button" hidden>確認綠界已退款並撤回本地權限</button>
@@ -190,6 +190,6 @@
       <footer><button type="button" data-close-dialog>取消</button><button class="save-idea" type="submit">儲存仙策內容</button></footer>
     </form>
   </dialog>
-  <script src="{{ url_for('static', filename='admin.js', v='payment-verification-v4') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin.js', v='payment-verification-v5') }}" defer></script>
 </body>
 </html>
