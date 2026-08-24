@@ -72,6 +72,7 @@
 
 - 2026-08-24 卷二匿名公開傳音 V3：`python -m pytest -q` 為 127 passed、1 skipped；Python compileall、三支 JavaScript `node --check`、`pip check`、機密樣式掃描與 `git diff --check` 全部通過。舊 SQLite 留言表實際升級測試保留原資料；PostgreSQL 遷移以交易 advisory lock 防止 Gunicorn 多 worker 同時啟動競爭，正式資料庫升級結果另以部署健康檢查確認。
 - V3 本機瀏覽器 QA：桌機與 390×844 手機均只在仙策詳情頁出現匿名公開留言；公開頁顯示先審說明、訪客 500 字上限與人機確認，手機使用窄版安全元件且沒有裁切。切換私密分頁後匿名表單隱藏，只顯示客戶登入入口；未送出任何正式留言，也未觸碰 Passkey、復原碼或備份。
+- V3 已由提交 `77a5618` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=volume-two-anonymous-conversations-v3`，代表既有 Neon PostgreSQL 已成功完成新增欄位／約束遷移並啟動。正式首頁仍為 0 個完整留言元件與 6 個六策提示，仙策詳情為 1 個匿名留言區；Chrome 實看建立 1 個 Turnstile iframe，訪客表單上限 500 字。匿名 API 顯示訪客投稿已啟用、0 則正式公開留言、無訪客雜湊／私密欄位，舊首頁留言 API 維持 404。驗收全程未送出假留言、未登入後台、未消耗復原碼、未變更 Passkey 或重跑備份。
 - 2026-08-24 卷二限定傳音 V2：`python -m pytest -q` 為 121 passed、1 skipped；Python compileall、`node --check static/app.js`、`node --check static/conversations.js`、`node --check static/admin.js`、`pip check`、機密樣式掃描與 `git diff --check` 全部通過。
 - 卷二 V2 本機瀏覽器 QA：桌機與 390×844 手機首頁均為 0 個完整留言元件、6 個仙策活動提示掛點；仙策詳情頁只有自己的 1 個完整傳音元件。實際以隔離假資料驗證「已有傳音 → 展開閱讀 → 新增公開內容 → 新傳音」狀態轉換；390px viewport 的 document scroll width 為 375px，沒有水平溢位，console 0 error／0 warning。隔離資料庫驗收後已刪除。
 - 卷二 V2 已由提交 `f9f4c70` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=volume-two-conversations-v2`；正式首頁為 0 個完整留言元件與 6 個提示掛點，仙策詳情為 1 個獨立元件。匿名活動 API 回 6 個仙策、0 個私密欄位並帶 `no-store`；舊 `home-world` 傳音 API 回 404。正式公開訊息目前為 0，因此畫面不顯示虛假的「已有傳音」；煙霧測試未建立留言、未登入客戶、未消耗復原碼或變更 Passkey。
