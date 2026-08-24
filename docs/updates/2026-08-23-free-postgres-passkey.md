@@ -73,7 +73,7 @@ Passkey 同時具有防盜與防駭效果；加密備份主要是防破壞後無
 - SQLite 舊表因 CHECK constraint 無法原地修改，採交易式重建並保留既有 ID／內容／回覆關聯；PostgreSQL 採 additive columns 後更新明確命名的作者與可見性約束，並以交易 advisory lock 防止 Gunicorn 多 worker 同時啟動時競爭遷移。SQLite 舊資料升級與 PostgreSQL worker 鎖定防線已有自動測試；正式 PostgreSQL 遷移仍以部署健康檢查作最後證據。
 - `python -m pytest -q` 為 127 passed、1 skipped；Python compileall、JavaScript syntax、`pip check`、diff 與機密樣式檢查通過。桌機及 390×844 本機瀏覽器實看匿名公開、手機 Turnstile 窄版與私密登入分流；正式站未建立測試留言，也沒有消耗復原碼、撤銷 Passkey 或重跑備份還原。
 - 本次只重用既有正式 Turnstile widget 的公鑰／私密設定，不新增或傳送任何機密；沒有變更 Neon 連線、備份角色、RSA／AES 金鑰、Passkey、復原碼、付款或管理登入。
-- 提交 `77a5618` 已正式部署為 `volume-two-anonymous-conversations-v3`；新 release 的 `/healthz` 回 200，證明既有 Neon schema 遷移與多 worker 啟動成功。正式首頁 0 個留言元件／6 個六策提示、策略詳情 1 個匿名留言區，Chrome 實看 Turnstile iframe 正常建立。匿名公開 API 為 `no-store`、訪客投稿已啟用、0 則正式公開留言，且沒有訪客雜湊或私密欄位；舊首頁留言 API 仍回 404。本次正式驗收沒有建立假留言或操作管理身分。
+- 提交 `77a5618` 已正式部署為 `volume-two-anonymous-conversations-v3`；新 release 的 `/healthz` 回 200，證明既有 Neon schema 遷移與多 worker 啟動成功。正式首頁 0 個留言元件／6 個六策提示、策略詳情 1 個匿名留言區，Chrome 實看 Turnstile iframe 正常建立。匿名公開 API 為 `no-store`、訪客投稿已啟用、0 則正式公開留言，且沒有訪客雜湊或私密欄位；舊首頁留言 API 仍回 404。本次正式驗收沒有建立假留言或操作管理身分。GitHub Actions `PostgreSQL integration` run `32736250964`（#1）亦在隔離 PostgreSQL 17 成功完成，耗時 33 秒、沒有 Artifact；既有 action runtime 顯示 Node 20 淘汰維護提醒，但不影響本次測試成功。
 
 ## 刻意未執行的破壞性操作
 
