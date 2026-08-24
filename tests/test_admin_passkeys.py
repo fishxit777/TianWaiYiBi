@@ -21,7 +21,7 @@ from tianwai.passkeys import (
 
 
 def test_webauthn_challenge_is_hashed_at_rest_and_single_use(app):
-    with app.test_request_context("/admin/passkeys/authentication/options"):
+    with app.test_request_context("/admin/identity/options"):
         challenge = create_challenge("authentication")
         encoded = base64.urlsafe_b64encode(challenge).decode("ascii").rstrip("=")
         row = get_db().execute(
@@ -36,7 +36,7 @@ def test_webauthn_challenge_is_hashed_at_rest_and_single_use(app):
 
 
 def test_expired_webauthn_challenge_is_rejected(app):
-    with app.test_request_context("/admin/passkeys/authentication/options"):
+    with app.test_request_context("/admin/identity/options"):
         challenge = create_challenge("authentication")
         get_db().execute(
             "UPDATE admin_webauthn_challenges SET expires_at = ?",
@@ -124,7 +124,7 @@ def test_registration_uses_exact_origin_rp_and_user_verification(app, monkeypatc
         assert captured["require_user_verification"] is True
 
 
-def test_authentication_options_include_only_active_credentials(app):
+def test_authentication_options_do_not_disclose_registered_credentials(app):
     verified = SimpleNamespace(
         credential_id=b"active-id",
         credential_public_key=b"public-key",
@@ -135,7 +135,7 @@ def test_authentication_options_include_only_active_credentials(app):
         user_verified=True,
     )
     app.config.update(WEBAUTHN_RP_ID="localhost", WEBAUTHN_ORIGIN="http://localhost")
-    with app.test_request_context("/admin/passkeys/authentication/options"):
+    with app.test_request_context("/admin/identity/options"):
         store_registration_result(verified, label="Phone", transports=["hybrid"])
         options, challenge = begin_authentication()
         payload = json.loads(options)
@@ -143,7 +143,9 @@ def test_authentication_options_include_only_active_credentials(app):
         assert len(challenge) == 32
         assert payload["rpId"] == "localhost"
         assert payload["userVerification"] == "required"
-        assert len(payload["allowCredentials"]) == 1
+        assert payload.get("allowCredentials", []) == []
+        encoded_credential_id = base64.urlsafe_b64encode(b"active-id").decode("ascii").rstrip("=")
+        assert encoded_credential_id not in options
 
 
 def test_authentication_uses_exact_origin_and_updates_counter(app, monkeypatch):
@@ -174,7 +176,7 @@ def test_authentication_uses_exact_origin_and_updates_counter(app, monkeypatch):
 
     monkeypatch.setattr("tianwai.passkeys.verify_authentication_response", fake_verify)
     credential_b64 = base64.urlsafe_b64encode(b"credential-id").decode("ascii").rstrip("=")
-    with app.test_request_context("/admin/passkeys/authentication/verify"):
+    with app.test_request_context("/admin/identity/verify"):
         store_registration_result(verified, label="Windows Hello", transports=["internal"])
         result = verify_and_update_authentication(
             {"id": credential_b64, "rawId": credential_b64},
@@ -192,7 +194,7 @@ def test_authentication_uses_exact_origin_and_updates_counter(app, monkeypatch):
 
 def test_unknown_or_revoked_credential_is_rejected(app):
     credential_b64 = base64.urlsafe_b64encode(b"missing").decode("ascii").rstrip("=")
-    with app.test_request_context("/admin/passkeys/authentication/verify"):
+    with app.test_request_context("/admin/identity/verify"):
         with pytest.raises(ValueError, match="無效的 Passkey"):
             verify_and_update_authentication(
                 {"id": credential_b64, "rawId": credential_b64},
@@ -258,7 +260,7 @@ def test_passkey_login_creates_admin_session(app, client, monkeypatch):
     _insert_passkey(app, b"login-credential", "Windows Hello")
     csrf = set_public_csrf(client, "passkey-login-csrf")
     options = client.post(
-        "/admin/passkeys/authentication/options",
+        "/admin/identity/options",
         headers={"X-CSRF-Token": csrf},
     )
     assert options.status_code == 200
@@ -268,7 +270,7 @@ def test_passkey_login_creates_admin_session(app, client, monkeypatch):
         lambda credential, expected_challenge: SimpleNamespace(user_verified=True),
     )
     verified = client.post(
-        "/admin/passkeys/authentication/verify",
+        "/admin/identity/verify",
         json={"credential": {"id": "test"}},
         headers={"X-CSRF-Token": csrf},
     )
@@ -296,13 +298,83 @@ def test_passkey_only_mode_requires_two_credentials_and_disables_password(app, c
     client.post("/admin/logout", data={"csrf_token": csrf})
 
     login_page = client.get("/admin/login").get_data(as_text=True)
-    assert "使用 Passkey 安全登入" in login_page
+    assert "驗證身分" in login_page
     assert 'name="password"' not in login_page
+    assert "static/admin-identity.js" in login_page
+    assert "static/admin-passkey.js" not in login_page
+    assert 'href="/admin/recovery"' not in login_page
+    assert "passkey" not in login_page.lower()
+    assert "訂單" not in login_page
+    assert "營運數據" not in login_page
+    for disclosure in (
+        "Passkey",
+        "Windows Hello",
+        "手機",
+        "硬體金鑰",
+        "兩把",
+        "一般密碼登入",
+        "緊急復原",
+    ):
+        assert disclosure not in login_page
     blocked_password = client.post(
         "/admin/login",
         data={"username": "keeper", "password": "correct-horse-battery-staple"},
     )
     assert blocked_password.status_code == 404
+
+
+def test_public_identity_script_and_errors_use_neutral_language(app, client):
+    csrf = set_public_csrf(client, "neutral-identity-csrf")
+    unavailable = client.post(
+        "/admin/identity/options",
+        headers={"X-CSRF-Token": csrf},
+    )
+    _insert_passkey(app, b"login-credential", "Windows Hello")
+
+    expired = client.post(
+        "/admin/identity/verify",
+        json={"credential": {"id": "test"}},
+        headers={"X-CSRF-Token": csrf},
+    )
+    script = client.get("/static/admin-identity.js").get_data(as_text=True)
+    old_options = client.post(
+        "/admin/passkeys/authentication/options",
+        headers={"X-CSRF-Token": csrf},
+    )
+    old_verify = client.post(
+        "/admin/passkeys/authentication/verify",
+        json={"credential": {"id": "test"}},
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert unavailable.status_code == 403
+    assert unavailable.get_json()["error"] == "無法完成身分驗證。"
+    assert expired.status_code == 400
+    assert expired.get_json()["error"] == "驗證已過期，請重新操作。"
+    assert old_options.status_code == 404
+    assert old_verify.status_code == 404
+    for disclosure in ("Passkey", "Windows Hello", "兩把", "緊急復原", "/passkeys/"):
+        assert disclosure not in script
+        assert disclosure not in expired.get_data(as_text=True)
+
+
+def test_public_identity_challenge_issuance_is_rate_limited(app, client):
+    _insert_passkey(app, b"login-credential", "Windows Hello")
+    csrf = set_public_csrf(client, "rate-limit-identity-csrf")
+
+    for _ in range(10):
+        response = client.post(
+            "/admin/identity/options",
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert response.status_code == 200
+
+    limited = client.post(
+        "/admin/identity/options",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert limited.status_code == 429
+    assert limited.get_json()["error"] == "請求過於頻繁，請稍後再試。"
 
 
 def test_passkey_setup_lists_credentials_and_never_public_keys(app, client):

@@ -32,6 +32,8 @@ from .db import get_db, utc_now
 
 CHALLENGE_BYTES = 32
 CHALLENGE_TTL_MINUTES = 5
+AUTHENTICATION_CHALLENGE_WINDOW_SECONDS = 60
+AUTHENTICATION_CHALLENGE_LIMIT = 10
 
 
 def _client_ip():
@@ -44,6 +46,30 @@ def _client_ip():
 
 def _user_agent():
     return request.headers.get("User-Agent", "")[:240]
+
+
+def authentication_challenge_allowed():
+    """Bound public authentication challenge creation per source IP."""
+    connection = get_db()
+    now = datetime.now(timezone.utc)
+    now_value = now.isoformat(timespec="seconds")
+    window_start = (now - timedelta(seconds=AUTHENTICATION_CHALLENGE_WINDOW_SECONDS)).isoformat(
+        timespec="seconds"
+    )
+    connection.execute(
+        "DELETE FROM admin_webauthn_challenges WHERE expires_at <= ?",
+        (now_value,),
+    )
+    row = connection.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM admin_webauthn_challenges
+        WHERE purpose = 'authentication' AND ip = ? AND created_at >= ?
+        """,
+        (_client_ip(), window_start),
+    ).fetchone()
+    connection.commit()
+    return int(row["count"]) < AUTHENTICATION_CHALLENGE_LIMIT
 
 
 def webauthn_origin():
@@ -222,18 +248,10 @@ def begin_registration():
 
 def begin_authentication():
     challenge = create_challenge("authentication")
-    allow = [
-        PublicKeyCredentialDescriptor(
-            id=bytes(row["credential_id"]),
-            transports=_transport_enums(row["transports_json"]),
-        )
-        for row in active_credentials()
-    ]
     options = generate_authentication_options(
         rp_id=webauthn_rp_id(),
         challenge=challenge,
         timeout=300_000,
-        allow_credentials=allow,
         user_verification=UserVerificationRequirement.REQUIRED,
     )
     return options_to_json(options), challenge

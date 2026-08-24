@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="public-csrf" content="{{ csrf_token() }}">
-  <title>管理後台登入｜天外一筆</title>
+  <title>管理入口｜天外一筆</title>
   <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v16.css') }}">
@@ -14,33 +14,30 @@
     <section class="admin-login-brand">
       <img class="admin-login-logo" src="{{ url_for('static', filename='brand/logo-transparent-1254.png') }}" alt="天外一筆 Logo">
       <p>天外一筆・仙策閣</p>
-      <h1>管理後台</h1>
-      <p>集中管理仙策內容、價格、訂單、營運數據與安全事件。</p>
+      <h1>內部入口</h1>
+      <p>僅供授權作業。</p>
     </section>
     <section class="admin-login-card" aria-labelledby="admin-login-title">
       <p class="section-index">ADMIN GATE</p>
-      <h2 id="admin-login-title">管理員安全登入</h2>
+      <h2 id="admin-login-title">授權身分驗證</h2>
       {% if error %}<p class="login-error" role="alert">{{ error }}</p>{% endif %}
-      <p id="passkey-login-status" class="passkey-status" role="status" aria-live="polite"></p>
-      {% if passkey_count > 0 %}
-      <button id="passkey-login" class="button button-primary button-wide passkey-primary" type="button">使用 Passkey 安全登入</button>
-      <small>請使用 Windows Hello、手機或已登記的硬體金鑰完成本人驗證。</small>
-      {% endif %}
-      {% if not passkey_only %}
-      {% if passkey_count > 0 %}<div class="login-divider"><span>初次設定／緊急登入</span></div>{% endif %}
+      <p id="identity-status" class="identity-status" role="status" aria-live="polite"></p>
+      <button id="identity-verify" class="button button-primary button-wide identity-primary" type="button">驗證身分</button>
+      <small>請依系統提示完成授權確認。</small>
+      {% if password_login_available %}
+      <div class="login-divider"><span>其他授權方式</span></div>
       <form class="admin-password-form" action="{{ url_for('admin.login_submit') }}" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label>管理帳號<input name="username" type="text" maxlength="120" autocomplete="username" required></label>
-        <label>管理密令<input name="password" type="password" maxlength="512" autocomplete="current-password" required></label>
-        <button class="button button-primary button-wide" type="submit">使用密碼登入</button>
+        <label>識別代號<input name="username" type="text" maxlength="120" autocomplete="username" required></label>
+        <label>授權密令<input name="password" type="password" maxlength="512" autocomplete="current-password" required></label>
+        <button class="button button-primary button-wide" type="submit">繼續</button>
       </form>
-      <small>連續失敗將暫時封鎖來源 IP；系統不會在網址或日誌保存密令。</small>
+      <small>無法通過驗證的來源將受到限制。</small>
       {% else %}
-      <p class="passkey-only-note">此後台已停用一般密碼登入。若兩把 Passkey 都遺失，請走緊急復原流程。</p>
-      {% if recovery_available %}<a class="inline-text-link" href="{{ url_for('admin.recovery_page') }}">兩把 Passkey 都無法使用</a>{% endif %}
+      <p class="identity-restricted-note">僅限授權人員。所有驗證嘗試均受安全監控。</p>
       {% endif %}
     </section>
   </main>
-  <script src="{{ url_for('static', filename='admin-passkey.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin-identity.js') }}" defer></script>
 </body>
 </html>

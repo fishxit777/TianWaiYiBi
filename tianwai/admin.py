@@ -32,6 +32,7 @@ from .passkeys import (
     activate_passkey_only,
     active_credential_count,
     active_credentials,
+    authentication_challenge_allowed,
     begin_authentication,
     begin_registration,
     consume_challenge,
@@ -92,9 +93,7 @@ def login_page():
     return render_template(
         "admin_login.html",
         error=None,
-        passkey_count=active_credential_count(),
-        passkey_only=passkey_only_enabled(),
-        recovery_available=_recovery_available(),
+        password_login_available=not passkey_only_enabled(),
     )
 
 
@@ -146,9 +145,7 @@ def login_submit():
         return render_template(
             "admin_login.html",
             error="安全驗證已過期，請重新整理後再試。",
-            passkey_count=active_credential_count(),
-            passkey_only=False,
-            recovery_available=_recovery_available(),
+            password_login_available=True,
         ), 403
     username = request.form.get("username", "")[:120]
     password = request.form.get("password", "")[:512]
@@ -158,9 +155,7 @@ def login_submit():
         return render_template(
             "admin_login.html",
             error="帳號或密碼錯誤，請稍後再試。",
-            passkey_count=active_credential_count(),
-            passkey_only=False,
-            recovery_available=_recovery_available(),
+            password_login_available=True,
         ), status
 
     register_login_attempt(True)
@@ -170,21 +165,29 @@ def login_submit():
     return _set_admin_cookie(response, raw_token)
 
 
-@admin_bp.post("/passkeys/authentication/options")
-def passkey_authentication_options():
+@admin_bp.post("/identity/options")
+def identity_authentication_options():
     if not is_admin_ip_allowed():
         return "", 404
     if not public_csrf_valid():
         return jsonify({"error": "安全驗證已過期，請重新整理後再試。"}), 403
     if active_credential_count() < 1:
-        return jsonify({"error": "尚未登記 Passkey"}), 409
+        return jsonify({"error": "無法完成身分驗證。"}), 403
+    if not authentication_challenge_allowed():
+        log_security_event(
+            "admin_identity_challenge_rate_limited",
+            "high",
+            "rejected",
+            "challenge_issuance_limit",
+        )
+        return jsonify({"error": "請求過於頻繁，請稍後再試。"}), 429
     options, challenge = begin_authentication()
     session["admin_webauthn_auth_challenge"] = _encode_challenge(challenge)
     return jsonify({"publicKey": json.loads(options)})
 
 
-@admin_bp.post("/passkeys/authentication/verify")
-def passkey_authentication_verify():
+@admin_bp.post("/identity/verify")
+def identity_authentication_verify():
     if not is_admin_ip_allowed():
         return "", 404
     if not public_csrf_valid():
@@ -193,7 +196,7 @@ def passkey_authentication_verify():
     payload = request.get_json(silent=True) or {}
     credential = payload.get("credential")
     if not encoded_challenge or not isinstance(credential, dict):
-        return jsonify({"error": "Passkey 驗證已過期，請重新操作。"}), 400
+        return jsonify({"error": "驗證已過期，請重新操作。"}), 400
     try:
         challenge = _decode_challenge(encoded_challenge)
         if not consume_challenge("authentication", challenge):
@@ -202,7 +205,7 @@ def passkey_authentication_verify():
     except (InvalidAuthenticationResponse, ValueError, TypeError):
         failures = register_login_attempt(False)
         status = 429 if failures >= 5 else 403
-        return jsonify({"error": "Passkey 驗證失敗，請稍後再試。"}), status
+        return jsonify({"error": "無法完成身分驗證，請稍後再試。"}), status
 
     register_login_attempt(True)
     raw_token = create_admin_session(auth_method="passkey")

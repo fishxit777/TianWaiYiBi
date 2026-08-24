@@ -18,6 +18,7 @@ def test_real_postgres_schema_seed_insert_and_row_mapping(monkeypatch):
 
     from tianwai import create_app
     from tianwai.db import get_db, utc_now
+    from tianwai.passkeys import authentication_challenge_allowed, create_challenge
 
     app = create_app({"TESTING": True})
     with app.app_context():
@@ -34,6 +35,21 @@ def test_real_postgres_schema_seed_insert_and_row_mapping(monkeypatch):
             "SELECT action, detail FROM audit_logs WHERE action = ?", ("postgres_ci",)
         ).fetchone()
         assert dict(row) == {"action": "postgres_ci", "detail": "adapter_verified"}
+        index = connection.execute(
+            """
+            SELECT indexname
+            FROM pg_indexes
+            WHERE schemaname = 'public' AND tablename = ? AND indexname = ?
+            """,
+            ("admin_webauthn_challenges", "idx_admin_webauthn_challenge_ip_time"),
+        ).fetchone()
+        assert index is not None
+
+    with app.test_request_context("/admin/identity/options"):
+        assert authentication_challenge_allowed() is True
+        for _ in range(10):
+            create_challenge("authentication")
+        assert authentication_challenge_allowed() is False
 
     response = app.test_client().get("/healthz")
     assert response.status_code == 200

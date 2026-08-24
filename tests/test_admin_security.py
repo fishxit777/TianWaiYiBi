@@ -79,7 +79,7 @@ def test_admin_login_uses_professional_v16_design_layer(client):
     body = client.get("/admin/login").get_data(as_text=True)
 
     assert "static/v16.css" in body
-    assert "管理員安全登入" in body
+    assert "授權身分驗證" in body
 
 
 def test_admin_session_is_hashed_in_database(app, client):

@@ -315,4 +315,5 @@ CREATE INDEX IF NOT EXISTS idx_security_created ON security_events (created_at D
 CREATE INDEX IF NOT EXISTS idx_login_ip_time ON admin_login_attempts (ip, attempted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_webauthn_active ON admin_webauthn_credentials (revoked_at, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_webauthn_challenge_expiry ON admin_webauthn_challenges (purpose, expires_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_webauthn_challenge_ip_time ON admin_webauthn_challenges (purpose, ip, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_recovery_available ON admin_recovery_codes (used_at, revoked_at);

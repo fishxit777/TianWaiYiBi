@@ -37,6 +37,7 @@
 12. PostgreSQL 17.11 隔離叢集只監聽 `127.0.0.1:55432`；還原至全新資料庫時 `pg_restore --no-owner --no-privileges` exit code 0、零診斷錯誤。正式來源與還原端均為 24 張表、164 筆，24 張表逐表筆數與 canonical SHA-256 全部一致，報告狀態為 `verified`。
 13. 驗收後已停止並刪除隔離叢集、明文 dump 與日誌；只在 Git 忽略的 `_local` 保留加密 Artifact 與不含資料列的校驗報告。正式兩把 Passkey、10 組復原碼與管理 session 全程未撤銷、未消耗。
 14. 最小權限收尾完成：未使用且不擁有任何資料庫的臨時角色 `twyb_backup` 已永久刪除；production 只保留正式擁有者與 `twyb_backup_ro` 唯讀備份角色。
+15. 公開管理入口完成情報最小化：畫面與直接載入的 JavaScript／CSS 不再顯示驗證技術、裝置種類、憑證數量、密碼模式或復原入口；公開端點改為中性路由與錯誤訊息，舊路由回 404。因登記時已強制使用 discoverable credential，authentication options 不再下發 `allowCredentials`，避免公開 credential ID 與數量；challenge 起始另限制每 IP 每分鐘 10 次。伺服器端 RP、origin、一次性 challenge、user verification、CSRF、Session、IP 檢查與失敗封鎖全部保留。
 
 ## 防護分類
 

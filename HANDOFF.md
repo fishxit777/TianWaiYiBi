@@ -54,6 +54,7 @@
 - 客戶交易郵件寄送失敗已接入即時管理告警；管理 Gmail 故障時不會遞迴產生無限告警，LINE 仍獨立送達。後台已顯示雙通道、通知類型及每日排程就緒狀態。
 - 免費 PostgreSQL 基礎完成：SQLite／PostgreSQL 雙後端、完整 PostgreSQL schema、additive migration、SQLite→PostgreSQL checksum 遷移／核對工具與 PostgreSQL 17 CI；健康回應不揭露後端或連線值。
 - 管理 Passkey 完成：32-byte／五分鐘／一次性 WebAuthn challenge，精確 RP／HTTPS origin、user verification、兩把金鑰門檻、Passkey-only 登入、憑證盤點與最後一把撤銷保護。
+- 公開管理入口已完成情報最小化：未登入畫面與直接載入資源只顯示中性身分驗證，不公開驗證技術、裝置種類、憑證數量、密碼模式或復原入口；authentication options 不再下發 credential ID 清單，舊公開路由回 404，challenge 起始請求限制為每 IP 每分鐘 10 次。登入後的完整安全管理能力不變。
 - 緊急復原完成：10 組 128-bit 一次性碼只存 Argon2id；必須密碼＋復原碼＋Turnstile 全部正確。成功會撤銷全部舊 session／Passkey、即時告警，並限制只能重建兩把 Passkey。
 - 免費加密異地備份與還原已完成：每日 `pg_dump` 先由 `pg_restore --list` 驗證，再以 AES-256-GCM 加密與離線 RSA-4096 公鑰包裝；GitHub 只上傳 14 天加密檔，單份 25 MB 上限。RSA 私鑰只在實體離線 USB，GitHub 已設定只讀備份連線與公鑰；正式 run `32696239051` 成功，Artifact 只有 `.twybenc`，PostgreSQL 17.11 隔離還原及 24 表／164 筆逐表 checksum 全數通過。
 - Neon 最小權限收尾已完成：建立正式唯讀備份角色 `twyb_backup_ro` 後，已永久刪除未使用且不擁有任何資料庫的臨時角色 `twyb_backup`；production 分支只保留正式擁有者與唯讀備份角色。
@@ -62,7 +63,8 @@
 ## 驗證結果
 
 - 免費 PostgreSQL＋Passkey 正式版：`python -m pytest -q` 為 103 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 執行。Passkey／復原／加密備份專項、Python compile、JavaScript syntax、`pip check`、依賴稽核、機密掃描與 `git diff --check` 均通過。
-- 2026-08-24 最終本機驗證：`python -m pytest -q` 為 108 passed、1 skipped；`verify_postgres_backup_restore.py` 的直接 CLI 與 module invocation 均通過。
+- 2026-08-24 公開管理入口情報最小化後的最終本機驗證：`python -m pytest -q` 為 110 passed、1 skipped；`verify_postgres_backup_restore.py` 的直接 CLI 與 module invocation 均通過。
+- PostgreSQL 17.11 隔離整合測試另以本機臨時資料庫實跑 1 passed：新 challenge IP／時間索引已實際建立，每分鐘上限在 PostgreSQL 後端同樣生效；測試叢集與日誌已刪除。
 - 正式加密備份 run `32696239051`（#3）成功，提交 `cfc23e7`，Artifact `tianwai-yibi-postgres-32696239051-1` 的 GitHub 與本機 ZIP SHA-256 均為 `2C0D72C6ADC2789DB29BC40510B61C7E63C8F446E6428D342F30A326B2FBB303`；ZIP 只有一個 `TWYBPG01` 加密檔。
 - PostgreSQL 17.11 隔離還原 `pg_restore` exit code 0、零診斷錯誤；正式來源與還原端均為 24 張表、164 筆，逐表筆數與 canonical SHA-256 全部一致。隔離叢集、明文 dump 與日誌已刪除，只保留加密 Artifact 與不含資料列的報告。
 - SQLite→Neon 正式遷移完成：21 張資料表、111 筆資料，逐表筆數與 SHA-256 checksum 全數核對；切換後正式瀏覽資料持續寫入 Neon，證明站台不是只建立空資料庫。

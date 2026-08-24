@@ -2269,37 +2269,39 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .consumer-dialog-card { padding: 24px 20px; }
 }
 
-/* Administrator Passkey enrollment and sign-in. */
+/* Administrator identity and credential settings. */
 .admin-login-card .admin-password-form { display: grid; gap: 18px; }
-.admin-login-card .passkey-primary { margin-top: 10px; }
+.admin-login-card .identity-primary { margin-top: 10px; }
 .login-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: rgba(238, 244, 241, .62); font-size: 12px; }
 .login-divider::before, .login-divider::after { content: ""; flex: 1; height: 1px; background: rgba(238, 244, 241, .18); }
-.passkey-status { min-height: 24px; margin: 12px 0; color: #9ee7d3; font-weight: 700; }
-.passkey-status.is-error { color: #ffafa4; }
-.passkey-only-note { margin: 20px 0 0; padding: 14px; color: #f9e9bf; border-left: 3px solid #d3b46f; background: rgba(211, 180, 111, .1); }
-.passkey-setup-page { min-height: 100vh; color: #eef4f1; background: radial-gradient(circle at 80% 0, #272451 0, #111431 46%, #080b21 100%); }
-.passkey-setup-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 64px 0 96px; }
-.passkey-setup-header, .passkey-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.passkey-setup-header h1 { margin: 6px 0 10px; font-size: clamp(34px, 5vw, 58px); }
-.passkey-setup-header p { max-width: 720px; color: #b8c4c0; }
-.passkey-setup-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 18px; margin-top: 28px; }
-.passkey-panel { padding: 30px; border: 1px solid rgba(211, 180, 111, .34); background: rgba(17, 20, 49, .82); box-shadow: 0 24px 70px rgba(2, 4, 18, .28); }
-.passkey-panel h2 { margin: 7px 0 12px; font-size: 28px; }
-.passkey-panel > p { color: #bcc6c3; line-height: 1.8; }
-.passkey-label { display: grid; gap: 8px; margin: 24px 0 14px; color: #edf5f2; font-weight: 700; }
-.passkey-label input { min-height: 50px; padding: 0 14px; border: 1px solid rgba(211, 180, 111, .34); background: #f7f4eb; color: #17211e; font: inherit; }
+.identity-status,
+.credential-status { min-height: 24px; margin: 12px 0; color: #9ee7d3; font-weight: 700; }
+.identity-status.is-error,
+.credential-status.is-error { color: #ffafa4; }
+.identity-restricted-note { margin: 20px 0 0; padding: 14px; color: #f9e9bf; border-left: 3px solid #d3b46f; background: rgba(211, 180, 111, .1); }
+.credential-setup-page { min-height: 100vh; color: #eef4f1; background: radial-gradient(circle at 80% 0, #272451 0, #111431 46%, #080b21 100%); }
+.credential-setup-shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 64px 0 96px; }
+.credential-setup-header, .credential-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.credential-setup-header h1 { margin: 6px 0 10px; font-size: clamp(34px, 5vw, 58px); }
+.credential-setup-header p { max-width: 720px; color: #b8c4c0; }
+.credential-setup-grid { display: grid; grid-template-columns: 1.25fr .75fr; gap: 18px; margin-top: 28px; }
+.credential-panel { padding: 30px; border: 1px solid rgba(211, 180, 111, .34); background: rgba(17, 20, 49, .82); box-shadow: 0 24px 70px rgba(2, 4, 18, .28); }
+.credential-panel h2 { margin: 7px 0 12px; font-size: 28px; }
+.credential-panel > p { color: #bcc6c3; line-height: 1.8; }
+.credential-label { display: grid; gap: 8px; margin: 24px 0 14px; color: #edf5f2; font-weight: 700; }
+.credential-label input { min-height: 50px; padding: 0 14px; border: 1px solid rgba(211, 180, 111, .34); background: #f7f4eb; color: #17211e; font: inherit; }
 .security-mode { display: block; margin: 20px 0 10px; color: #f0d586; }
 .security-mode.is-active { color: #8fe2c7; }
-.passkey-list-panel { margin-top: 18px; }
-.passkey-list-heading strong { color: #d3b46f; }
-.passkey-list { display: grid; gap: 12px; margin-top: 20px; }
-.passkey-item { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px; border: 1px solid rgba(238, 244, 241, .12); background: rgba(255, 255, 255, .035); }
-.passkey-item h3 { margin: 0 0 6px; color: #f5e8bf; font-size: 20px; }
-.passkey-item p, .passkey-item small { margin: 0; color: #aebbb7; }
-.passkey-revoke { padding: 10px 16px; color: #ffb5aa; border: 1px solid rgba(255, 125, 105, .38); background: transparent; cursor: pointer; }
-.passkey-empty { padding: 24px; border: 1px dashed rgba(238, 244, 241, .2); }
-.passkey-privacy-note { margin-top: 18px; padding: 18px 22px; color: #c4cfcb; border-left: 3px solid #5cc9aa; background: rgba(92, 201, 170, .08); }
-.passkey-privacy-note p { margin: 6px 0 0; line-height: 1.7; }
+.credential-list-panel { margin-top: 18px; }
+.credential-list-heading strong { color: #d3b46f; }
+.credential-list { display: grid; gap: 12px; margin-top: 20px; }
+.credential-item { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px; border: 1px solid rgba(238, 244, 241, .12); background: rgba(255, 255, 255, .035); }
+.credential-item h3 { margin: 0 0 6px; color: #f5e8bf; font-size: 20px; }
+.credential-item p, .credential-item small { margin: 0; color: #aebbb7; }
+.credential-revoke { padding: 10px 16px; color: #ffb5aa; border: 1px solid rgba(255, 125, 105,.38); background: transparent; cursor: pointer; }
+.credential-empty { padding: 24px; border: 1px dashed rgba(238, 244, 241, .2); }
+.credential-privacy-note { margin-top: 18px; padding: 18px 22px; color: #c4cfcb; border-left: 3px solid #5cc9aa; background: rgba(92, 201, 170, .08); }
+.credential-privacy-note p { margin: 6px 0 0; line-height: 1.7; }
 .recovery-code-panel { margin-top: 18px; }
 .recovery-code-output { margin-top: 20px; padding: 20px; color: #17211e; background: #f7f4eb; }
 .recovery-code-output > strong { color: #a33c2d; }
@@ -2309,9 +2311,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .admin-secondary-action { align-self: center; padding: 10px 14px; color: #36443f; border: 1px solid #c9c4b8; background: #fff; text-decoration: none; font-size: 12px; font-weight: 800; }
 
 @media (max-width: 760px) {
-  .passkey-setup-shell { padding-top: 28px; }
-  .passkey-setup-header, .passkey-list-heading, .passkey-item { align-items: stretch; flex-direction: column; }
-  .passkey-setup-grid { grid-template-columns: 1fr; }
-  .passkey-revoke { width: 100%; }
+  .credential-setup-shell { padding-top: 28px; }
+  .credential-setup-header, .credential-list-heading, .credential-item { align-items: stretch; flex-direction: column; }
+  .credential-setup-grid { grid-template-columns: 1fr; }
+  .credential-revoke { width: 100%; }
   .recovery-code-output ol { grid-template-columns: 1fr; }
 }
