@@ -58,19 +58,23 @@
 - 緊急復原完成：10 組 128-bit 一次性碼只存 Argon2id；必須密碼＋復原碼＋Turnstile 全部正確。成功會撤銷全部舊 session／Passkey、即時告警，並限制只能重建兩把 Passkey。
 - 免費加密異地備份與還原已完成：每日 `pg_dump` 先由 `pg_restore --list` 驗證，再以 AES-256-GCM 加密與離線 RSA-4096 公鑰包裝；GitHub 只上傳 14 天加密檔，單份 25 MB 上限。RSA 私鑰只在實體離線 USB，GitHub 已設定只讀備份連線與公鑰；正式 run `32696239051` 成功，Artifact 只有 `.twybenc`，PostgreSQL 17.11 隔離還原及 24 表／164 筆逐表 checksum 全數通過。
 - Neon 最小權限收尾已完成：建立正式唯讀備份角色 `twyb_backup_ro` 後，已永久刪除未使用且不擁有任何資料庫的臨時角色 `twyb_backup`；production 分支只保留正式擁有者與唯讀備份角色。
-- 分區混合傳音 V1 已完成：首頁六卷與每一脈仙策詳情頁下方皆有預設收合、展開才載入的傳音元件。公開傳音所有訪客可讀，但只有有效客戶工作階段可投稿且必須先審；私密傳音只由該客戶與守閣者讀寫，所有權在 SQL 查詢固定綁定 `customer_id`。
+- 卷二限定傳音 V2 已完成：全站只有「卷二・六脈仙策」的六個仙策詳情頁保留獨立傳音串；首頁卷首、卷一、卷二總區、卷三、卷四與卷五不再掛載留言元件，舊首頁卷別 API 亦回 404。舊資料列不物理刪除，但不再出現在公開讀寫或後台新回覆範圍。
+- 卷二首頁新增分層活動提示：有已公開內容時顯示「已有傳音」，同一瀏覽器讀過後再出現新公開內容時顯示「新傳音」，已登入客戶收到自己的守閣者私密回覆時顯示「有新回覆」。沒有留言不顯示 0 或空人氣提示；卷二標題、桌機導覽與對應仙策卡片都使用文字加色點，不以顏色作為唯一資訊。
+- 活動摘要 API 只回六個 slug、公開數量與最新訊息流水號；匿名訪客不會取得任何私密欄位。私密已讀狀態使用伺服器 HMAC 產生的 20 位匿名範圍隔離不同客戶，瀏覽器 localStorage 只保存 slug、範圍與流水號，不保存留言正文、Email、客戶 ID 或其他機密。
 - 客戶公開身分只顯示由匿名客戶代碼穩定產生的 `同道・XXXX` 與固定識別色，不公開訂單姓名、Email 或內部客戶 ID。顏色只套在頭像、名稱與色條，正文維持高對比中性色；每則訊息仍有名稱與 `守閣者`、`同道`、`等待公開`、`指定給你` 等文字徽章。
-- 後台新增「傳音對話」工作區：可篩選待審核、私密、已公開與全部訊息，一鍵公開、隱藏或指定回覆；不物理刪除訊息，所有審核／回覆寫入 `audit_logs`。新客戶傳音的 LINE／Gmail 管理提醒不含客戶身分與正文；客戶回覆提醒信也只要求登入查看，不外送站內內容。
+- 後台「傳音對話」工作區只列出卷二六脈，可篩選待審核、私密、已公開與全部訊息，一鍵公開、隱藏或指定回覆；不物理刪除訊息，所有審核／回覆寫入 `audit_logs`。新客戶傳音的 LINE／Gmail 管理提醒不含客戶身分與正文；客戶回覆提醒信也只要求登入查看，不外送站內內容。
 - 傳音防濫用已完成：2～800 字、純文字、前端只用 `textContent`、公開網址拒絕、CSRF、客戶狀態檢查、每 10 分鐘 5 則／每日 30 則限制、公開先審後發、私密與 API 全部 `no-store`。付款、登入、開通與安全頁面不放傳音元件。
 - 完整 40 點問題、影響與對應修正記錄於 `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`；本次只改呈現層與互動狀態，沒有改動付款、開通、可信裝置、風險分級或資料庫規則。
 
 ## 驗證結果
 
+- 2026-08-24 卷二限定傳音 V2：`python -m pytest -q` 為 121 passed、1 skipped；Python compileall、`node --check static/app.js`、`node --check static/conversations.js`、`node --check static/admin.js`、`pip check`、機密樣式掃描與 `git diff --check` 全部通過。
+- 卷二 V2 本機瀏覽器 QA：桌機與 390×844 手機首頁均為 0 個完整留言元件、6 個仙策活動提示掛點；仙策詳情頁只有自己的 1 個完整傳音元件。實際以隔離假資料驗證「已有傳音 → 展開閱讀 → 新增公開內容 → 新傳音」狀態轉換；390px viewport 的 document scroll width 為 375px，沒有水平溢位，console 0 error／0 warning。隔離資料庫驗收後已刪除。
+- 卷二 V2 已由提交 `f9f4c70` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=volume-two-conversations-v2`；正式首頁為 0 個完整留言元件與 6 個提示掛點，仙策詳情為 1 個獨立元件。匿名活動 API 回 6 個仙策、0 個私密欄位並帶 `no-store`；舊 `home-world` 傳音 API 回 404。正式公開訊息目前為 0，因此畫面不顯示虛假的「已有傳音」；煙霧測試未建立留言、未登入客戶、未消耗復原碼或變更 Passkey。
 - 2026-08-24 分區混合傳音 V1：`python -m pytest -q` 為 120 passed、1 skipped；其中傳音／資料遷移專項 16 passed。Python compileall、`node --check static/conversations.js`、`node --check static/admin.js` 與 `git diff --check` 通過。
 - 傳音權限驗收：匿名只能讀已公開訊息；待審訊息只讓投稿者本人看見；兩個客戶的私密訊息互不可見；管理核准、隱藏、公開回覆、私密指定回覆與 CSRF 均通過。外部管理通知未包含測試正文或 Email。
-- 分區傳音瀏覽器 QA：桌機首頁確認 6 個元件與公開／私密切換；390×844 手機根頁面 viewport 375px／scroll width 375px、面板與展開列 347px，無水平溢位。隔離假資料後台確認待審／私密數量、匿名色標、公開／隱藏／指定回覆按鈕與回覆表單自動帶入正確客戶及區塊；手機後台同樣無水平溢位。
-- 分區混合傳音 V1 已由提交 `a38a8c2` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=hybrid-section-conversations-v1`；正式首頁含 6 個傳音元件與新版腳本，仙策詳情含自己的傳音區塊。匿名公開 API 回 200 且 viewer 未登入，匿名私密 API 回 401 並帶 `no-store`；公開頁仍沒有 `/admin` 連結。正式煙霧測試未建立留言、未使用真實客戶資料、未消耗復原碼或變更 Passkey。
-- 正式已登入後台也完成只讀驗收：`傳音對話` 工作區可見、資料同步成功、12 個允許區塊選項完整、回覆表單可用且 console 0 error。文件提交觸發重新部署時曾出現一次暫時 502，等待重載後同一 API 正常完成，不列為殘留故障；全程沒有按下公開、隱藏或送出。
+- 分區混合傳音 V1 的首頁六卷元件曾完成桌機與 390×844 QA，並由提交 `a38a8c2` 部署；該首頁呈現與首頁卷別 API 已由卷二限定傳音 V2 正式取代。V1 的匿名身分、先審後發、私密 SQL 所有權、速率限制與管理稽核底層仍保留在六個仙策詳情頁。
+- V1 正式已登入後台曾完成 12 個區塊的只讀驗收；V2 已將後台允許選項收斂為六個仙策並由自動測試核對。V2 正式驗收未登入後台、未按下公開、隱藏或送出，避免為純範圍調整操作正式客戶資料。
 - 免費 PostgreSQL＋Passkey 正式版：`python -m pytest -q` 為 103 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 執行。Passkey／復原／加密備份專項、Python compile、JavaScript syntax、`pip check`、依賴稽核、機密掃描與 `git diff --check` 均通過。
 - 2026-08-24 公開管理入口情報最小化後的最終本機驗證：`python -m pytest -q` 為 110 passed、1 skipped；`verify_postgres_backup_restore.py` 的直接 CLI 與 module invocation 均通過。
 - PostgreSQL 17.11 隔離整合測試另以本機臨時資料庫實跑 1 passed：新 challenge IP／時間索引已實際建立，每分鐘上限在 PostgreSQL 後端同樣生效；測試叢集與日誌已刪除。
