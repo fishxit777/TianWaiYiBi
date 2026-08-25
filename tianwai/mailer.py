@@ -1,5 +1,8 @@
+import json
 import os
 import smtplib
+import urllib.error
+import urllib.request
 from email.message import EmailMessage
 
 from flask import current_app, has_request_context, request
@@ -18,11 +21,23 @@ def development_delivery_enabled():
     return bool(current_app.config.get("TESTING")) or _enabled("ENABLE_DEV_TOOLS", False)
 
 
+def _email_provider():
+    provider = os.environ.get("EMAIL_PROVIDER", "auto").strip().lower()
+    if provider == "auto":
+        return "brevo" if os.environ.get("BREVO_API_KEY", "").strip() else "smtp"
+    return provider
+
+
 def email_delivery_ready():
     if development_delivery_enabled():
         return True
-    host = os.environ.get("SMTP_HOST", "").strip()
     sender = os.environ.get("MAIL_FROM", "").strip()
+    provider = _email_provider()
+    if provider == "brevo":
+        return bool(sender and os.environ.get("BREVO_API_KEY", "").strip())
+    if provider != "smtp":
+        return False
+    host = os.environ.get("SMTP_HOST", "").strip()
     username = os.environ.get("SMTP_USERNAME", "").strip()
     password = os.environ.get("SMTP_PASSWORD", "").strip()
     security = os.environ.get("SMTP_SECURITY", "starttls").strip().lower()
@@ -85,6 +100,70 @@ def _queue_delivery_failure(email_event_id, kind, error_code):
         current_app.logger.exception("Unable to queue transactional email failure alert")
 
 
+def _record_failure(order_id, kind, recipient, error_code):
+    event_id = _record_event(order_id, kind, recipient, "failed", error_code)
+    _queue_delivery_failure(event_id, kind, error_code)
+    return "failed"
+
+
+def _send_brevo(recipient, subject, text_body):
+    payload = json.dumps(
+        {
+            "sender": {
+                "name": os.environ.get("MAIL_FROM_NAME", "天外一筆工作室").strip()
+                or "天外一筆工作室",
+                "email": os.environ["MAIL_FROM"].strip(),
+            },
+            "to": [{"email": recipient}],
+            "subject": subject,
+            "textContent": text_body,
+        },
+        ensure_ascii=False,
+    ).encode("utf-8")
+    request_data = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=payload,
+        headers={
+            "accept": "application/json",
+            "api-key": os.environ["BREVO_API_KEY"].strip(),
+            "content-type": "application/json; charset=utf-8",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request_data, timeout=15) as response:
+        status = int(getattr(response, "status", 0))
+        if status < 200 or status >= 300:
+            raise urllib.error.HTTPError(
+                request_data.full_url,
+                status,
+                "Unexpected transactional email API response",
+                response.headers,
+                None,
+            )
+
+
+def _send_smtp(recipient, subject, text_body):
+    message = EmailMessage()
+    message["From"] = os.environ["MAIL_FROM"].strip()
+    message["To"] = recipient
+    message["Subject"] = subject
+    message.set_content(text_body)
+
+    host = os.environ["SMTP_HOST"].strip()
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    security = os.environ.get("SMTP_SECURITY", "starttls").strip().lower()
+    username = os.environ.get("SMTP_USERNAME", "").strip()
+    password = os.environ.get("SMTP_PASSWORD", "")
+
+    smtp_class = smtplib.SMTP_SSL if security == "ssl" else smtplib.SMTP
+    with smtp_class(host, port, timeout=15) as server:
+        if security == "starttls":
+            server.starttls()
+        if username:
+            server.login(username, password)
+        server.send_message(message)
+
+
 def send_email(recipient, subject, text_body, kind, order_id=None):
     """Send a transactional email without persisting its secret-bearing body."""
     if development_delivery_enabled():
@@ -101,36 +180,29 @@ def send_email(recipient, subject, text_body, kind, order_id=None):
         return "development"
 
     if not email_delivery_ready():
-        event_id = _record_event(order_id, kind, recipient, "failed", "smtp_not_configured")
-        _queue_delivery_failure(event_id, kind, "smtp_not_configured")
-        return "failed"
+        return _record_failure(order_id, kind, recipient, "email_provider_not_configured")
 
-    message = EmailMessage()
-    message["From"] = os.environ["MAIL_FROM"].strip()
-    message["To"] = recipient
-    message["Subject"] = subject
-    message.set_content(text_body)
-
-    host = os.environ["SMTP_HOST"].strip()
-    port = int(os.environ.get("SMTP_PORT", "587"))
-    security = os.environ.get("SMTP_SECURITY", "starttls").strip().lower()
-    username = os.environ.get("SMTP_USERNAME", "").strip()
-    password = os.environ.get("SMTP_PASSWORD", "")
-
+    provider = _email_provider()
     try:
-        smtp_class = smtplib.SMTP_SSL if security == "ssl" else smtplib.SMTP
-        with smtp_class(host, port, timeout=15) as server:
-            if security == "starttls":
-                server.starttls()
-            if username:
-                server.login(username, password)
-            server.send_message(message)
-    except (OSError, smtplib.SMTPException) as error:
-        current_app.logger.exception("Transactional email delivery failed")
+        if provider == "brevo":
+            _send_brevo(recipient, subject, text_body)
+        else:
+            _send_smtp(recipient, subject, text_body)
+    except urllib.error.HTTPError as error:
+        error_code = f"brevo_http_{int(error.code)}"
+        current_app.logger.error(
+            "Transactional email API delivery failed with HTTP status %s",
+            int(error.code),
+        )
+        return _record_failure(order_id, kind, recipient, error_code)
+    except (OSError, smtplib.SMTPException, urllib.error.URLError, ValueError) as error:
         error_code = type(error).__name__
-        event_id = _record_event(order_id, kind, recipient, "failed", error_code)
-        _queue_delivery_failure(event_id, kind, error_code)
-        return "failed"
+        current_app.logger.error(
+            "Transactional email delivery failed via %s: %s",
+            provider,
+            error_code,
+        )
+        return _record_failure(order_id, kind, recipient, error_code)
 
     _record_event(order_id, kind, recipient, "sent")
     return "sent"

@@ -469,7 +469,7 @@ def build_daily_summary(slot):
     if not integrations["line"]:
         todo.append("補齊或檢查 LINE 管理員推播設定。")
     if not integrations["email"]:
-        todo.append("補齊或檢查 Gmail／SMTP 管理員告警設定。")
+        todo.append("補齊或檢查交易郵件與管理員告警設定。")
     if not integrations["payment"]:
         todo.append("金流目前不可用，付款前請先完成設定。")
     if not integrations["chain"]:

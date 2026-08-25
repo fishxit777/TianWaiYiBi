@@ -66,6 +66,12 @@ services:
         value: TWYB
       - key: PAYMENT_VERIFICATION_EMAIL
         sync: false
+      - key: EMAIL_PROVIDER
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: 天外一筆工作室
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

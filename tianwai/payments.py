@@ -496,7 +496,14 @@ def ecpay_payment_result():
 def payment_status_page(activation_token):
     order = get_db().execute(
         """
-        SELECT orders.*, ideas.title, ideas.role FROM orders
+        SELECT orders.*, ideas.title, ideas.role,
+               COALESCE((
+                   SELECT activation_codes.delivery_status
+                   FROM activation_codes
+                   WHERE activation_codes.order_id = orders.id
+                   ORDER BY activation_codes.id DESC LIMIT 1
+               ), 'pending') AS delivery_status
+        FROM orders
         JOIN ideas ON ideas.id = orders.idea_id
         WHERE orders.activation_token_hash = ?
         """,
@@ -513,6 +520,7 @@ def payment_status_page(activation_token):
         order=order,
         activation_token=activation_token,
         development_code=development_code,
+        delivery_status=order["delivery_status"],
     )
 
 

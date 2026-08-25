@@ -550,6 +550,7 @@ def activate_page(activation_token):
         activation_token=activation_token,
         activated=activated,
         resent=request.args.get("resent") == "1",
+        delivery_error=request.args.get("delivery_error", ""),
         error="",
     )
 
@@ -648,9 +649,20 @@ def resend_activation(activation_token):
     if csrf_error:
         return csrf_error
     order = _order_for_activation_token(activation_token)
-    if order is not None and order["status"] == "paid" and not _delivery_rate_limited(order["id"], "activation"):
-        issue_activation_delivery(order["id"])
-    return redirect(url_for("access.activate_page", activation_token=activation_token, resent="1"))
+    if order is None or order["status"] != "paid":
+        return redirect(
+            url_for("access.activate_page", activation_token=activation_token, delivery_error="unavailable")
+        )
+    if _delivery_rate_limited(order["id"], "activation"):
+        return redirect(
+            url_for("access.activate_page", activation_token=activation_token, delivery_error="rate_limited")
+        )
+    delivery = issue_activation_delivery(order["id"])
+    if delivery.get("status") in {"sent", "development"}:
+        return redirect(url_for("access.activate_page", activation_token=activation_token, resent="1"))
+    return redirect(
+        url_for("access.activate_page", activation_token=activation_token, delivery_error="failed")
+    )
 
 
 @access_bp.get("/customer/login")

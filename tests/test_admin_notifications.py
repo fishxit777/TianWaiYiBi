@@ -179,3 +179,62 @@ def test_transactional_email_failure_alerts_line_without_recursive_queue(app, mo
     assert email_event_count == 2
     assert "secret code" not in combined
     assert "customer@example.com" not in combined
+
+
+def test_brevo_https_delivery_records_status_without_persisting_secret(app, monkeypatch):
+    from tianwai.mailer import send_email
+
+    captured = {}
+
+    class Response:
+        status = 201
+        headers = {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def fake_urlopen(request_data, timeout):
+        captured["request"] = request_data
+        captured["timeout"] = timeout
+        return Response()
+
+    monkeypatch.setattr("tianwai.mailer.development_delivery_enabled", lambda: False)
+    monkeypatch.setattr("tianwai.mailer.urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setenv("EMAIL_PROVIDER", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "test-brevo-api-key")
+    monkeypatch.setenv("MAIL_FROM", "studio@example.com")
+    monkeypatch.setenv("MAIL_FROM_NAME", "天外一筆工作室")
+
+    with app.test_request_context("/customer/login"):
+        result = send_email(
+            "customer@example.com",
+            "登入資料",
+            "one-time secret body",
+            "customer_login_code",
+        )
+
+    assert result == "sent"
+    assert captured["request"].full_url == "https://api.brevo.com/v3/smtp/email"
+    assert captured["request"].get_header("Api-key") == "test-brevo-api-key"
+    assert captured["timeout"] == 15
+    payload = json.loads(captured["request"].data.decode("utf-8"))
+    assert payload["sender"] == {
+        "name": "天外一筆工作室",
+        "email": "studio@example.com",
+    }
+    assert payload["to"] == [{"email": "customer@example.com"}]
+    assert payload["textContent"] == "one-time secret body"
+
+    with app.app_context():
+        row = get_db().execute(
+            "SELECT recipient_masked, status, error_code FROM email_events ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        stored = " ".join(str(value or "") for value in row)
+
+    assert row["recipient_masked"] == "c***@example.com"
+    assert row["status"] == "sent"
+    assert "one-time secret body" not in stored
+    assert "test-brevo-api-key" not in stored

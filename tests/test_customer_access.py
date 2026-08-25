@@ -54,6 +54,49 @@ def test_activation_code_expires_and_can_be_resent(client, app):
     assert len(app.extensions["mail_outbox"]) == 2
 
 
+def test_activation_resend_reports_real_delivery_failure(client, monkeypatch):
+    _order, link, _code = _pay_and_get_activation(client)
+    monkeypatch.setattr(
+        "tianwai.access.issue_activation_delivery",
+        lambda _order_id: {"status": "failed"},
+    )
+    csrf = set_public_csrf(client, "failed-resend-csrf")
+
+    response = client.post(
+        f"{link}/resend",
+        data={"csrf_token": csrf},
+        follow_redirects=True,
+    )
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "開通資料目前無法寄出" in body
+    assert "付款與購買權限仍然有效" in body
+    assert "新的開通資料已寄出" not in body
+
+
+def test_payment_status_does_not_claim_failed_activation_email_was_sent(client, app):
+    order, link, _code = _pay_and_get_activation(client)
+    with app.app_context():
+        get_db().execute(
+            """
+            UPDATE activation_codes SET delivery_status = 'failed'
+            WHERE order_id = (SELECT id FROM orders WHERE order_no = ?)
+            """,
+            (order["order_no"],),
+        )
+        get_db().commit()
+
+    status_path = link.replace("/activate/", "/payment/status/")
+    response = client.get(status_path)
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "開通資料尚未成功寄出" in body
+    assert "請勿重複付款" in body
+    assert "開通資料已寄到購買 Email" not in body
+
+
 def test_customer_login_code_expires_after_ten_minutes_without_losing_entitlement(client, app):
     order, link, activation_code = _pay_and_get_activation(client)
     csrf = set_public_csrf(client, "activate-for-login-csrf")
