@@ -544,13 +544,25 @@ def activate_page(activation_token):
         "SELECT 1 FROM activation_codes WHERE order_id = ? AND used_at IS NOT NULL LIMIT 1",
         (order["id"],),
     ).fetchone() is not None
+    delivery_row = get_db().execute(
+        """
+        SELECT delivery_status FROM activation_codes
+        WHERE order_id = ? ORDER BY id DESC LIMIT 1
+        """,
+        (order["id"],),
+    ).fetchone()
+    delivery_status = delivery_row["delivery_status"] if delivery_row is not None else "pending"
+    resent_requested = request.args.get("resent") == "1"
+    delivery_error = request.args.get("delivery_error", "")
+    if resent_requested and delivery_status not in {"sent", "development"}:
+        delivery_error = "failed"
     return render_template(
         "activate.html",
         order=order,
         activation_token=activation_token,
         activated=activated,
-        resent=request.args.get("resent") == "1",
-        delivery_error=request.args.get("delivery_error", ""),
+        resent=resent_requested and delivery_status in {"sent", "development"},
+        delivery_error=delivery_error,
         error="",
     )
 

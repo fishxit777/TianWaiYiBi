@@ -96,6 +96,11 @@ def test_payment_status_does_not_claim_failed_activation_email_was_sent(client, 
     assert "請勿重複付款" in body
     assert "開通資料已寄到購買 Email" not in body
 
+    stale_success_url = client.get(f"{link}?resent=1")
+    stale_body = stale_success_url.get_data(as_text=True)
+    assert "開通資料目前無法寄出" in stale_body
+    assert "新的開通資料已寄出" not in stale_body
+
 
 def test_customer_login_code_expires_after_ten_minutes_without_losing_entitlement(client, app):
     order, link, activation_code = _pay_and_get_activation(client)
