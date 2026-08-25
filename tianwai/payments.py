@@ -139,14 +139,22 @@ def _ecpay_callback_valid(parameters):
     return hmac.compare_digest(expected, supplied.upper())
 
 
+def _new_ecpay_merchant_trade_no():
+    timestamp = datetime.now(TAIPEI_TIMEZONE).strftime("%y%m%d%H%M%S%f")
+    return f"T{timestamp}{secrets.choice('0123456789ABCDEF')}"
+
+
 def _ecpay_payload(parameters):
     trade_no = str(parameters.get("TradeNo", ""))[:20]
-    order_no = str(parameters.get("MerchantTradeNo", ""))[:20]
+    merchant_trade_no = str(parameters.get("MerchantTradeNo", ""))[:20]
+    order_no = str(parameters.get("CustomField1") or merchant_trade_no)[:20]
     rtn_code = str(parameters.get("RtnCode", ""))
     simulated = str(parameters.get("SimulatePaid", "0")) == "1"
     status = "paid" if rtn_code == "1" and not simulated else "failed"
     return {
-        "event_id": f"ecpay:{trade_no or order_no}:{rtn_code}:sim{int(simulated)}"[:120],
+        "event_id": (
+            f"ecpay:{trade_no or merchant_trade_no}:{rtn_code}:sim{int(simulated)}"
+        )[:120],
         "order_no": order_no,
         "amount": parameters.get("TradeAmt"),
         "status": status,
@@ -404,7 +412,8 @@ def ecpay_payment_page(payment_token):
     base_url = os.environ.get("BASE_URL", "").strip().rstrip("/") or request.url_root.rstrip("/")
     parameters = {
         "MerchantID": config["merchant_id"],
-        "MerchantTradeNo": order["order_no"],
+        "MerchantTradeNo": _new_ecpay_merchant_trade_no(),
+        "CustomField1": order["order_no"],
         "MerchantTradeDate": datetime.now(TAIPEI_TIMEZONE).strftime("%Y/%m/%d %H:%M:%S"),
         "PaymentType": "aio",
         "TotalAmount": str(int(order["amount"])),

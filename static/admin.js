@@ -224,6 +224,10 @@
     const refundButton = document.querySelector('#confirm-payment-verification-refund');
     clear(state);
     checkoutLink.hidden = true;
+    checkoutLink.textContent = '前往綠界付款';
+    checkoutLink.removeAttribute('aria-disabled');
+    checkoutLink.style.pointerEvents = '';
+    delete checkoutLink.dataset.opening;
     replaceButton.hidden = true;
     refundButton.hidden = true;
     createButton.disabled = !data?.ready;
@@ -849,6 +853,17 @@
       });
       await loadDashboard(`舊付款頁已失效；新的 NT$6 驗證訂單 ${result.order_no} 已建立，尚未扣款。`);
     } catch (error) { showError(error); button.disabled = false; }
+  });
+  document.querySelector('#open-payment-verification').addEventListener('click', (event) => {
+    const link = event.currentTarget;
+    if (link.dataset.opening === '1') {
+      event.preventDefault();
+      return;
+    }
+    link.dataset.opening = '1';
+    link.setAttribute('aria-disabled', 'true');
+    link.style.pointerEvents = 'none';
+    link.textContent = '正在前往綠界…';
   });
   document.querySelector('#confirm-payment-verification-refund').addEventListener('click', async () => {
     const button = document.querySelector('#confirm-payment-verification-refund');

@@ -30,10 +30,20 @@ def _create_verification_order(client, monkeypatch):
     return csrf, response.get_json()
 
 
+def _redirect_field(response, name):
+    match = re.search(
+        rf'name="{re.escape(name)}" value="([^"]*)"',
+        response.get_data(as_text=True),
+    )
+    assert match is not None
+    return match.group(1)
+
+
 def _paid_notice(order, payment_type="Credit_CreditCard"):
     parameters = {
         "MerchantID": "verification-merchant",
-        "MerchantTradeNo": order["order_no"],
+        "MerchantTradeNo": "T260825020000ABCDEF1",
+        "CustomField1": order["order_no"],
         "StoreID": "TWYB",
         "RtnCode": "1",
         "RtnMsg": "Success",
@@ -88,15 +98,26 @@ def test_verification_order_uses_ecpay_minimum_credit_amount_without_opening_pub
     assert "owner@example.com" not in str(order)
     assert "verification-hash" not in str(order)
 
-    redirect_page = client.get(order["checkout_url"])
-    assert redirect_page.status_code == 200
-    assert b'name="TotalAmount" value="6"' in redirect_page.data
-    assert b'name="ChoosePayment" value="Credit"' in redirect_page.data
-    assert b'name="UnionPay" value="2"' in redirect_page.data
-    assert b'name="BindingCard" value="0"' in redirect_page.data
-    assert b'name="StoreID" value="TWYB"' in redirect_page.data
-    assert b"verification-hash-key" not in redirect_page.data
-    assert b"verification-hash-iv" not in redirect_page.data
+    first_redirect = client.get(order["checkout_url"])
+    second_redirect = client.get(order["checkout_url"])
+    assert first_redirect.status_code == 200
+    assert second_redirect.status_code == 200
+    first_trade_no = _redirect_field(first_redirect, "MerchantTradeNo")
+    second_trade_no = _redirect_field(second_redirect, "MerchantTradeNo")
+    assert first_trade_no != order["order_no"]
+    assert second_trade_no != order["order_no"]
+    assert first_trade_no != second_trade_no
+    assert len(first_trade_no) == 20
+    assert first_trade_no.isalnum()
+    assert _redirect_field(first_redirect, "CustomField1") == order["order_no"]
+    assert _redirect_field(second_redirect, "CustomField1") == order["order_no"]
+    assert b'name="TotalAmount" value="6"' in first_redirect.data
+    assert b'name="ChoosePayment" value="Credit"' in first_redirect.data
+    assert b'name="UnionPay" value="2"' in first_redirect.data
+    assert b'name="BindingCard" value="0"' in first_redirect.data
+    assert b'name="StoreID" value="TWYB"' in first_redirect.data
+    assert b"verification-hash-key" not in first_redirect.data
+    assert b"verification-hash-iv" not in first_redirect.data
 
     public_checkout = client.get("/checkout/brand-world-forge")
     assert "正式付款尚未開放" in public_checkout.get_data(as_text=True)
@@ -272,6 +293,23 @@ def test_verification_callback_rejects_wrong_amount_and_simulated_payment(
         assert stored["status"] == "pending"
 
 
+def test_verification_callback_rejects_tampered_internal_order_mapping(
+    client, app, monkeypatch
+):
+    _, order = _create_verification_order(client, monkeypatch)
+    tampered = _paid_notice(order)
+    tampered["CustomField1"] = "TWYBV-TAMPERED"
+
+    response = client.post("/payments/ecpay/notify", data=tampered)
+
+    assert response.status_code == 400
+    with app.app_context():
+        stored = get_db().execute(
+            "SELECT status FROM orders WHERE order_no = ?", (order["order_no"],)
+        ).fetchone()
+        assert stored["status"] == "pending"
+
+
 def test_dashboard_excludes_verification_order_from_business_metrics(client, monkeypatch):
     _, order = _create_verification_order(client, monkeypatch)
     client.post("/payments/ecpay/notify", data=_paid_notice(order))
@@ -295,7 +333,8 @@ def test_admin_dashboard_has_separate_minimum_amount_verification_controls(clien
     assert 'id="create-payment-verification"' in body
     assert 'id="replace-payment-verification"' in body
     assert 'id="confirm-payment-verification-refund"' in body
-    assert "payment-verification-v5" in body
+    assert 'target="_self"' in body
+    assert "payment-verification-v6" in body
     assert "NT$6 正式付款驗證" in body
 
 
