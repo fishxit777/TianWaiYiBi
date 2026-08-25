@@ -181,6 +181,39 @@ def test_transactional_email_failure_alerts_line_without_recursive_queue(app, mo
     assert "customer@example.com" not in combined
 
 
+def test_email_event_captures_insert_id_before_transaction_commit(app, monkeypatch):
+    from tianwai.mailer import _record_event
+
+    class CommitSensitiveCursor:
+        def __init__(self, connection):
+            self.connection = connection
+
+        @property
+        def lastrowid(self):
+            if self.connection.committed:
+                raise RuntimeError("insert id requested after transaction commit")
+            return 73
+
+    class CommitSensitiveConnection:
+        def __init__(self):
+            self.committed = False
+
+        def execute(self, _statement, _parameters=()):
+            return CommitSensitiveCursor(self)
+
+        def commit(self):
+            self.committed = True
+
+    connection = CommitSensitiveConnection()
+    monkeypatch.setattr("tianwai.mailer.get_db", lambda: connection)
+
+    with app.app_context():
+        event_id = _record_event(None, "activation", "customer@example.com", "sent")
+
+    assert event_id == 73
+    assert connection.committed is True
+
+
 def test_brevo_https_delivery_records_status_without_persisting_secret(app, monkeypatch):
     from tianwai.mailer import send_email
 

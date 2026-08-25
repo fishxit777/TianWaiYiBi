@@ -549,9 +549,10 @@ def create_message(section_key):
             now,
         ),
     )
+    message_id = cursor.lastrowid
     connection.commit()
     row = connection.execute(
-        f"{message_query()} WHERE section_messages.id = ?", (cursor.lastrowid,)
+        f"{message_query()} WHERE section_messages.id = ?", (message_id,)
     ).fetchone()
     _notify_admin_new_message(context, visibility, row["public_id"])
     response = jsonify(

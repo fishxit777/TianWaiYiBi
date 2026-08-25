@@ -165,6 +165,7 @@ def issue_activation_delivery(order_id):
             _iso(now + timedelta(minutes=ACTIVATION_CODE_MINUTES)),
         ),
     )
+    activation_code_id = cursor.lastrowid
     connection.commit()
 
     activation_token = derive_activation_token(order["order_no"])
@@ -194,18 +195,18 @@ def issue_activation_delivery(order_id):
             UPDATE activation_codes SET revoked_at = ?
             WHERE order_id = ? AND id <> ? AND used_at IS NULL AND revoked_at IS NULL
             """,
-            (utc_now(), order_id, cursor.lastrowid),
+            (utc_now(), order_id, activation_code_id),
         )
         connection.execute(
             "UPDATE activation_codes SET delivery_status = ? WHERE id = ?",
-            (status, cursor.lastrowid),
+            (status, activation_code_id),
         )
     else:
         connection.execute(
             """
             UPDATE activation_codes SET delivery_status = 'failed', revoked_at = ? WHERE id = ?
             """,
-            (utc_now(), cursor.lastrowid),
+            (utc_now(), activation_code_id),
         )
     connection.commit()
     return {
@@ -256,6 +257,7 @@ def _issue_login_delivery(email):
             get_client_ip(),
         ),
     )
+    login_code_id = cursor.lastrowid
     connection.commit()
     formatted_code = _format_code(code)
     status = send_email(
@@ -277,12 +279,12 @@ def _issue_login_delivery(email):
             UPDATE customer_login_codes SET revoked_at = ?
             WHERE customer_email = ? AND id <> ? AND used_at IS NULL AND revoked_at IS NULL
             """,
-            (utc_now(), email, cursor.lastrowid),
+            (utc_now(), email, login_code_id),
         )
     else:
         connection.execute(
             "UPDATE customer_login_codes SET revoked_at = ? WHERE id = ?",
-            (utc_now(), cursor.lastrowid),
+            (utc_now(), login_code_id),
         )
     connection.commit()
     return {
@@ -404,6 +406,7 @@ def _create_customer_session(email):
             _iso(now + timedelta(hours=CUSTOMER_IDLE_HOURS)),
         ),
     )
+    session_id = session_cursor.lastrowid
     connection.commit()
 
     if replaced_device_id:
@@ -429,7 +432,7 @@ def _create_customer_session(email):
             "customer_session_created", 5, "session_issued",
             customer_id=customer["id"], device_id=device["id"],
         )
-    return raw_token, new_device_token, session_cursor.lastrowid
+    return raw_token, new_device_token, session_id
 
 
 def _set_customer_cookies(response, raw_token, raw_device=""):

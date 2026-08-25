@@ -282,8 +282,9 @@ def store_registration_result(verified, label, transports=None):
             utc_now(),
         ),
     )
+    passkey_id = cursor.lastrowid
     connection.commit()
-    return cursor.lastrowid
+    return passkey_id
 
 
 def verify_and_store_registration(credential, expected_challenge, label, transports=None):

@@ -88,8 +88,9 @@ def _record_event(order_id, kind, recipient, status, error_code=""):
             utc_now(),
         ),
     )
+    email_event_id = cursor.lastrowid
     connection.commit()
-    return cursor.lastrowid
+    return email_event_id
 
 
 def _queue_delivery_failure(email_event_id, kind, error_code):

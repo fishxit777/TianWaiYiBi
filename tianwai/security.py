@@ -93,6 +93,7 @@ def log_security_event(event_type, severity="medium", action_taken="logged", det
                 str(action_taken)[:80], str(detail)[:500], user_agent, now,
             ),
         )
+        security_event_id = cursor.lastrowid
         connection.commit()
     except Exception:
         current_app.logger.exception("Unable to persist security event")
@@ -102,10 +103,10 @@ def log_security_event(event_type, severity="medium", action_taken="logged", det
             from .notifications import queue_security_alert
 
             queue_security_alert(
-                cursor.lastrowid,
+                security_event_id,
                 level=str(severity).lower(),
                 event_type=str(event_type),
-                event_id=f"SE-{cursor.lastrowid}",
+                event_id=f"SE-{security_event_id}",
                 action_taken=str(action_taken),
                 ip=ip,
                 path=path,

@@ -1254,9 +1254,10 @@ def reply_to_conversation():
             now,
         ),
     )
+    message_id = cursor.lastrowid
     connection.commit()
     row = connection.execute(
-        f"{message_query()} WHERE section_messages.id = ?", (cursor.lastrowid,)
+        f"{message_query()} WHERE section_messages.id = ?", (message_id,)
     ).fetchone()
     delivery_status = _notify_customer_conversation_reply(
         connection, customer, visibility
