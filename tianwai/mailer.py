@@ -28,13 +28,28 @@ def _email_provider():
     return provider
 
 
+def _brevo_sender_id():
+    value = os.environ.get("BREVO_SENDER_ID", "").strip()
+    if not value:
+        return None
+    try:
+        sender_id = int(value)
+    except ValueError:
+        return None
+    return sender_id if sender_id > 0 else None
+
+
 def email_delivery_ready():
     if development_delivery_enabled():
         return True
     sender = os.environ.get("MAIL_FROM", "").strip()
     provider = _email_provider()
     if provider == "brevo":
-        return bool(sender and os.environ.get("BREVO_API_KEY", "").strip())
+        sender_id_configured = bool(os.environ.get("BREVO_SENDER_ID", "").strip())
+        sender_ready = (
+            _brevo_sender_id() is not None if sender_id_configured else bool(sender)
+        )
+        return bool(sender_ready and os.environ.get("BREVO_API_KEY", "").strip())
     if provider != "smtp":
         return False
     host = os.environ.get("SMTP_HOST", "").strip()
@@ -107,13 +122,21 @@ def _record_failure(order_id, kind, recipient, error_code):
 
 
 def _send_brevo(recipient, subject, text_body):
+    configured_sender_id = os.environ.get("BREVO_SENDER_ID", "").strip()
+    if configured_sender_id:
+        sender_id = _brevo_sender_id()
+        if sender_id is None:
+            raise ValueError("Invalid Brevo sender ID")
+        sender = {"id": sender_id}
+    else:
+        sender = {
+            "name": os.environ.get("MAIL_FROM_NAME", "天外一筆工作室").strip()
+            or "天外一筆工作室",
+            "email": os.environ["MAIL_FROM"].strip(),
+        }
     payload = json.dumps(
         {
-            "sender": {
-                "name": os.environ.get("MAIL_FROM_NAME", "天外一筆工作室").strip()
-                or "天外一筆工作室",
-                "email": os.environ["MAIL_FROM"].strip(),
-            },
+            "sender": sender,
             "to": [{"email": recipient}],
             "subject": subject,
             "textContent": text_body,

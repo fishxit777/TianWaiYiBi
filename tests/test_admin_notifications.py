@@ -238,3 +238,59 @@ def test_brevo_https_delivery_records_status_without_persisting_secret(app, monk
     assert row["status"] == "sent"
     assert "one-time secret body" not in stored
     assert "test-brevo-api-key" not in stored
+
+
+def test_brevo_delivery_uses_verified_sender_id_without_sender_email(app, monkeypatch):
+    from tianwai.mailer import email_delivery_ready, send_email
+
+    captured = {}
+
+    class Response:
+        status = 201
+        headers = {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def fake_urlopen(request_data, timeout):
+        captured["request"] = request_data
+        captured["timeout"] = timeout
+        return Response()
+
+    monkeypatch.setattr("tianwai.mailer.development_delivery_enabled", lambda: False)
+    monkeypatch.setattr("tianwai.mailer.urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setenv("EMAIL_PROVIDER", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "test-brevo-api-key")
+    monkeypatch.setenv("BREVO_SENDER_ID", "42")
+    monkeypatch.delenv("MAIL_FROM", raising=False)
+
+    with app.test_request_context("/customer/login"):
+        assert email_delivery_ready() is True
+        result = send_email(
+            "customer@example.com",
+            "登入資料",
+            "one-time secret body",
+            "customer_login_code",
+        )
+
+    assert result == "sent"
+    assert captured["timeout"] == 15
+    payload = json.loads(captured["request"].data.decode("utf-8"))
+    assert payload["sender"] == {"id": 42}
+    assert "email" not in payload["sender"]
+
+
+def test_brevo_delivery_rejects_invalid_sender_id(app, monkeypatch):
+    from tianwai.mailer import email_delivery_ready
+
+    monkeypatch.setattr("tianwai.mailer.development_delivery_enabled", lambda: False)
+    monkeypatch.setenv("EMAIL_PROVIDER", "brevo")
+    monkeypatch.setenv("BREVO_API_KEY", "test-brevo-api-key")
+    monkeypatch.setenv("BREVO_SENDER_ID", "not-a-number")
+    monkeypatch.setenv("MAIL_FROM", "studio@example.com")
+
+    with app.test_request_context("/customer/login"):
+        assert email_delivery_ready() is False
