@@ -23,6 +23,7 @@
   let orderFilter = 'all';
   let conversationFilter = 'pending';
   let securityFilter = 'priority';
+  let analyticsDays = 30;
   let lastSyncAt = null;
   let editorSnapshot = '';
   let confirmResolver = null;
@@ -119,7 +120,13 @@
       ['累計營收', money(metrics.revenue), '所有已付款訂單', 'revenue', 'orders'],
       ['已付款訂單', metrics.paid_orders, `共 ${metrics.total_orders} 筆交易`, 'paid', 'orders'],
       ['等待付款', metrics.pending_orders, metrics.pending_orders ? '需要留意付款進度' : '目前沒有待處理', metrics.pending_orders ? 'attention' : 'clear', 'orders'],
-      ['瀏覽轉換率', `${metrics.conversion}%`, `${metrics.views} 次有效瀏覽`, 'conversion', null]
+      [
+        '付款轉換',
+        metrics.conversion_available ? `${metrics.conversion}%` : '—',
+        metrics.conversion_available ? `近 30 日・${metrics.paid_sessions} 付款／${metrics.views} 位有效訪客` : '正式收款目前關閉，不顯示失真轉換率',
+        'conversion',
+        null
+      ]
     ].forEach(([label, value, detail, tone, view]) => {
       const card = node('article', `metric-card tone-${tone}`);
       card.dataset.tone = tone;
@@ -194,7 +201,7 @@
     clear(target);
     const summary = data.customer_access?.summary || {};
     [
-      ['有效瀏覽', data.metrics.views, '近站內累計'],
+      ['有效瀏覽', data.metrics.views, '近 30 日不重複訪客'],
       ['付費客戶', summary.paid_customers || 0, '不重複 Email'],
       ['已開通內容', summary.activated_entitlements || 0, `共 ${summary.paid_entitlements || 0} 份權限`],
       ['目前登入客戶', summary.active_sessions || 0, '有效工作階段']
@@ -249,6 +256,91 @@
       row.append(node('span', '', item.source || '其他'), track, node('strong', '', item.count), node('small', 'traffic-percent', `${percent}%`));
       target.appendChild(row);
     });
+  }
+
+  function renderDemandRadar(radar) {
+    const target = document.querySelector('#demand-radar');
+    const qualityTarget = document.querySelector('#demand-quality');
+    const methodTarget = document.querySelector('#demand-method-copy');
+    clear(target);
+    clear(qualityTarget);
+    clear(methodTarget);
+    if (!radar) {
+      target.appendChild(node('div', 'event-empty', '需求證據目前無法讀取'));
+      return;
+    }
+    analyticsDays = Number(radar.window_days || 30);
+    document.querySelectorAll('[data-demand-days]').forEach((button) => {
+      const active = Number(button.dataset.demandDays) === analyticsDays;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    const quality = radar.data_quality || {};
+    [
+      ['觀察期間', `${radar.window_days} 日`],
+      ['可用工作階段', quality.usable_sessions || 0],
+      ['排除機器事件', quality.automated_excluded || 0],
+      ['排除後台預覽', quality.admin_preview_excluded || 0],
+      ['缺少工作階段', quality.missing_session || 0]
+    ].forEach(([label, value]) => {
+      const fact = node('div', 'demand-quality-fact');
+      fact.append(node('span', '', label), node('strong', '', value));
+      qualityTarget.appendChild(fact);
+    });
+    (radar.items || []).forEach((item) => {
+      const card = node('article', 'demand-card');
+      if (radar.leader === item.slug) card.classList.add('is-leader');
+      const heading = node('div', 'demand-card-heading');
+      const title = node('div');
+      title.append(node('span', '', item.role), node('h4', '', item.title));
+      const score = node('div', `demand-score confidence-${item.confidence.level}`);
+      const scoreVisible = ['directional', 'stable'].includes(item.confidence.level);
+      score.append(
+        node('strong', '', scoreVisible ? item.evidence_index : (item.confidence.level === 'exploratory' ? '探索' : '—')),
+        node('small', '', scoreVisible ? '需求證據' : (item.confidence.level === 'exploratory' ? '不做排名' : '不評分'))
+      );
+      heading.append(title, score);
+      const confidence = node('div', 'demand-confidence');
+      confidence.append(
+        node('span', `confidence-pill level-${item.confidence.level}`, item.confidence.label),
+        node('span', '', item.confidence.note)
+      );
+      const funnel = node('ol', 'demand-funnel');
+      const funnelSteps = [
+        ['有效訪客', item.funnel.visitors, null],
+        ['讀至 50%', item.funnel.read_50, item.rates.read_50],
+        ['有效閱讀', item.funnel.engaged, item.rates.engaged],
+        ['主動意願', item.funnel.interest + item.funnel.conversations, item.rates.interest]
+      ];
+      if (radar.payment_ready) funnelSteps.push(
+        ['進入結帳', item.funnel.checkout, item.rates.checkout],
+        ['建立訂單', item.funnel.orders, null],
+        ['完成付款', item.funnel.paid, item.rates.paid]
+      );
+      funnelSteps.forEach(([label, value, rate]) => {
+        const step = node('li');
+        step.append(node('span', '', label), node('strong', '', value));
+        if (rate !== null) step.append(node('small', '', `${rate}%`));
+        funnel.appendChild(step);
+      });
+      const diagnosis = node('div', `demand-diagnosis diagnosis-${item.diagnosis.code}`);
+      diagnosis.append(
+        node('span', '', '目前判讀'),
+        node('strong', '', item.diagnosis.title),
+        node('p', '', item.diagnosis.evidence),
+        node('p', 'demand-next-action', `下一步：${item.diagnosis.action}`)
+      );
+      const trendText = item.trend.percent === null
+        ? (item.trend.current_visitors ? '前期無基準，暫不計增幅' : '本期尚無有效訪客')
+        : `較前一期 ${item.trend.percent > 0 ? '+' : ''}${item.trend.percent}%`;
+      card.append(heading, confidence, funnel, diagnosis, node('div', 'demand-trend', `${item.stage.label}・${trendText}`));
+      target.appendChild(card);
+    });
+    methodTarget.append(
+      node('p', '', `${radar.method.claim}。低於 ${radar.method.minimum_sample} 位有效訪客一律標示資料不足；達 ${radar.method.stable_sample} 位才進入穩定級。`),
+      node('p', '', `目前事件規格版本 v${radar.method.event_version}。同一工作階段的重複事件會去重，機器流量與後台預覽不列入判讀。`),
+      node('p', '', radar.payment_ready ? '正式收款已開啟，因此結帳、建單與付款納入診斷。' : '正式收款未開啟，因此不以零結帳或零付款判定商品失敗。')
+    );
   }
 
   function renderIntegrations(config) {
@@ -886,6 +978,7 @@
     renderPulse(data);
     renderRevenue(data.revenue_days || []);
     renderTrafficSources(data.traffic_sources || []);
+    renderDemandRadar(data.demand_radar);
     renderIntegrations(data.integration_status || {});
     renderPaymentVerification(data.payment_verification || {});
     renderIdeas(data.ideas || []);
@@ -922,7 +1015,7 @@
     refreshDashboard.disabled = true;
     refreshDashboard.setAttribute('aria-busy', 'true');
     try {
-      render(await api('/admin/api/dashboard'));
+      render(await api(`/admin/api/dashboard?analytics_days=${analyticsDays}`));
       const syncedAt = new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit', hour12: false});
       setStatus(message || `資料已更新・${syncedAt}`);
       lastSyncAt = new Date();
@@ -941,6 +1034,14 @@
   window.addEventListener('hashchange', () => setWorkspace(location.hash.slice(1), false));
   refreshDashboard.addEventListener('click', () => loadDashboard());
   retryDashboard.addEventListener('click', () => loadDashboard());
+  document.querySelectorAll('[data-demand-days]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const requested = Number(button.dataset.demandDays);
+      if (![7, 30, 90].includes(requested) || requested === analyticsDays) return;
+      analyticsDays = requested;
+      loadDashboard(`需求雷達已切換為 ${requested} 日觀察窗。`);
+    });
+  });
   document.querySelector('#order-search').addEventListener('input', (event) => {
     document.querySelector('#clear-order-search').hidden = !event.currentTarget.value;
     renderOrders();

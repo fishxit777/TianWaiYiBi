@@ -69,6 +69,19 @@
         <section class="admin-panel"><div class="panel-heading"><div><span>近七日</span><h3>營收走勢</h3></div></div><div id="revenue-chart" class="revenue-chart"></div></section>
         <section class="admin-panel"><div class="panel-heading"><div><span>近三十日</span><h3>訪客從哪裡來</h3></div></div><div id="traffic-sources" class="traffic-sources"></div></section>
       </div>
+      <section class="admin-panel demand-radar-panel" aria-labelledby="demand-radar-title">
+        <div class="panel-heading demand-radar-heading">
+          <div><span>DEMAND EVIDENCE</span><h3 id="demand-radar-title">仙策需求雷達</h3><p>以不重複有效訪客、閱讀、主動意願與實際交易證據判讀；資料不足時不下結論。</p></div>
+          <div id="demand-window-controls" class="demand-window-controls" role="group" aria-label="需求雷達觀察期間">
+            <button type="button" data-demand-days="7" aria-pressed="false">7 日</button>
+            <button type="button" data-demand-days="30" aria-pressed="true">30 日</button>
+            <button type="button" data-demand-days="90" aria-pressed="false">90 日</button>
+          </div>
+        </div>
+        <div id="demand-quality" class="demand-quality" aria-live="polite"></div>
+        <div id="demand-radar" class="demand-radar-grid"></div>
+        <details class="demand-method"><summary>判讀規則與限制</summary><div id="demand-method-copy"></div></details>
+      </section>
     </section>
 
     <section id="orders-admin" class="admin-workspace" data-admin-panel="orders" hidden>

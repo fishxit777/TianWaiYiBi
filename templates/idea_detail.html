@@ -16,7 +16,7 @@
       <p>{{ idea['role'] }}</p>
       <small>{{ idea['discipline'] }}</small>
     </div>
-    <div class="detail-copy reveal delay-1">
+    <div class="detail-copy reveal delay-1" data-analytics-idea="{{ idea['slug'] }}">
       <p class="eyebrow">仙策編號・{{ '%02d'|format(idea['sort_order']) }}</p>
       <h1>{{ idea['title'] }}</h1>
       <p class="detail-lead">{{ idea['summary'] }}</p>
@@ -35,9 +35,13 @@
         {% if payment_status.ready %}
         <a class="button button-primary" href="{{ url_for('public.checkout', slug=idea['slug']) }}">解鎖完整心法</a>
         {% else %}
-        <a class="button button-primary" href="#conversation-idea-detail-{{ idea['slug'] }}">傳音詢問此策</a>
+        <div class="interest-actions">
+          <button class="button button-primary" type="button" data-interest-cta>我想取得這一策</button>
+          <a class="button button-ghost" href="#conversation-idea-detail-{{ idea['slug'] }}" data-conversation-cta>傳音詢問此策</a>
+        </div>
         {% endif %}
       </div>
+      {% if not payment_status.ready %}<p class="interest-note" data-interest-status aria-live="polite">只記錄匿名需求意願；不會建立訂單，也不會要求 Email。</p>{% endif %}
       <p class="locked-note"><span aria-hidden="true">◇</span> {% if payment_status.ready %}完整心法需解鎖・數位內容一次買斷{% else %}摘要可先閱讀・收款未開放時不會建立訂單{% endif %}</p>
     </div>
   </div>

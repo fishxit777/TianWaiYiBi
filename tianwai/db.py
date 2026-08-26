@@ -397,6 +397,36 @@ def migrate_database(connection):
         connection.execute("ALTER TABLE orders ADD COLUMN payment_method TEXT")
     if "refunded_at" not in order_columns:
         connection.execute("ALTER TABLE orders ADD COLUMN refunded_at TEXT")
+    if "analytics_session_id" not in order_columns:
+        connection.execute("ALTER TABLE orders ADD COLUMN analytics_session_id TEXT")
+
+    analytics_columns = _column_names(connection, "analytics_events")
+    if "event_value" not in analytics_columns:
+        connection.execute("ALTER TABLE analytics_events ADD COLUMN event_value TEXT NOT NULL DEFAULT ''")
+    if "event_version" not in analytics_columns:
+        connection.execute("ALTER TABLE analytics_events ADD COLUMN event_version INTEGER NOT NULL DEFAULT 1")
+    if "dedupe_key" not in analytics_columns:
+        connection.execute("ALTER TABLE analytics_events ADD COLUMN dedupe_key TEXT")
+    if "is_automated" not in analytics_columns:
+        connection.execute("ALTER TABLE analytics_events ADD COLUMN is_automated INTEGER NOT NULL DEFAULT 0")
+    if "page_path" not in analytics_columns:
+        connection.execute("ALTER TABLE analytics_events ADD COLUMN page_path TEXT NOT NULL DEFAULT ''")
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_analytics_idea_funnel "
+        "ON analytics_events (idea_id, event_name, created_at DESC)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_analytics_session_time "
+        "ON analytics_events (session_id, created_at DESC)"
+    )
+    connection.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_dedupe "
+        "ON analytics_events (dedupe_key) WHERE dedupe_key IS NOT NULL"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_orders_analytics_session "
+        "ON orders (analytics_session_id, created_at DESC)"
+    )
 
     session_columns = _column_names(connection, "customer_sessions")
     if "customer_id" not in session_columns:

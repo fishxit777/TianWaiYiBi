@@ -144,6 +144,55 @@
 .public-site .detail-breadcrumb a:focus-visible { color: #fff0bd; text-decoration: underline; text-underline-offset: 4px; }
 .public-site .detail-breadcrumb strong { overflow: hidden; color: rgba(244, 236, 211, .7); text-overflow: ellipsis; white-space: nowrap; }
 .public-site .purchase-rune > div strong { max-width: 18ch; }
+.public-site .purchase-rune .interest-actions { display: flex; flex-flow: row wrap; gap: 10px; align-items: center; }
+.public-site .interest-actions .button { min-width: 176px; justify-content: center; }
+.public-site .interest-actions button:disabled { cursor: default; opacity: .72; }
+.public-site .interest-note { margin: 12px 0 0; color: rgba(216, 206, 182, .56); font: 11px/1.65 var(--sans); }
+
+/* ---------- Auditable demand evidence ---------- */
+.admin-ops-page .demand-radar-panel { margin-top: 24px; overflow: hidden; }
+.admin-ops-page .demand-radar-heading { gap: 24px; align-items: flex-start; }
+.admin-ops-page .demand-radar-heading p { max-width: 700px; margin: 8px 0 0; color: #68726d; font-size: 12px; line-height: 1.7; }
+.admin-ops-page .demand-window-controls { display: inline-flex; flex: 0 0 auto; gap: 3px; padding: 3px; border: 1px solid #d6d6cf; border-radius: 6px; background: #f0efe9; }
+.admin-ops-page .demand-window-controls button { min-width: 54px; padding: 7px 10px; color: #66706b; border: 0; border-radius: 4px; background: transparent; cursor: pointer; font-weight: 700; }
+.admin-ops-page .demand-window-controls button.is-active { color: #fff; background: #314f46; box-shadow: 0 2px 8px rgba(49, 79, 70, .18); }
+.admin-ops-page .demand-quality { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; margin: 20px 0; overflow: hidden; border: 1px solid #deddd6; border-radius: 6px; background: #deddd6; }
+.admin-ops-page .demand-quality-fact { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; background: #faf9f5; }
+.admin-ops-page .demand-quality-fact span { color: #737a76; font-size: 11px; }
+.admin-ops-page .demand-quality-fact strong { color: #26332f; font-size: 12px; }
+.admin-ops-page .demand-radar-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.admin-ops-page .demand-card { position: relative; padding: 18px; border: 1px solid #d9d8d1; border-radius: 7px; background: linear-gradient(145deg, #fff, #f8f7f2); box-shadow: 0 7px 22px rgba(48, 48, 40, .045); }
+.admin-ops-page .demand-card.is-leader { border-color: #7da998; box-shadow: inset 3px 0 #4f8e78, 0 8px 24px rgba(48, 95, 78, .08); }
+.admin-ops-page .demand-card.is-leader::after { position: absolute; top: 12px; right: 74px; padding: 3px 7px; color: #356b5a; border-radius: 999px; background: #e3f0ea; content: '目前領先'; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.admin-ops-page .demand-card-heading { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+.admin-ops-page .demand-card-heading span { color: #7b6750; font-size: 10px; letter-spacing: .12em; }
+.admin-ops-page .demand-card-heading h4 { margin: 5px 0 0; color: #25302d; font-size: 17px; }
+.admin-ops-page .demand-score { display: grid; flex: 0 0 58px; width: 58px; height: 58px; place-content: center; text-align: center; border: 1px solid #c9d8d2; border-radius: 50%; background: #f0f6f3; }
+.admin-ops-page .demand-score strong { color: #315f51; font-size: 18px; line-height: 1; }
+.admin-ops-page .demand-score small { margin-top: 3px; color: #687772; font-size: 8px; }
+.admin-ops-page .demand-score.confidence-insufficient { border-style: dashed; background: #f2f1ed; }
+.admin-ops-page .demand-score.confidence-insufficient strong { color: #8a8c87; }
+.admin-ops-page .demand-confidence { display: flex; gap: 9px; align-items: center; margin: 14px 0; color: #707773; font-size: 10px; }
+.admin-ops-page .confidence-pill { flex: 0 0 auto; padding: 4px 7px; color: #5d625f; border-radius: 999px; background: #e9e9e4; font-weight: 800; }
+.admin-ops-page .confidence-pill.level-exploratory { color: #7b5d25; background: #f5ebd2; }
+.admin-ops-page .confidence-pill.level-directional,
+.admin-ops-page .confidence-pill.level-stable { color: #346653; background: #e0eee7; }
+.admin-ops-page .demand-funnel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 0; padding: 0; overflow: hidden; border: 1px solid #e0dfd8; border-radius: 5px; list-style: none; }
+.admin-ops-page .demand-funnel li { position: relative; display: grid; gap: 3px; padding: 10px 8px; border-right: 1px solid #e0dfd8; background: rgba(247, 246, 241, .7); }
+.admin-ops-page .demand-funnel li:last-child { border-right: 0; }
+.admin-ops-page .demand-funnel span { color: #757c78; font-size: 9px; }
+.admin-ops-page .demand-funnel strong { color: #28332f; font-size: 15px; }
+.admin-ops-page .demand-funnel small { position: absolute; right: 6px; bottom: 8px; color: #82928b; font-size: 8px; }
+.admin-ops-page .demand-diagnosis { display: grid; gap: 5px; margin-top: 14px; padding: 12px 13px; border-left: 3px solid #9182b0; background: #f2eff7; }
+.admin-ops-page .demand-diagnosis > span { color: #74658f; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
+.admin-ops-page .demand-diagnosis > strong { color: #40384d; font-size: 13px; }
+.admin-ops-page .demand-diagnosis p { margin: 0; color: #6d6874; font-size: 10px; line-height: 1.6; }
+.admin-ops-page .demand-diagnosis .demand-next-action { margin-top: 3px; color: #343b38; font-weight: 650; }
+.admin-ops-page .demand-trend { margin-top: 10px; color: #777e7a; font-size: 9px; }
+.admin-ops-page .demand-method { margin-top: 16px; padding-top: 14px; border-top: 1px solid #deddd6; }
+.admin-ops-page .demand-method summary { color: #4d5c56; cursor: pointer; font-size: 11px; font-weight: 800; }
+.admin-ops-page .demand-method div { display: grid; gap: 5px; margin-top: 10px; color: #6c746f; font-size: 10px; line-height: 1.7; }
+.admin-ops-page .demand-method p { margin: 0; }
 
 /* ---------- Admin operational feedback ---------- */
 .admin-ops-page .admin-status-bar {
@@ -340,6 +389,13 @@
 
 /* ---------- Responsive admin ---------- */
 @media (max-width: 760px) {
+  .admin-ops-page .demand-radar-heading { align-items: stretch; flex-direction: column; }
+  .admin-ops-page .demand-window-controls { align-self: flex-start; }
+  .admin-ops-page .demand-quality { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-ops-page .demand-radar-grid { grid-template-columns: 1fr; }
+  .admin-ops-page .demand-funnel { grid-template-columns: repeat(2, 1fr); }
+  .admin-ops-page .demand-funnel li:nth-child(2n) { border-right: 0; }
+  .admin-ops-page .demand-funnel li:nth-child(-n+2) { border-bottom: 1px solid #e0dfd8; }
   .admin-ops-page .admin-sidebar { overflow: hidden; padding: 5px 4px; }
   .admin-ops-page .admin-sidebar nav {
     display: grid;

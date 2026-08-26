@@ -2,8 +2,15 @@ import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
+from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
+from .analytics import (
+    IDEA_EVENTS,
+    ensure_analytics_session,
+    public_event_dedupe_scope,
+    record_event,
+    validate_public_event,
+)
 from .db import get_db, get_setting_int, utc_now
 from .payments import checkout_url_for, payment_checkout_status
 from .security import (
@@ -19,8 +26,6 @@ from .security import (
 public_bp = Blueprint("public", __name__)
 TAIPEI_TIMEZONE = timezone(timedelta(hours=8))
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-ANALYTICS_EVENTS = {"view_idea", "checkout_opened", "line_cta_clicked", "filter_used"}
-ANALYTICS_SOURCES = {"web", "line", "direct", "admin-preview"}
 
 
 def _published_ideas():
@@ -35,31 +40,17 @@ def _idea_price(idea):
     return get_setting_int("idea_price", 199)
 
 
-def _track(event_name, idea_id=None, source="web"):
-    if "analytics_sid" not in session:
-        session["analytics_sid"] = secrets.token_urlsafe(12)
-    connection = get_db()
-    connection.execute(
-        """
-        INSERT INTO analytics_events (event_name, idea_id, source, session_id, created_at)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (event_name, idea_id, source, session["analytics_sid"], utc_now()),
-    )
-    connection.commit()
-
-
 @public_bp.get("/")
 def home():
     ideas = _published_ideas()
     price = get_setting_int("idea_price", 199)
-    _track("page_view", source="web")
+    record_event("page_view", dedupe_scope=datetime.now(timezone.utc).date().isoformat())
     return render_template("home.html", ideas=ideas, global_price=price)
 
 
 @public_bp.get("/transmission")
 def transmission():
-    _track("line_landing_viewed", source="web")
+    record_event("line_landing_viewed", dedupe_scope=datetime.now(timezone.utc).date().isoformat())
     return render_template("transmission.html")
 
 
@@ -70,8 +61,11 @@ def idea_detail(slug):
     ).fetchone()
     if idea is None:
         return render_template("message.html", title="此想法尚未開放", message="請回仙策閣查看其他心法。"), 404
-    source = str(request.args.get("source", "web")).strip().lower()
-    _track("view_idea", idea["id"], source if source in ANALYTICS_SOURCES else "web")
+    record_event(
+        "view_idea",
+        idea_id=idea["id"],
+        dedupe_scope=public_event_dedupe_scope("view_idea"),
+    )
     return render_template("idea_detail.html", idea=idea, price=_idea_price(idea))
 
 
@@ -82,7 +76,11 @@ def checkout(slug):
     ).fetchone()
     if idea is None:
         return render_template("message.html", title="無法結帳", message="此想法目前未開放。"), 404
-    _track("checkout_opened", idea["id"], "web")
+    record_event(
+        "checkout_opened",
+        idea_id=idea["id"],
+        dedupe_scope=public_event_dedupe_scope("checkout_opened"),
+    )
     return render_template(
         "checkout.html",
         idea=idea,
@@ -125,18 +123,19 @@ def create_order():
     activation_token = derive_activation_token(order_no)
     amount = _idea_price(idea)
     connection = get_db()
+    analytics_sid = ensure_analytics_session()
     cursor = connection.execute(
         """
         INSERT INTO orders
             (order_no, idea_id, customer_name, customer_email, amount, status,
              payment_provider, payment_token_hash, access_token_hash,
-             activation_token_hash, created_at)
-        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)
+             activation_token_hash, analytics_session_id, created_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
         """,
         (
             order_no, idea["id"], name, email, amount, payment_status["provider"],
             hash_token(payment_token), hash_token(access_token), hash_token(activation_token),
-            utc_now(),
+            analytics_sid, utc_now(),
         ),
     )
     connection.execute(
@@ -148,12 +147,13 @@ def create_order():
         """,
         (cursor.lastrowid, get_client_ip(), safe_user_agent(), utc_now()),
     )
-    connection.execute(
-        """
-        INSERT INTO analytics_events (event_name, idea_id, source, session_id, created_at)
-        VALUES ('order_created', ?, 'web', ?, ?)
-        """,
-        (idea["id"], session.get("analytics_sid"), utc_now()),
+    record_event(
+        "order_created",
+        idea_id=idea["id"],
+        session_id=analytics_sid,
+        dedupe_scope=f"order:{order_no}",
+        connection=connection,
+        commit=False,
     )
     connection.commit()
     return (
@@ -215,15 +215,26 @@ def analytics_event():
     if csrf_error:
         return csrf_error
     data = request.get_json(silent=True) or {}
-    event_name = str(data.get("event_name", ""))
-    source = str(data.get("source", "web"))
-    if event_name not in ANALYTICS_EVENTS or source not in ANALYTICS_SOURCES:
+    event_name = str(data.get("event_name", "")).strip()
+    event_value = str(data.get("event_value", "")).strip()[:80]
+    if not validate_public_event(event_name, event_value):
         return jsonify({"error": "不支援的事件"}), 400
     idea_id = None
     slug = str(data.get("idea_slug", ""))[:100]
     if slug:
-        idea = get_db().execute("SELECT id FROM ideas WHERE slug = ?", (slug,)).fetchone()
+        idea = get_db().execute(
+            "SELECT id FROM ideas WHERE slug = ? AND published = 1", (slug,)
+        ).fetchone()
         if idea:
             idea_id = idea["id"]
-    _track(event_name, idea_id, source)
+    if event_name in IDEA_EVENTS and idea_id is None:
+        return jsonify({"error": "找不到仙策"}), 404
+    recorded = record_event(
+        event_name,
+        idea_id=idea_id,
+        event_value=event_value,
+        dedupe_scope=public_event_dedupe_scope(event_name, event_value),
+    )
+    if event_name == "interest_registered":
+        return jsonify({"recorded": recorded}), 200
     return "", 204

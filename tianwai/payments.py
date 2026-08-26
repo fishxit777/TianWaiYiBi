@@ -10,6 +10,7 @@ from urllib.parse import quote_plus
 from flask import Blueprint, current_app, jsonify, redirect, render_template, request, session, url_for
 
 from .access import issue_activation_delivery
+from .analytics import record_event
 from .db import get_db, utc_now
 from .mailer import email_delivery_ready
 from .security import derive_activation_token, hash_token, log_security_event, require_public_csrf
@@ -285,12 +286,14 @@ def process_payment_event(payload, raw_body, provider="mock"):
                 """,
                 (provider, payment_method, payment_ref, utc_now(), order["id"]),
             )
-            connection.execute(
-                """
-                INSERT INTO analytics_events (event_name, idea_id, source, session_id, created_at)
-                VALUES ('purchase_completed', ?, ?, NULL, ?)
-                """,
-                (order["idea_id"], provider, utc_now()),
+            record_event(
+                "purchase_completed",
+                idea_id=order["idea_id"],
+                source=provider,
+                session_id=order["analytics_session_id"],
+                dedupe_scope=f"payment:{event_id}",
+                connection=connection,
+                commit=False,
             )
         connection.execute(
             """

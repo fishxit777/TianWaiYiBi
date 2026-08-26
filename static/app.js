@@ -144,6 +144,17 @@
   });
   window.addEventListener('twyb:conversation-seen', loadIdeaActivity);
 
+  const trackEvent = async (eventName, {ideaSlug = '', eventValue = '', keepalive = false} = {}) => {
+    const response = await fetch('/api/events', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},
+      body: JSON.stringify({event_name: eventName, idea_slug: ideaSlug, event_value: eventValue}),
+      keepalive
+    });
+    if (!response.ok) throw new Error('analytics event rejected');
+    return response.status === 204 ? {} : response.json();
+  };
+
   const filterButtons = [...document.querySelectorAll('[data-filter]')];
   const applyIdeaFilter = (requestedFilter, track = false) => {
     if (!filterButtons.length) return;
@@ -175,11 +186,7 @@
     else url.searchParams.set('filter', filter);
     history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
     if (track) {
-      fetch('/api/events', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},
-        body: JSON.stringify({event_name: 'filter_used', source: 'web'})
-      }).catch(() => {});
+      trackEvent('filter_used', {eventValue: filter}).catch(() => {});
     }
   };
   filterButtons.forEach((button) => button.addEventListener('click', () => applyIdeaFilter(button.dataset.filter || 'all', true)));
@@ -188,14 +195,65 @@
 
   document.querySelectorAll('[data-line-cta]').forEach((link) => {
     link.addEventListener('click', () => {
-      fetch('/api/events', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},
-        body: JSON.stringify({event_name: 'line_cta_clicked', source: 'web'}),
-        keepalive: true
-      }).catch(() => {});
+      trackEvent('line_cta_clicked', {keepalive: true}).catch(() => {});
     });
   });
+
+  const analyticsDetail = document.querySelector('[data-analytics-idea]');
+  if (analyticsDetail) {
+    const ideaSlug = analyticsDetail.dataset.analyticsIdea || '';
+    const sentDepth = new Set();
+    const trackReadingDepth = () => {
+      const rect = analyticsDetail.getBoundingClientRect();
+      const seen = Math.max(0, Math.min(rect.height, window.innerHeight - rect.top));
+      const ratio = rect.height > 0 ? seen / rect.height : 0;
+      [50, 90].forEach((threshold) => {
+        if (ratio >= threshold / 100 && !sentDepth.has(threshold)) {
+          sentDepth.add(threshold);
+          trackEvent('reading_depth', {ideaSlug, eventValue: String(threshold)}).catch(() => {});
+        }
+      });
+    };
+    trackReadingDepth();
+    window.addEventListener('scroll', trackReadingDepth, {passive: true});
+    window.addEventListener('resize', trackReadingDepth, {passive: true});
+
+    let engagedSeconds = 0;
+    const engagementTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      engagedSeconds += 1;
+      if (engagedSeconds >= 45) {
+        window.clearInterval(engagementTimer);
+        trackEvent('engaged_read', {ideaSlug, eventValue: '45'}).catch(() => {});
+      }
+    }, 1000);
+
+    const interestButton = document.querySelector('[data-interest-cta]');
+    const interestStatus = document.querySelector('[data-interest-status]');
+    const interestKey = `twyb:interest:${ideaSlug}`;
+    const markInterest = () => {
+      if (!interestButton) return;
+      interestButton.textContent = '已記下我的意願';
+      interestButton.disabled = true;
+      if (interestStatus) interestStatus.textContent = '已記錄匿名需求意願；沒有建立訂單，也沒有傳送個人資料。';
+    };
+    try { if (localStorage.getItem(interestKey) === '1') markInterest(); } catch (_error) {}
+    interestButton?.addEventListener('click', async () => {
+      interestButton.disabled = true;
+      if (interestStatus) interestStatus.textContent = '正在安全記錄…';
+      try {
+        await trackEvent('interest_registered', {ideaSlug});
+        try { localStorage.setItem(interestKey, '1'); } catch (_error) {}
+        markInterest();
+      } catch (_error) {
+        interestButton.disabled = false;
+        if (interestStatus) interestStatus.textContent = '目前無法記錄；你仍可用「傳音詢問此策」告訴我們。';
+      }
+    });
+    document.querySelector('[data-conversation-cta]')?.addEventListener('click', () => {
+      trackEvent('conversation_cta_clicked', {ideaSlug, keepalive: true}).catch(() => {});
+    });
+  }
 
   const copyLineId = document.querySelector('[data-copy-line-id]');
   if (copyLineId) {

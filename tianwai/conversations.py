@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, current_app, jsonify, request
 
 from .access import current_customer_session
+from .analytics import record_event
 from .db import get_db, utc_now
 from .security import get_client_ip, hash_scoped_token, require_public_csrf
 from .turnstile import CONVERSATION_ACTION, turnstile_configured, verify_turnstile
@@ -526,6 +527,7 @@ def create_message(section_key):
 
     now = utc_now()
     connection = get_db()
+    public_id = f"MSG-{secrets.token_hex(8).upper()}"
     cursor = connection.execute(
         """
         INSERT INTO section_messages
@@ -535,7 +537,7 @@ def create_message(section_key):
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            f"MSG-{secrets.token_hex(8).upper()}",
+            public_id,
             context["key"],
             context["idea"]["id"] if context["idea"] else None,
             "customer" if customer_session is not None else "visitor",
@@ -550,6 +552,14 @@ def create_message(section_key):
         ),
     )
     message_id = cursor.lastrowid
+    if context["idea"] is not None:
+        record_event(
+            "conversation_submitted",
+            idea_id=context["idea"]["id"],
+            dedupe_scope=f"message:{public_id}",
+            connection=connection,
+            commit=False,
+        )
     connection.commit()
     row = connection.execute(
         f"{message_query()} WHERE section_messages.id = ?", (message_id,)

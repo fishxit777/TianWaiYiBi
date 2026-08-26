@@ -95,7 +95,8 @@ CREATE TABLE IF NOT EXISTS orders (
     created_at TEXT NOT NULL,
     paid_at TEXT,
     refunded_at TEXT,
-    customer_id BIGINT REFERENCES customers(id)
+    customer_id BIGINT REFERENCES customers(id),
+    analytics_session_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS order_consents (
@@ -237,6 +238,11 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     idea_id BIGINT REFERENCES ideas(id),
     source TEXT NOT NULL,
     session_id TEXT,
+    event_value TEXT NOT NULL DEFAULT '',
+    event_version INTEGER NOT NULL DEFAULT 1,
+    dedupe_key TEXT,
+    is_automated INTEGER NOT NULL DEFAULT 0 CHECK (is_automated IN (0, 1)),
+    page_path TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
 );
 
@@ -351,6 +357,10 @@ CREATE INDEX IF NOT EXISTS idx_risk_incidents_status ON risk_incidents (status, 
 CREATE INDEX IF NOT EXISTS idx_notification_status ON notification_queue (status, created_at);
 CREATE INDEX IF NOT EXISTS idx_email_events_order_time ON email_events (order_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_name_created ON analytics_events (event_name, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_idea_funnel ON analytics_events (idea_id, event_name, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_session_time ON analytics_events (session_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_dedupe ON analytics_events (dedupe_key) WHERE dedupe_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_orders_analytics_session ON orders (analytics_session_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_security_created ON security_events (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_login_ip_time ON admin_login_attempts (ip, attempted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_webauthn_active ON admin_webauthn_credentials (revoked_at, created_at DESC);

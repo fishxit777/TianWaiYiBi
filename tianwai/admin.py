@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, make_response, redirect, render_template, request, session, url_for
 from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRegistrationResponse
 
+from .analytics import ALLOWED_WINDOWS, build_demand_radar
 from .db import get_db, get_setting_int, utc_now
 from .mailer import email_delivery_ready
 from .risk import verify_access_event_chain
@@ -469,6 +470,11 @@ def dashboard_data():
     connection = get_db()
     checkout_status = payment_checkout_status()
     verification_status = payment_checkout_status(verification=True)
+    try:
+        requested_analytics_days = int(request.args.get("analytics_days", 30))
+    except (TypeError, ValueError):
+        requested_analytics_days = 30
+    analytics_days = requested_analytics_days if requested_analytics_days in ALLOWED_WINDOWS else 30
     metrics = connection.execute(
         """
         SELECT
@@ -480,10 +486,36 @@ def dashboard_data():
         WHERE purpose = 'sale'
         """
     ).fetchone()
+    analytics_period_start = (
+        datetime.now(timezone.utc) - timedelta(days=30)
+    ).isoformat(timespec="seconds")
     views = connection.execute(
-        "SELECT COUNT(*) AS count FROM analytics_events WHERE event_name IN ('page_view', 'view_idea')"
+        """
+        SELECT COUNT(DISTINCT session_id) AS count FROM analytics_events
+        WHERE event_name = 'view_idea' AND is_automated = 0
+          AND source <> 'admin-preview' AND session_id IS NOT NULL AND session_id <> ''
+          AND created_at >= ?
+        """,
+        (analytics_period_start,),
     ).fetchone()["count"]
-    conversion = round((int(metrics["paid_orders"] or 0) / max(int(views), 1)) * 100, 1)
+    paid_sessions = connection.execute(
+        """
+        SELECT COUNT(DISTINCT session_id) AS count FROM analytics_events
+        WHERE event_name = 'purchase_completed' AND is_automated = 0
+          AND session_id IS NOT NULL AND session_id <> '' AND created_at >= ?
+        """,
+        (analytics_period_start,),
+    ).fetchone()["count"]
+    conversion = (
+        round((int(paid_sessions or 0) / max(int(views), 1)) * 100, 1)
+        if checkout_status["ready"]
+        else None
+    )
+    demand_radar = build_demand_radar(
+        connection,
+        days=analytics_days,
+        payment_ready=checkout_status["ready"],
+    )
     ideas = connection.execute(
         "SELECT * FROM ideas ORDER BY sort_order, id"
     ).fetchall()
@@ -624,7 +656,7 @@ def dashboard_data():
         """
         SELECT source, COUNT(*) AS count
         FROM analytics_events
-        WHERE created_at >= ?
+        WHERE created_at >= ? AND is_automated = 0 AND source <> 'admin-preview'
         GROUP BY source ORDER BY count DESC
         """,
         ((datetime.now(timezone.utc) - timedelta(days=29)).isoformat(timespec="seconds"),),
@@ -706,8 +738,11 @@ def dashboard_data():
                 "pending_orders": int(metrics["pending_orders"] or 0),
                 "revenue": int(metrics["revenue"] or 0),
                 "views": int(views or 0),
+                "paid_sessions": int(paid_sessions or 0),
                 "conversion": conversion,
+                "conversion_available": bool(checkout_status["ready"]),
             },
+            "demand_radar": demand_radar,
             "global_price": global_price,
             "ideas": [
                 {
