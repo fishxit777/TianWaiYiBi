@@ -75,6 +75,15 @@ Passkey 同時具有防盜與防駭效果；加密備份主要是防破壞後無
 - 本次只重用既有正式 Turnstile widget 的公鑰／私密設定，不新增或傳送任何機密；沒有變更 Neon 連線、備份角色、RSA／AES 金鑰、Passkey、復原碼、付款或管理登入。
 - 提交 `77a5618` 已正式部署為 `volume-two-anonymous-conversations-v3`；新 release 的 `/healthz` 回 200，證明既有 Neon schema 遷移與多 worker 啟動成功。正式首頁 0 個留言元件／6 個六策提示、策略詳情 1 個匿名留言區，Chrome 實看 Turnstile iframe 正常建立。匿名公開 API 為 `no-store`、訪客投稿已啟用、0 則正式公開留言，且沒有訪客雜湊或私密欄位；舊首頁留言 API 仍回 404。本次正式驗收沒有建立假留言或操作管理身分。GitHub Actions `PostgreSQL integration` run `32736250964`（#1）亦在隔離 PostgreSQL 17 成功完成，耗時 33 秒、沒有 Artifact；既有 action runtime 顯示 Node 20 淘汰維護提醒，但不影響本次測試成功。
 
+## 2026-08-26 正式小額金流閉環驗收
+
+- 使用獨立 NT$6 驗收模式完成唯一一筆正式綠界交易；驗收訂單與一般商品營收、成交訂單及客戶權益指標隔離，公開 NT$199 售價與正式收款閘門未開啟。
+- 正式付款通知、金額與訂單核對、冪等處理、Brevo 交易信、一次性開通碼、內容開通與付費內容實際讀取均通過；交易或客戶識別資料未寫入 Git、文件或對話。
+- 綠界完成結算後已建立全額退刷紀錄；確認外部退款成功後，正式站才將該筆訂單改為已退款，撤銷驗收開通碼、客戶內容 session 與可信裝置權限。直接讀取原付費內容網址已無法顯示內容，會回到客戶登入。
+- 後台原生 prompt 在瀏覽器自動化環境會阻塞，因此提交 `56283d8` 改用登入後站內 dialog；完整訂單編號、管理 CSRF 與伺服器端逐字核對仍全部保留，不改退款授權邊界。
+- 驗收完成後已將 `ECPAY_VERIFICATION_ENABLED` 關閉並重新部署；公開 `ECPAY_LIVE_CONFIRMED` 維持關閉。正式 Passkey、復原碼、Neon 備份角色、RSA／AES 金鑰與既有加密備份均未變更。
+- 驗證結果：退款專項 9 passed；全套 143 passed、1 skipped；Python compileall、全部 JavaScript syntax、`pip check`、新增行機密掃描與 `git diff --check` 均通過。
+
 ## 刻意未執行的破壞性操作
 
 - 沒有在正式站消耗復原碼做管理帳號災難復原；該流程會撤銷兩把 Passkey 與全部管理 session，不應只為資料庫備份驗收而執行。
