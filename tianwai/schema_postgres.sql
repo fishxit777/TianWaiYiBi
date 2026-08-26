@@ -357,10 +357,6 @@ CREATE INDEX IF NOT EXISTS idx_risk_incidents_status ON risk_incidents (status, 
 CREATE INDEX IF NOT EXISTS idx_notification_status ON notification_queue (status, created_at);
 CREATE INDEX IF NOT EXISTS idx_email_events_order_time ON email_events (order_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_name_created ON analytics_events (event_name, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_analytics_idea_funnel ON analytics_events (idea_id, event_name, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_analytics_session_time ON analytics_events (session_id, created_at DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_dedupe ON analytics_events (dedupe_key) WHERE dedupe_key IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_orders_analytics_session ON orders (analytics_session_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_security_created ON security_events (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_login_ip_time ON admin_login_attempts (ip, attempted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_webauthn_active ON admin_webauthn_credentials (revoked_at, created_at DESC);

@@ -1,8 +1,10 @@
+import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 
 from conftest import login_admin, set_public_csrf
 from tianwai.analytics import build_demand_radar
-from tianwai.db import get_db
+from tianwai.db import get_db, migrate_database
 
 
 def _idea_id(connection, slug="brand-world-forge"):
@@ -43,6 +45,62 @@ def test_analytics_schema_supports_deduplication_quality_and_order_attribution(a
     assert {"event_value", "event_version", "dedupe_key", "is_automated", "page_path"} <= analytics_columns
     assert "analytics_session_id" in order_columns
     assert {"idx_analytics_dedupe", "idx_analytics_idea_funnel", "idx_analytics_session_time"} <= indexes
+
+
+def test_legacy_database_adds_radar_columns_before_creating_dependent_indexes(tmp_path):
+    database_path = tmp_path / "legacy-radar.sqlite3"
+    connection = sqlite3.connect(database_path)
+    connection.row_factory = sqlite3.Row
+    connection.executescript(
+        """
+        CREATE TABLE orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_no TEXT NOT NULL UNIQUE,
+            idea_id INTEGER NOT NULL,
+            customer_name TEXT NOT NULL,
+            customer_email TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            payment_provider TEXT NOT NULL DEFAULT 'mock',
+            payment_ref TEXT,
+            payment_token_hash TEXT NOT NULL UNIQUE,
+            access_token_hash TEXT NOT NULL UNIQUE,
+            created_at TEXT NOT NULL,
+            paid_at TEXT
+        );
+        CREATE TABLE analytics_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_name TEXT NOT NULL,
+            idea_id INTEGER,
+            source TEXT NOT NULL,
+            session_id TEXT,
+            created_at TEXT NOT NULL
+        );
+        """
+    )
+    schema_path = Path(__file__).parents[1] / "tianwai" / "schema.sql"
+    connection.executescript(schema_path.read_text(encoding="utf-8"))
+    migrate_database(connection)
+
+    analytics_columns = {
+        row[1] for row in connection.execute("PRAGMA table_info(analytics_events)")
+    }
+    order_columns = {row[1] for row in connection.execute("PRAGMA table_info(orders)")}
+    indexes = {row[1] for row in connection.execute("PRAGMA index_list(analytics_events)")}
+    connection.close()
+
+    assert {"event_value", "event_version", "dedupe_key", "is_automated", "page_path"} <= analytics_columns
+    assert "analytics_session_id" in order_columns
+    assert {"idx_analytics_dedupe", "idx_analytics_idea_funnel", "idx_analytics_session_time"} <= indexes
+
+
+def test_base_schemas_defer_migration_dependent_indexes():
+    schema_directory = Path(__file__).parents[1] / "tianwai"
+    for filename in ("schema.sql", "schema_postgres.sql"):
+        schema = (schema_directory / filename).read_text(encoding="utf-8")
+        assert "idx_analytics_dedupe" not in schema
+        assert "idx_analytics_session_time" not in schema
+        assert "idx_orders_analytics_session" not in schema
 
 
 def test_public_interest_is_anonymous_validated_and_deduplicated(app, client):
