@@ -48,6 +48,12 @@
 - `node --check static/app.js` 與 `node --check static/admin.js`：通過。
 - Python 語法、套件一致性、差異格式與機密掃描納入提交前檢查。
 
+正式部署驗證：
+
+- 實作 commit `94249a5` 已推送至 `main`，Render `/healthz` 回傳 `status=ok`、`release=professional-ui-v17`。
+- 正式首頁載入 V17 樣式、無根頁面水平溢位；公開收款關閉狀態為 0 個結帳連結、六張卡均顯示「先看摘要」。
+- 正式後台登入頁載入 V17、無水平溢位，且不公開正式驗證器數量或裝置細節。
+
 ## 未改動的安全邊界
 
 - 未重跑、撤銷或消耗兩把正式 Passkey 與復原碼。

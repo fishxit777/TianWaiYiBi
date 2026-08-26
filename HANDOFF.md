@@ -23,7 +23,7 @@
 - 低／中／高／重大四級風險、已撤銷工作階段重播偵測、HMAC 防竄改證據鏈、風險案件與告警佇列均已完成；正常換機只列中度，不直接當成惡意。
 - 高／重大事件才私下推播管理員 LINE；訊息不含完整 Email、IP、驗證碼或 token。後台可撤銷裝置、更新案件、重試告警並驗證證據鏈。
 - 綠界 AioCheckOut V5 已完成表單轉送、官方 CheckMacValue 算法、ReturnURL／OrderResultURL、金額核對、防重送與正式啟用閘門；可沿用與 NestFM 相同的合法特店憑證，但固定使用 `TWYB` 訂單前綴及 `StoreID=TWYB` 隔離對帳與 callback。
-- SMTP 交易信介面已完成；本機使用不外寄的 outbox 預覽，正式環境需補 SMTP 設定。
+- 交易信介面已完成；本機使用不外寄的 outbox 預覽，正式付款交付已改由本專案獨立 Brevo API 寄送並通過實際收信驗收。管理摘要 SMTP 屬另一條獨立通知通道。
 - LINE webhook 簽章、防重送、好友加入、文字指令、六脈 Flex Carousel 與共用訊息模型的本機模擬器。
 - 管理後台登入、server-side session、CSRF、全站／單品價格、仙策完整內容編輯、排序、上下架、訂單、營收、流量來源、串接狀態、安全事件、封鎖與稽核。
 - 敏感路徑防護、安全標頭、管理登入失敗暫時封鎖。
@@ -111,6 +111,7 @@
 - 後台瀏覽器實看：可信裝置／單一 session 指標、遮罩網路資訊、存取事件、證據鏈與 LINE 佇列皆正確顯示；console 0 error、0 warning。
 - 正式 Render 部署已驗證：實作 commit `0337e9e` 上線後 `/healthz` 回傳 `release=trusted-device-risk-v1`；官網、客戶登入、後台登入回 200，客戶／後台頁維持 no-store 與 frame deny，`/logo-review`、正式 `/dev/line` 維持 404。
 - V16 正式 Render 部署已驗證：實作 commit `df2219a` 上線後 `/healthz` 回傳 `release=professional-ui-v16`；官網、`static/v16.css`、後台登入皆回 200，正式首頁含完整語意 H1 且沒有 `/admin` 公開連結；後台登入維持 `Cache-Control: no-store` 與 `X-Frame-Options: DENY`，`/logo-review`、正式 `/dev/line` 維持 404。
+- V17 正式 Render 部署已驗證：實作 commit `94249a5` 上線後 `/healthz` 回傳 `release=professional-ui-v17`；正式首頁載入 `static/v17.css`、無根頁面水平溢位，公開收款關閉時維持 0 個結帳連結且六張卡全部顯示「先看摘要」。後台登入頁同樣載入 V17、沒有公開正式驗證器數量或裝置細節；驗收未登入正式後台、未建立訂單、未送出留言或修改正式資料。
 - 管理通知 V1 正式 Render 部署已驗證：實作 commit `197740d` 上線後 `/healthz` 回傳 `release=admin-notifications-v1`；官網與後台登入回 200，未帶密鑰的摘要端點回 404，公開首頁沒有 `/admin` 或內部通知連結。GitHub 已正確載入 `Daily admin summary` workflow，沒有 invalid workflow；正式雙通道實際收件仍需先補 Render／GitHub 私密設定。
 - 手機卡片字型修正已正式部署：實作 commit `4872bbe` 上線後 `/healthz` 回傳 `release=mobile-card-type-v1`；正式 390×844 首頁六張主標皆載入 `Tianwai Masa Display`，角色名與技能分類皆為 `Tianwai Masa` 14px，`商機觀星盤` 實看無混字、無水平溢位，console 0 error／0 warning。
 - 管理員憑證 V2 已完成正式輪替：擁有者透過本機交接 V2 保存 43 位／256-bit 新密碼，正式登入成功後才銷毀本機明文；Render 現在只保留 `ADMIN_PASSWORD_HASH`，legacy `ADMIN_PASSWORD` 已刪除並再次部署為 Live。`/healthz` 回傳 `release=admin-credential-v2`，登入頁 200、no-store、frame deny 且未洩漏 verifier。第一次交接因視窗過早關閉導致登入失敗，已如實記錄並由 V2 防鎖死流程修復，不列為成功驗收。
