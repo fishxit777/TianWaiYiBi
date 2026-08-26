@@ -71,11 +71,13 @@ def create_app(test_config=None):
 
     @app.context_processor
     def inject_globals():
+        from .payments import payment_checkout_status
         from .turnstile import turnstile_configured, turnstile_site_key
 
         return {
             "csrf_token": get_public_csrf_token,
             "line_add_friend_url": app.config["LINE_ADD_FRIEND_URL"],
+            "payment_status": payment_checkout_status(),
             "conversation_turnstile_enabled": turnstile_configured(),
             "turnstile_site_key": turnstile_site_key(),
         }
@@ -87,7 +89,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "volume-two-anonymous-conversations-v3",
+                "release": "professional-ui-v17",
             }
         )
 

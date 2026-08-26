@@ -8,6 +8,7 @@
   <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v16.css', v='hybrid-conversations-v1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v17.css', v='professional-ui-v17') }}">
 </head>
 <body class="admin-page admin-ops-page">
   <a class="skip-link" href="#admin-root">跳至主要內容</a>
@@ -44,7 +45,7 @@
         <button id="refresh-dashboard" class="admin-refresh" type="button"><span aria-hidden="true">↻</span>重新整理</button>
       </div>
     </header>
-    <p id="admin-status" class="admin-status" role="status" aria-live="polite">正在讀取營運資料…</p>
+    <div id="admin-status" class="admin-status admin-status-bar" role="status" aria-live="polite"><span id="admin-status-message">正在讀取營運資料…</span><button id="retry-dashboard" type="button" hidden>重新載入</button></div>
 
     <section id="overview" class="admin-workspace is-active" data-admin-panel="overview">
       <div class="overview-intro">
@@ -73,7 +74,7 @@
     <section id="orders-admin" class="admin-workspace" data-admin-panel="orders" hidden>
       <div class="workspace-heading"><div><span class="workspace-kicker">ORDERS</span><h2>交易訂單</h2><p>搜尋客戶或訂單，優先處理仍在等待付款的交易。</p></div></div>
       <div class="order-toolbar admin-panel">
-        <label class="order-search"><span class="sr-only">搜尋訂單</span><i aria-hidden="true">⌕</i><input id="order-search" type="search" placeholder="搜尋訂單編號、仙策、客戶或 Email" autocomplete="off"></label>
+        <div class="order-search"><label for="order-search"><span class="sr-only">搜尋訂單</span><i aria-hidden="true">⌕</i></label><input id="order-search" type="search" placeholder="搜尋訂單編號、仙策、客戶或 Email" autocomplete="off"><button id="clear-order-search" type="button" aria-label="清除訂單搜尋" hidden>×</button></div>
         <div id="order-filters" class="order-filters" role="group" aria-label="訂單狀態篩選">
           <button class="is-active" type="button" data-order-filter="all" aria-pressed="true">全部 <b id="order-count-all">0</b></button>
           <button type="button" data-order-filter="pending" aria-pressed="false">待付款 <b id="order-count-pending">0</b></button>
@@ -134,6 +135,7 @@
           <input id="conversation-reply-to" type="hidden">
           <label>傳音區塊<select id="conversation-section" required></select></label>
           <label>傳音範圍<select id="conversation-visibility" required><option value="private">私密傳音</option><option value="public">公開回覆</option></select></label>
+          <p id="conversation-scope-note" class="conversation-scope-note" data-scope="private"><strong>私密傳音</strong><span>只有指定客戶與守閣者可讀；必須選擇客戶。</span></p>
           <label>指定客戶<select id="conversation-customer"><option value="">不指定客戶</option></select></label>
           <label>守閣者回覆<textarea id="conversation-reply-body" minlength="2" maxlength="800" rows="8" placeholder="請勿輸入密碼、驗證碼、復原碼或付款資料。" required></textarea></label>
           <p id="conversation-reply-status" class="form-status" role="status" aria-live="polite"></p>
@@ -145,8 +147,8 @@
     <section id="integrations-admin" class="admin-workspace" data-admin-panel="integrations" hidden>
       <div class="workspace-heading"><div><span class="workspace-kicker">INTEGRATIONS</span><h2>系統串接</h2><p>一眼確認官網、LINE、金流與 Email 是否具備正式營運條件。</p></div></div>
       <div id="integration-summary" class="integration-summary"></div><div id="integration-grid" class="integration-grid"></div>
-      <section class="admin-panel payment-verification-panel" aria-labelledby="payment-verification-title">
-        <div class="panel-heading"><div><span>LIVE PAYMENT CHECK</span><h3 id="payment-verification-title">NT$6 正式付款驗證</h3></div><strong class="panel-note">不改公開售價</strong></div>
+      <details id="payment-verification-panel" class="admin-panel payment-verification-panel" aria-labelledby="payment-verification-title">
+        <summary><span><b>歷史驗收工具</b><strong id="payment-verification-title">NT$6 正式付款驗證</strong></span><em>只在重新驗收時展開</em></summary>
         <div id="payment-verification-state" class="payment-verification-state" aria-live="polite"></div>
         <div class="payment-verification-actions">
           <button id="create-payment-verification" class="admin-primary-button" type="button">建立 NT$6 驗證訂單</button>
@@ -155,7 +157,7 @@
           <button id="confirm-payment-verification-refund" class="danger-action" type="button" hidden>確認綠界已退款並撤回本地權限</button>
         </div>
         <p class="payment-verification-warning">建立訂單不會扣款。請依序完成正式付款、Email 開通、內容讀取；確認綠界後台退款成功後，才可按下撤權按鈕。</p>
-      </section>
+      </details>
       <aside class="plain-ops-note"><strong>正式交易原則</strong><p>只有公開 HTTPS、正式特店憑證、Email 交付與付款回呼全部驗收通過後，才可啟用正式收款。</p></aside>
     </section>
 
@@ -163,7 +165,7 @@
       <div class="workspace-heading"><div><span class="workspace-kicker">SECURITY</span><h2>安全與操作稽核</h2><p>先處理高風險事件與封鎖，再追查管理操作；一般日常不需要碰測試工具。</p></div><a class="admin-secondary-action" href="{{ url_for('admin.passkey_setup') }}">Passkey 安全設定</a></div>
       <div id="security-flags" class="security-flags security-config-grid" aria-live="polite"></div>
       <div class="admin-two-col security-columns">
-        <section class="admin-panel"><div class="panel-heading"><div><span>EVENTS</span><h3>最近安全事件</h3></div><strong id="risk-event-count" class="panel-count danger">0</strong></div><div id="security-events" class="event-list"></div></section>
+        <section class="admin-panel"><div class="panel-heading"><div><span>EVENTS</span><h3>最近安全事件</h3></div><strong id="risk-event-count" class="panel-count danger">0</strong></div><div id="security-event-filters" class="security-event-filters" role="group" aria-label="安全事件嚴重度篩選"><button class="is-active" type="button" data-security-filter="priority" aria-pressed="true">高風險優先</button><button type="button" data-security-filter="all" aria-pressed="false">全部事件</button></div><div id="security-events" class="event-list"></div></section>
         <section class="admin-panel"><div class="panel-heading"><div><span>BLOCKS</span><h3>目前封鎖 IP</h3></div></div><div id="blocked-ips" class="event-list"></div></section>
       </div>
       <div class="admin-two-col security-columns">
@@ -172,7 +174,7 @@
       </div>
       <section class="admin-panel audit-panel"><div class="panel-heading"><div><span>INCIDENTS</span><h3>風險案件處理</h3></div></div><div id="risk-incidents" class="event-list"></div></section>
       <section class="admin-panel audit-panel"><div class="panel-heading"><div><span>AUDIT</span><h3>管理操作紀錄</h3></div></div><div id="audit-logs" class="event-list"></div></section>
-      <details class="advanced-tools"><summary>進階安全測試工具</summary><div><p>只在測試告警與稽核紀錄時使用，不影響真實客戶資料。</p><button id="security-test" type="button">寫入一筆測試事件</button></div></details>
+      <details class="advanced-tools"><summary>進階安全測試工具</summary><div><p><strong>非日常操作。</strong>只在隔離測試環境驗證告警與稽核紀錄；正式站使用前會再要求確認。</p><button id="security-test" type="button">寫入一筆測試事件</button></div></details>
     </section>
   </main>
 
@@ -186,8 +188,15 @@
         <label>排序<input id="idea-sort-order" type="number" min="1" max="999" required></label><label>單品價格（留空套用全站價）<input id="idea-price-override" type="number" min="1" max="100000" placeholder="套用全站價"></label>
       </div>
       <label>專長分類<input id="idea-discipline" maxlength="100" required></label><label>卡片摘要<textarea id="idea-summary" minlength="10" maxlength="240" rows="3" required></textarea></label><label>免費公開殘頁<textarea id="idea-teaser" minlength="10" maxlength="600" rows="4" required></textarea></label><label>付費完整內容<textarea id="idea-paid-content" minlength="20" maxlength="6000" rows="10" required></textarea></label><label>交付物（以｜分隔）<input id="idea-deliverables" maxlength="500" required></label><label>標籤（以逗號分隔）<input id="idea-tags" maxlength="200" required></label>
-      <p id="idea-editor-status" class="form-status" role="status" aria-live="polite"></p>
+      <p id="idea-editor-status" class="form-status" role="status" aria-live="polite"></p><p id="idea-editor-dirty" class="editor-dirty" hidden>尚有未儲存變更</p>
       <footer><button type="button" data-close-dialog>取消</button><button class="save-idea" type="submit">儲存仙策內容</button></footer>
+    </form>
+  </dialog>
+  <dialog id="admin-confirm-dialog" class="idea-editor admin-confirm-dialog" aria-labelledby="admin-confirm-title">
+    <form id="admin-confirm-form">
+      <header><div><span>OPERATION CHECK</span><h2 id="admin-confirm-title">確認操作</h2><p id="admin-confirm-message"></p></div><button class="dialog-close" type="button" data-close-confirm-dialog aria-label="關閉確認視窗">×</button></header>
+      <p id="admin-confirm-impact" class="admin-confirm-impact"></p>
+      <footer><button type="button" data-close-confirm-dialog>返回檢查</button><button id="admin-confirm-submit" class="save-idea" type="submit">確認執行</button></footer>
     </form>
   </dialog>
   <dialog id="payment-refund-dialog" class="idea-editor payment-refund-dialog" aria-labelledby="payment-refund-dialog-title">
@@ -198,6 +207,6 @@
       <footer><button type="button" data-close-refund-dialog>取消</button><button class="save-idea" type="submit">確認退款並撤回</button></footer>
     </form>
   </dialog>
-  <script src="{{ url_for('static', filename='admin.js', v='payment-verification-v7') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin.js', v='professional-ui-v17') }}" defer></script>
 </body>
 </html>

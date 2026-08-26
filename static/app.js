@@ -12,6 +12,36 @@
   const activityTargets = [...document.querySelectorAll('[data-idea-activity]')];
   const activitySummary = document.querySelector('[data-ideas-activity-summary]');
   const activityNav = document.querySelector('[data-ideas-nav-activity]');
+  const siteHeader = document.querySelector('.site-header');
+  const readingProgress = document.querySelector('[data-reading-progress]');
+
+  const updateReadingPosition = () => {
+    const scrollRange = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+    const ratio = Math.min(1, Math.max(0, window.scrollY / scrollRange));
+    if (readingProgress) readingProgress.style.width = `${ratio * 100}%`;
+    siteHeader?.classList.toggle('is-compact', window.scrollY > 36);
+  };
+  updateReadingPosition();
+  window.addEventListener('scroll', updateReadingPosition, {passive: true});
+  window.addEventListener('resize', updateReadingPosition, {passive: true});
+
+  const chapterLinks = [...document.querySelectorAll('.main-nav a[href*="#"], .mobile-chapter-nav a[href*="#"]')]
+    .filter((link) => {
+      const target = new URL(link.href, location.href);
+      return target.pathname === location.pathname && target.hash && document.querySelector(target.hash);
+    });
+  if (chapterLinks.length && 'IntersectionObserver' in window) {
+    const chapterObserver = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      const hash = `#${visible.target.id}`;
+      chapterLinks.forEach((link) => {
+        if (new URL(link.href, location.href).hash === hash) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+    }, {rootMargin: '-24% 0px -62% 0px', threshold: [0, .15, .5]});
+    [...new Set(chapterLinks.map((link) => document.querySelector(new URL(link.href, location.href).hash)))].forEach((section) => chapterObserver.observe(section));
+  }
 
   const setActivityState = (node, label, state) => {
     if (!node) return;
@@ -114,31 +144,47 @@
   });
   window.addEventListener('twyb:conversation-seen', loadIdeaActivity);
 
-  document.querySelectorAll('[data-filter]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const filter = button.dataset.filter || 'all';
-      document.querySelectorAll('[data-filter]').forEach((item) => {
-        item.classList.remove('is-active');
-        item.setAttribute('aria-pressed', 'false');
+  const filterButtons = [...document.querySelectorAll('[data-filter]')];
+  const applyIdeaFilter = (requestedFilter, track = false) => {
+    if (!filterButtons.length) return;
+    const available = new Set(filterButtons.map((button) => button.dataset.filter || 'all'));
+    const filter = available.has(requestedFilter) ? requestedFilter : 'all';
+    filterButtons.forEach((item) => {
+      const active = (item.dataset.filter || 'all') === filter;
+      item.classList.toggle('is-active', active);
+      item.setAttribute('aria-pressed', String(active));
+    });
+    let visibleCount = 0;
+    document.querySelectorAll('.idea-card').forEach((card) => {
+      const visible = filter === 'all' || (card.dataset.tags || '').split(',').includes(filter);
+      card.classList.toggle('is-hidden', !visible);
+      card.hidden = !visible;
+      card.setAttribute('aria-hidden', String(!visible));
+      card.querySelectorAll('a, button, input, select, textarea').forEach((control) => {
+        if (visible) control.removeAttribute('tabindex');
+        else control.setAttribute('tabindex', '-1');
       });
-      button.classList.add('is-active');
-      button.setAttribute('aria-pressed', 'true');
-      let visibleCount = 0;
-      document.querySelectorAll('.idea-card').forEach((card) => {
-        const visible = filter === 'all' || (card.dataset.tags || '').includes(filter);
-        card.classList.toggle('is-hidden', !visible);
-        card.setAttribute('aria-hidden', String(!visible));
-        if (visible) visibleCount += 1;
-      });
-      const result = document.querySelector('#idea-result-count');
-      if (result) result.textContent = filter === 'all' ? `目前顯示全部 ${visibleCount} 脈仙策` : `${filter}難題・找到 ${visibleCount} 脈仙策`;
+      if (visible) visibleCount += 1;
+    });
+    const result = document.querySelector('#idea-result-count');
+    if (result) result.textContent = filter === 'all' ? `目前顯示全部 ${visibleCount} 脈仙策` : `${filter}難題・找到 ${visibleCount} 脈仙策`;
+    const empty = document.querySelector('#idea-filter-empty');
+    if (empty) empty.hidden = visibleCount > 0;
+    const url = new URL(location.href);
+    if (filter === 'all') url.searchParams.delete('filter');
+    else url.searchParams.set('filter', filter);
+    history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    if (track) {
       fetch('/api/events', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},
         body: JSON.stringify({event_name: 'filter_used', source: 'web'})
       }).catch(() => {});
-    });
-  });
+    }
+  };
+  filterButtons.forEach((button) => button.addEventListener('click', () => applyIdeaFilter(button.dataset.filter || 'all', true)));
+  document.querySelector('[data-reset-idea-filter]')?.addEventListener('click', () => applyIdeaFilter('all', true));
+  if (filterButtons.length) applyIdeaFilter(new URL(location.href).searchParams.get('filter') || 'all');
 
   document.querySelectorAll('[data-line-cta]').forEach((link) => {
     link.addEventListener('click', () => {

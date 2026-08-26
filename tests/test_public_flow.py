@@ -33,6 +33,9 @@ def test_home_lists_six_distinct_cultivators(client):
     assert "brand/website-hero-v15.webp" in response.get_data(as_text=True)
     assert "static/v15.css" in response.get_data(as_text=True)
     assert "static/v16.css" in response.get_data(as_text=True)
+    assert "static/v17.css" in response.get_data(as_text=True)
+    assert 'class="mobile-chapter-nav"' in response.get_data(as_text=True)
+    assert "已購取回" in response.get_data(as_text=True)
     assert "world-chapter-mark" in response.get_data(as_text=True)
     assert "續入下一卷" in response.get_data(as_text=True)
     assert "一筆開天，靈感成案｜天外一筆原創想法交易所" in response.get_data(as_text=True)
@@ -211,6 +214,38 @@ def test_idea_detail_uses_global_price(client):
     assert "造境符師" in body
     assert "NT$199" in body
     assert "完整心法需解鎖" in body
+
+
+def test_unavailable_payment_state_never_pushes_visitors_into_checkout(client, monkeypatch):
+    monkeypatch.setattr(
+        "tianwai.payments.payment_checkout_status",
+        lambda: {"provider": "unavailable", "label": "正式付款尚未開放", "ready": False},
+    )
+
+    home = client.get("/").get_data(as_text=True)
+    detail = client.get("/ideas/brand-world-forge").get_data(as_text=True)
+
+    assert "正式收款目前未開放，不會建立扣款" in home
+    assert home.count("先看摘要") >= 6
+    assert "正式收款未開放" in detail
+    assert "傳音詢問此策" in detail
+    assert 'href="/checkout/brand-world-forge"' not in detail
+
+
+def test_v17_public_layer_contains_navigation_filter_and_motion_guards():
+    stylesheet = (
+        Path(__file__).resolve().parents[1] / "static" / "v17.css"
+    ).read_text(encoding="utf-8")
+    script = (
+        Path(__file__).resolve().parents[1] / "static" / "app.js"
+    ).read_text(encoding="utf-8")
+
+    for selector in (".reading-progress", ".mobile-chapter-nav", ".availability-ribbon", ".fit-band"):
+        assert selector in stylesheet
+    assert "@media (prefers-reduced-motion: reduce)" in stylesheet
+    assert "IntersectionObserver" in script
+    assert "searchParams.set('filter'" in script
+    assert "control.setAttribute('tabindex', '-1')" in script
 
 
 def test_order_rejects_invalid_email(client):

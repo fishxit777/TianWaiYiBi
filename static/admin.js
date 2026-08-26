@@ -3,11 +3,16 @@
   if (!root) return;
 
   const csrf = document.querySelector('meta[name="admin-csrf"]')?.content || '';
-  const status = document.querySelector('#admin-status');
+  const statusBar = document.querySelector('#admin-status');
+  const status = document.querySelector('#admin-status-message');
+  const retryDashboard = document.querySelector('#retry-dashboard');
+  const refreshDashboard = document.querySelector('#refresh-dashboard');
   const editor = document.querySelector('#idea-editor');
   const editorForm = document.querySelector('#idea-editor-form');
   const refundDialog = document.querySelector('#payment-refund-dialog');
   const refundForm = document.querySelector('#payment-refund-form');
+  const confirmDialog = document.querySelector('#admin-confirm-dialog');
+  const confirmForm = document.querySelector('#admin-confirm-form');
   const workspaceTitles = {
     overview: '今日總覽', orders: '交易訂單', ideas: '仙策內容',
     customers: '客戶開通', conversations: '傳音對話', integrations: '系統串接', security: '安全稽核'
@@ -17,6 +22,10 @@
   let dashboard = null;
   let orderFilter = 'all';
   let conversationFilter = 'pending';
+  let securityFilter = 'priority';
+  let lastSyncAt = null;
+  let editorSnapshot = '';
+  let confirmResolver = null;
 
   const clear = (element) => { while (element?.firstChild) element.removeChild(element.firstChild); };
   const node = (tag, className, text) => {
@@ -32,6 +41,39 @@
     if (!badge) return;
     badge.textContent = String(count || 0);
     badge.hidden = !count;
+  };
+
+  const setStatus = (message, tone = 'success') => {
+    status.textContent = message;
+    statusBar.classList.toggle('is-error', tone === 'error');
+    statusBar.classList.toggle('is-loading', tone === 'loading');
+    retryDashboard.hidden = tone !== 'error';
+  };
+
+  const updateSyncFreshness = () => {
+    if (!lastSyncAt) return;
+    const seconds = Math.max(0, Math.floor((Date.now() - lastSyncAt.getTime()) / 1000));
+    const label = seconds < 15 ? '剛剛同步' : (seconds < 60 ? `${seconds} 秒前同步` : `${Math.floor(seconds / 60)} 分鐘前同步`);
+    document.querySelector('#last-sync').textContent = label;
+  };
+
+  const confirmAction = ({title, message, impact, confirmLabel = '確認執行', tone = 'default'}) => new Promise((resolve) => {
+    if (confirmResolver) confirmResolver(false);
+    confirmResolver = resolve;
+    document.querySelector('#admin-confirm-title').textContent = title;
+    document.querySelector('#admin-confirm-message').textContent = message;
+    document.querySelector('#admin-confirm-impact').textContent = impact;
+    document.querySelector('#admin-confirm-submit').textContent = confirmLabel;
+    confirmDialog.dataset.tone = tone;
+    confirmDialog.showModal();
+    document.querySelector('#admin-confirm-submit').focus();
+  });
+
+  const closeConfirm = (accepted = false) => {
+    if (confirmDialog.open) confirmDialog.close();
+    const resolver = confirmResolver;
+    confirmResolver = null;
+    resolver?.(accepted);
   };
 
   async function api(path, options = {}) {
@@ -74,16 +116,26 @@
     const target = document.querySelector('#metric-grid');
     clear(target);
     [
-      ['累計營收', money(metrics.revenue), '所有已付款訂單', 'revenue'],
-      ['已付款訂單', metrics.paid_orders, `共 ${metrics.total_orders} 筆交易`, 'paid'],
-      ['等待付款', metrics.pending_orders, metrics.pending_orders ? '需要留意付款進度' : '目前沒有待處理', metrics.pending_orders ? 'attention' : 'clear'],
-      ['瀏覽轉換率', `${metrics.conversion}%`, `${metrics.views} 次有效瀏覽`, 'conversion']
-    ].forEach(([label, value, detail, tone]) => {
+      ['累計營收', money(metrics.revenue), '所有已付款訂單', 'revenue', 'orders'],
+      ['已付款訂單', metrics.paid_orders, `共 ${metrics.total_orders} 筆交易`, 'paid', 'orders'],
+      ['等待付款', metrics.pending_orders, metrics.pending_orders ? '需要留意付款進度' : '目前沒有待處理', metrics.pending_orders ? 'attention' : 'clear', 'orders'],
+      ['瀏覽轉換率', `${metrics.conversion}%`, `${metrics.views} 次有效瀏覽`, 'conversion', null]
+    ].forEach(([label, value, detail, tone, view]) => {
       const card = node('article', `metric-card tone-${tone}`);
       card.dataset.tone = tone;
       const header = node('div', 'metric-card-head');
       header.append(node('span', 'metric-label', label), node('i', '', tone === 'attention' ? '需處理' : '即時'));
       card.append(header, node('strong', '', value), node('small', '', detail));
+      if (view) {
+        card.classList.add('is-actionable');
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', `${label}：${value}，前往交易訂單`);
+        card.addEventListener('click', () => setWorkspace(view));
+        card.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setWorkspace(view); }
+        });
+      }
       target.appendChild(card);
     });
   }
@@ -193,7 +245,8 @@
       const bar = node('i');
       bar.style.width = `${Math.max(4, (Number(item.count || 0) / total) * 100)}%`;
       track.appendChild(bar);
-      row.append(node('span', '', item.source || '其他'), track, node('strong', '', item.count));
+      const percent = Math.round((Number(item.count || 0) / total) * 100);
+      row.append(node('span', '', item.source || '其他'), track, node('strong', '', item.count), node('small', 'traffic-percent', `${percent}%`));
       target.appendChild(row);
     });
   }
@@ -219,6 +272,7 @@
   }
 
   function renderPaymentVerification(data) {
+    const panel = document.querySelector('#payment-verification-panel');
     const state = document.querySelector('#payment-verification-state');
     const createButton = document.querySelector('#create-payment-verification');
     const checkoutLink = document.querySelector('#open-payment-verification');
@@ -236,6 +290,8 @@
     replaceButton.disabled = !data?.ready;
 
     if (!data?.ready) {
+      panel.dataset.state = 'disabled';
+      panel.open = false;
       state.append(
         node('strong', '', '驗證模式尚未就緒'),
         node('span', '', '需同時具備正式綠界、HTTPS 回呼、Email 交付、驗證收件人與獨立啟用開關。')
@@ -245,6 +301,7 @@
 
     const latest = data.latest;
     if (!latest) {
+      panel.dataset.state = 'ready';
       state.append(
         node('strong', '', '可以建立一筆隔離的 NT$6 訂單'),
         node('span', '', '公開仙策價格與一般結帳仍維持原狀。')
@@ -253,6 +310,8 @@
     }
 
     const statusText = orderLabels[latest.status] || latest.status;
+    panel.dataset.state = latest.status;
+    if (latest.status === 'refunded') panel.open = false;
     state.append(
       node('strong', '', `${latest.order_no}・${money(latest.amount)}・${statusText}`),
       node('span', '', latest.activated ? 'Email、一次性開通與內容讀取已完成。' : (latest.status === 'paid' ? '已付款，請先由 Email 完成開通與內容讀取。' : `建立 ${dateText(latest.created_at)}`))
@@ -280,6 +339,31 @@
     if (input) input.value = value ?? '';
   }
 
+  function editorValues() {
+    return [...editorForm.querySelectorAll('input, textarea, select')]
+      .map((field) => `${field.id}:${field.value}`)
+      .join('|');
+  }
+
+  function updateEditorDirtyState() {
+    const dirty = editor.open && editorValues() !== editorSnapshot;
+    editor.dataset.dirty = String(dirty);
+    document.querySelector('#idea-editor-dirty').hidden = !dirty;
+    return dirty;
+  }
+
+  async function requestEditorClose() {
+    if (!updateEditorDirtyState()) { editor.close(); return; }
+    const accepted = await confirmAction({
+      title: '捨棄未儲存變更？',
+      message: '你已修改仙策內容，但尚未儲存。',
+      impact: '離開後，本次尚未儲存的文字與設定會消失；已上線內容不受影響。',
+      confirmLabel: '捨棄變更',
+      tone: 'danger'
+    });
+    if (accepted) { editor.dataset.dirty = 'false'; editor.close(); }
+  }
+
   function openIdeaEditor(idea) {
     const fields = {
       id: 'id', title: 'title', role: 'role', seal: 'seal', accent: 'accent',
@@ -291,6 +375,8 @@
     document.querySelector('#idea-editor-slug').textContent = `內容識別：${idea.slug}`;
     document.querySelector('#idea-editor-status').textContent = '';
     editor.showModal();
+    editorSnapshot = editorValues();
+    updateEditorDirtyState();
     document.querySelector('#idea-title').focus();
   }
 
@@ -309,10 +395,20 @@
       toggle.type = 'button';
       toggle.setAttribute('aria-pressed', String(idea.published));
       toggle.addEventListener('click', async () => {
+        const nextPublished = !idea.published;
+        const accepted = await confirmAction({
+          title: nextPublished ? '確認公開這脈仙策？' : '確認暫停公開這脈仙策？',
+          message: `${idea.title}目前為${idea.published ? '公開' : '隱藏'}狀態。`,
+          impact: nextPublished ? '公開後所有訪客都能看到摘要與傳音入口。' : '隱藏後官網將不再顯示，但既有訂單與已購權限不會被刪除。',
+          confirmLabel: nextPublished ? '確認公開' : '確認隱藏',
+          tone: nextPublished ? 'default' : 'danger'
+        });
+        if (!accepted) return;
+        toggle.disabled = true;
         try {
-          await api(`/admin/api/ideas/${idea.id}/publish`, {method: 'POST', body: JSON.stringify({published: !idea.published})});
+          await api(`/admin/api/ideas/${idea.id}/publish`, {method: 'POST', body: JSON.stringify({published: nextPublished})});
           await loadDashboard('仙策上架狀態已更新。');
-        } catch (error) { showError(error); }
+        } catch (error) { showError(error); toggle.disabled = false; }
       });
       const edit = node('button', 'edit-idea', '編輯內容');
       edit.type = 'button';
@@ -348,8 +444,25 @@
     document.querySelector('#order-result-summary').textContent = `顯示 ${filtered.length} 筆，共載入最近 ${orders.length} 筆訂單`;
     if (!filtered.length) {
       const row = node('tr');
-      const cell = node('td', 'table-empty', '找不到符合條件的訂單');
+      const cell = node('td', 'table-empty');
       cell.colSpan = 6;
+      cell.append(node('span', '', orders.length ? '找不到符合條件的訂單' : '目前尚無訂單'));
+      if (orders.length) {
+        const reset = node('button', '', '清除搜尋與篩選');
+        reset.type = 'button';
+        reset.addEventListener('click', () => {
+          document.querySelector('#order-search').value = '';
+          document.querySelector('#clear-order-search').hidden = true;
+          orderFilter = 'all';
+          document.querySelectorAll('[data-order-filter]').forEach((item) => {
+            const active = item.dataset.orderFilter === 'all';
+            item.classList.toggle('is-active', active);
+            item.setAttribute('aria-pressed', String(active));
+          });
+          renderOrders();
+        });
+        cell.append(reset);
+      }
       row.appendChild(cell);
       target.appendChild(row);
       return;
@@ -427,10 +540,19 @@
         const button = node('button', 'danger-action', '撤銷裝置');
         button.type = 'button';
         button.addEventListener('click', async () => {
+          const accepted = await confirmAction({
+            title: '確認撤銷可信裝置？',
+            message: `${device.label} 將失去可信狀態。`,
+            impact: '該裝置的有效工作階段會一併失效；客戶下次需重新完成登入驗證。已購內容不會被刪除。',
+            confirmLabel: '撤銷裝置',
+            tone: 'danger'
+          });
+          if (!accepted) return;
+          button.disabled = true;
           try {
             await api(`/admin/api/customers/devices/${device.id}/revoke`, {method: 'POST'});
             await loadDashboard('可信裝置及其有效工作階段已撤銷。');
-          } catch (error) { showError(error); }
+          } catch (error) { showError(error); button.disabled = false; }
         });
         action.appendChild(button);
       } else action.textContent = '—';
@@ -463,6 +585,19 @@
       return;
     }
     events.forEach((item) => target.appendChild(eventItem(item, audit)));
+  }
+
+  function renderSecurityEvents(events) {
+    const filtered = securityFilter === 'priority'
+      ? events.filter((item) => ['critical', 'high'].includes(item.severity))
+      : events;
+    const target = document.querySelector('#security-events');
+    clear(target);
+    if (!filtered.length) {
+      target.appendChild(node('div', 'event-empty', securityFilter === 'priority' ? '目前沒有高風險安全事件' : '目前沒有安全事件'));
+      return;
+    }
+    filtered.forEach((item) => target.appendChild(eventItem(item)));
   }
 
   function renderNotifications(items) {
@@ -538,10 +673,19 @@
       const button = node('button', '', '解除封鎖');
       button.type = 'button';
       button.addEventListener('click', async () => {
+        const accepted = await confirmAction({
+          title: '確認解除網路封鎖？',
+          message: '這個來源將可再次連線。',
+          impact: '只有在已確認為誤判或風險已排除時才解除；原安全事件與稽核紀錄會保留。',
+          confirmLabel: '解除封鎖',
+          tone: 'danger'
+        });
+        if (!accepted) return;
+        button.disabled = true;
         try {
           await api('/admin/api/security/unblock', {method: 'POST', body: JSON.stringify({ip: block.ip})});
           await loadDashboard('IP 封鎖已解除。');
-        } catch (error) { showError(error); }
+        } catch (error) { showError(error); button.disabled = false; }
       });
       row.append(copy, button);
       target.appendChild(row);
@@ -586,6 +730,17 @@
     document.querySelector('#conversation-reply-title').textContent = '新指定傳音';
     document.querySelector('#conversation-reply-reset').hidden = true;
     document.querySelector('#conversation-reply-status').textContent = '';
+    updateConversationScopeNote();
+  }
+
+  function updateConversationScopeNote() {
+    const visibility = document.querySelector('#conversation-visibility').value;
+    const note = document.querySelector('#conversation-scope-note');
+    note.dataset.scope = visibility;
+    note.querySelector('strong').textContent = visibility === 'private' ? '私密傳音' : '公開回覆';
+    note.querySelector('span').textContent = visibility === 'private'
+      ? '只有指定客戶與守閣者可讀；必須選擇客戶。'
+      : '送出後所有訪客都能閱讀；請勿包含客戶資料或內部資訊。';
   }
 
   function openConversationReply(message) {
@@ -594,6 +749,7 @@
     ));
     if (section) document.querySelector('#conversation-section').value = conversationSectionValue(section);
     document.querySelector('#conversation-visibility').value = message.visibility;
+    updateConversationScopeNote();
     const customerSelect = document.querySelector('#conversation-customer');
     if (message.customer_public_id && ![...customerSelect.options].some((option) => option.value === message.customer_public_id)) {
       customerSelect.append(new Option(message.author?.label || message.customer_public_id, message.customer_public_id));
@@ -607,6 +763,15 @@
   }
 
   async function moderateConversation(message, nextStatus) {
+    const publishing = nextStatus === 'published';
+    const accepted = await confirmAction({
+      title: publishing ? '確認公開這則傳音？' : '確認隱藏這則傳音？',
+      message: publishing ? '公開後所有訪客都能閱讀此內容。' : '隱藏後官網不再顯示此內容。',
+      impact: publishing ? '請確認內容不含個人資料、付款資訊、網址或不當文字。' : '訊息不會被刪除，仍保留於後台與稽核紀錄。',
+      confirmLabel: publishing ? '確認公開' : '確認隱藏',
+      tone: publishing ? 'default' : 'danger'
+    });
+    if (!accepted) return;
     try {
       await api(`/admin/api/conversations/${message.id}/moderate`, {
         method: 'POST', body: JSON.stringify({status: nextStatus})
@@ -728,7 +893,7 @@
     renderCustomerAccess(data.customer_access || {});
     renderCustomerDevices(data.customer_devices || []);
     renderConversations(data);
-    renderEvents(data.security_events || [], '#security-events');
+    renderSecurityEvents(data.security_events || []);
     renderEvents(data.access_events || [], '#access-events');
     renderNotifications(data.notification_queue || []);
     renderIncidents(data.risk_incidents || []);
@@ -743,28 +908,50 @@
   }
 
   function showError(error) {
-    status.textContent = error.message || '操作失敗，請稍後再試。';
-    status.classList.add('is-error');
+    const rawMessage = error?.message || '';
+    const message = /failed to fetch|networkerror|load failed/i.test(rawMessage)
+      ? '目前無法連上營運服務；請確認網路後重新載入。'
+      : (rawMessage || '操作失敗，請稍後再試。');
+    setStatus(message, 'error');
   }
 
   async function loadDashboard(message = '') {
-    status.textContent = message || '正在讀取營運資料…';
-    status.classList.remove('is-error');
+    setStatus(message || '正在讀取營運資料…', 'loading');
     root.classList.add('is-loading');
+    root.setAttribute('aria-busy', 'true');
+    refreshDashboard.disabled = true;
+    refreshDashboard.setAttribute('aria-busy', 'true');
     try {
       render(await api('/admin/api/dashboard'));
       const syncedAt = new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit', hour12: false});
-      status.textContent = message || `資料已更新・${syncedAt}`;
-      document.querySelector('#last-sync').textContent = `同步 ${syncedAt}`;
+      setStatus(message || `資料已更新・${syncedAt}`);
+      lastSyncAt = new Date();
+      updateSyncFreshness();
     } catch (error) { showError(error); }
-    finally { root.classList.remove('is-loading'); }
+    finally {
+      root.classList.remove('is-loading');
+      root.removeAttribute('aria-busy');
+      refreshDashboard.disabled = false;
+      refreshDashboard.removeAttribute('aria-busy');
+    }
   }
 
   document.querySelectorAll('[data-admin-view]').forEach((button) => button.addEventListener('click', () => setWorkspace(button.dataset.adminView)));
   document.querySelector('[data-admin-link]')?.addEventListener('click', (event) => { event.preventDefault(); setWorkspace('overview'); });
   window.addEventListener('hashchange', () => setWorkspace(location.hash.slice(1), false));
-  document.querySelector('#refresh-dashboard').addEventListener('click', () => loadDashboard());
-  document.querySelector('#order-search').addEventListener('input', renderOrders);
+  refreshDashboard.addEventListener('click', () => loadDashboard());
+  retryDashboard.addEventListener('click', () => loadDashboard());
+  document.querySelector('#order-search').addEventListener('input', (event) => {
+    document.querySelector('#clear-order-search').hidden = !event.currentTarget.value;
+    renderOrders();
+  });
+  document.querySelector('#clear-order-search').addEventListener('click', () => {
+    const search = document.querySelector('#order-search');
+    search.value = '';
+    document.querySelector('#clear-order-search').hidden = true;
+    search.focus();
+    renderOrders();
+  });
   document.querySelectorAll('[data-order-filter]').forEach((button) => {
     button.addEventListener('click', () => {
       orderFilter = button.dataset.orderFilter;
@@ -787,7 +974,19 @@
       renderConversations(dashboard);
     });
   });
+  document.querySelectorAll('[data-security-filter]').forEach((button) => {
+    button.addEventListener('click', () => {
+      securityFilter = button.dataset.securityFilter;
+      document.querySelectorAll('[data-security-filter]').forEach((item) => {
+        const active = item === button;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+      renderSecurityEvents(dashboard?.security_events || []);
+    });
+  });
   document.querySelector('#conversation-reply-reset').addEventListener('click', resetConversationReply);
+  document.querySelector('#conversation-visibility').addEventListener('change', updateConversationScopeNote);
   document.querySelector('#conversation-reply-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const formStatus = document.querySelector('#conversation-reply-status');
@@ -817,23 +1016,53 @@
   document.querySelector('#price-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const price = Number(document.querySelector('#global-price').value);
+    const previous = Number(dashboard?.global_price || 0);
+    if (price === previous) { setStatus('預設價格沒有變更。'); return; }
+    const accepted = await confirmAction({
+      title: '確認更新全站預設價格？',
+      message: `預設價格將由 ${money(previous)} 調整為 ${money(price)}。`,
+      impact: '只影響沒有單獨定價的仙策；既有訂單與已付款金額不會回溯修改。',
+      confirmLabel: '更新預設價格'
+    });
+    if (!accepted) return;
+    const submit = event.currentTarget.querySelector('button[type="submit"]');
+    submit.disabled = true;
     try {
       await api('/admin/api/settings/price', {method: 'POST', body: JSON.stringify({price})});
       await loadDashboard(`全站預設價格已更新為 ${money(price)}。`);
     } catch (error) { showError(error); }
+    finally { submit.disabled = false; }
   });
   document.querySelector('#security-test').addEventListener('click', async () => {
+    const accepted = await confirmAction({
+      title: '確認寫入測試安全事件？',
+      message: '這是測試用途，不是一般營運操作。',
+      impact: '系統會新增一筆測試事件與稽核紀錄；不會修改客戶權限，但可能觸發已設定的管理告警。',
+      confirmLabel: '寫入測試事件',
+      tone: 'danger'
+    });
+    if (!accepted) return;
+    const button = document.querySelector('#security-test');
+    button.disabled = true;
     try {
       await api('/admin/api/security/test', {method: 'POST'});
       await loadDashboard('安全測試事件已寫入。');
     } catch (error) { showError(error); }
+    finally { button.disabled = false; }
   });
   document.querySelector('#retry-security-alerts').addEventListener('click', async () => {
+    const button = document.querySelector('#retry-security-alerts');
+    button.disabled = true;
     try {
       const result = await api('/admin/api/security/notifications/retry', {method: 'POST'});
       await loadDashboard(`私下警示已重試 ${result.processed} 筆，送達 ${result.sent} 筆。`);
     } catch (error) { showError(error); }
+    finally { button.disabled = false; }
   });
+  document.querySelectorAll('[data-close-confirm-dialog]').forEach((button) => button.addEventListener('click', () => closeConfirm(false)));
+  confirmForm.addEventListener('submit', (event) => { event.preventDefault(); closeConfirm(true); });
+  confirmDialog.addEventListener('click', (event) => { if (event.target === confirmDialog) closeConfirm(false); });
+  confirmDialog.addEventListener('cancel', (event) => { event.preventDefault(); closeConfirm(false); });
   document.querySelector('#create-payment-verification').addEventListener('click', async () => {
     const button = document.querySelector('#create-payment-verification');
     button.disabled = true;
@@ -903,8 +1132,11 @@
       submitButton.disabled = false;
     }
   });
-  document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => editor.close()));
-  editor.addEventListener('click', (event) => { if (event.target === editor) editor.close(); });
+  document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', requestEditorClose));
+  editor.addEventListener('click', (event) => { if (event.target === editor) requestEditorClose(); });
+  editor.addEventListener('cancel', (event) => { event.preventDefault(); requestEditorClose(); });
+  editorForm.addEventListener('input', updateEditorDirtyState);
+  editorForm.addEventListener('change', updateEditorDirtyState);
   editorForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!editorForm.reportValidity()) return;
@@ -923,6 +1155,7 @@
     saveButton.disabled = true;
     try {
       await api(`/admin/api/ideas/${ideaId}`, {method: 'POST', body: JSON.stringify(payload)});
+      editor.dataset.dirty = 'false';
       editor.close();
       await loadDashboard('仙策內容已儲存並寫入稽核紀錄。');
     } catch (error) { editorStatus.textContent = error.message || '儲存失敗'; }
@@ -930,6 +1163,8 @@
   });
 
   renderDate();
+  updateConversationScopeNote();
   setWorkspace(location.hash.slice(1) || 'overview', false);
   loadDashboard();
+  window.setInterval(updateSyncFreshness, 15000);
 })();

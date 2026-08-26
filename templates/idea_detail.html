@@ -7,7 +7,7 @@
 {% endblock %}
 {% block content %}
 <section class="detail-hero section-shell">
-  <a class="back-link" href="{{ url_for('public.home') }}#ideas">← 返回六脈仙策</a>
+  <nav class="detail-breadcrumb" aria-label="麵包屑"><a href="{{ url_for('public.home') }}">首頁</a><span aria-hidden="true">/</span><a href="{{ url_for('public.home') }}#ideas">六脈仙策</a><span aria-hidden="true">/</span><strong aria-current="page">{{ idea['title'] }}</strong></nav>
   <div class="detail-grid">
     <div class="character-plaque reveal">
       <img class="plaque-logo" src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt="">
@@ -31,10 +31,14 @@
         </ul>
       </div>
       <div class="purchase-rune">
-        <div><span>統一試行價</span><strong>NT${{ price }}</strong></div>
+        <div><span>{{ '統一試行價' if payment_status.ready else '目前狀態' }}</span><strong>{{ 'NT$' ~ price if payment_status.ready else '正式收款未開放' }}</strong></div>
+        {% if payment_status.ready %}
         <a class="button button-primary" href="{{ url_for('public.checkout', slug=idea['slug']) }}">解鎖完整心法</a>
+        {% else %}
+        <a class="button button-primary" href="#conversation-idea-detail-{{ idea['slug'] }}">傳音詢問此策</a>
+        {% endif %}
       </div>
-      <p class="locked-note"><span aria-hidden="true">◇</span> 完整心法需解鎖・數位內容一次買斷</p>
+      <p class="locked-note"><span aria-hidden="true">◇</span> {% if payment_status.ready %}完整心法需解鎖・數位內容一次買斷{% else %}摘要可先閱讀・收款未開放時不會建立訂單{% endif %}</p>
     </div>
   </div>
 </section>

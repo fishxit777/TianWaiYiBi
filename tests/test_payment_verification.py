@@ -338,7 +338,7 @@ def test_admin_dashboard_has_separate_minimum_amount_verification_controls(clien
     assert 'id="payment-refund-form"' in body
     assert 'id="payment-refund-confirmation"' in body
     assert 'target="_self"' in body
-    assert "payment-verification-v7" in body
+    assert "professional-ui-v17" in body
     assert "NT$6 正式付款驗證" in body
 
     admin_script = (Path(__file__).parents[1] / "static" / "admin.js").read_text(encoding="utf-8")

@@ -75,10 +75,11 @@ def test_admin_login_failure_is_generic(client):
     assert "unknown" not in response.get_data(as_text=True)
 
 
-def test_admin_login_uses_professional_v16_design_layer(client):
+def test_admin_login_uses_professional_v17_design_layer(client):
     body = client.get("/admin/login").get_data(as_text=True)
 
     assert "static/v16.css" in body
+    assert "static/v17.css" in body
     assert "授權身分驗證" in body
 
 
@@ -102,21 +103,26 @@ def test_admin_api_requires_authentication(client):
     assert response.status_code == 401
 
 
-def test_admin_dashboard_uses_six_separate_operational_workspaces(client):
+def test_admin_dashboard_uses_seven_separate_operational_workspaces(client):
     login_admin(client)
     body = client.get("/admin").get_data(as_text=True)
 
-    for workspace in ("overview", "orders", "ideas", "customers", "integrations", "security"):
+    for workspace in ("overview", "orders", "ideas", "customers", "conversations", "integrations", "security"):
         assert f'data-admin-view="{workspace}"' in body
         assert f'data-admin-panel="{workspace}"' in body
     assert "今日需要處理" in body
     assert "開通碼、登入碼與私密連結不會在後台曝光" in body
     assert 'data-admin-panel="orders" hidden' in body
     assert "static/v16.css" in body
+    assert "static/v17.css" in body
     assert 'class="admin-environment"' in body
     assert 'id="last-sync"' in body
     assert 'aria-pressed="true">全部' in body
     assert "metric-skeleton" in body
+    assert 'id="retry-dashboard"' in body
+    assert 'id="clear-order-search"' in body
+    assert 'id="admin-confirm-dialog"' in body
+    assert 'data-security-filter="priority"' in body
 
 
 def test_admin_customer_access_summary_tracks_paid_then_activated(client):
