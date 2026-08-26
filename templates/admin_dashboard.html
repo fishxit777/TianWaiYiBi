@@ -190,6 +190,14 @@
       <footer><button type="button" data-close-dialog>取消</button><button class="save-idea" type="submit">儲存仙策內容</button></footer>
     </form>
   </dialog>
-  <script src="{{ url_for('static', filename='admin.js', v='payment-verification-v6') }}" defer></script>
+  <dialog id="payment-refund-dialog" class="idea-editor payment-refund-dialog" aria-labelledby="payment-refund-dialog-title">
+    <form id="payment-refund-form">
+      <header><div><span>REFUND CONFIRMATION</span><h2 id="payment-refund-dialog-title">確認退款並撤回權限</h2><p>只在外部金流已明確顯示退款或取消授權成功後繼續。</p></div><button class="dialog-close" type="button" data-close-refund-dialog aria-label="關閉退款確認視窗">×</button></header>
+      <label>完整驗證訂單編號<input id="payment-refund-confirmation" maxlength="20" pattern="[A-Z0-9]+" autocomplete="off" autocapitalize="characters" spellcheck="false" required></label>
+      <p id="payment-refund-status" class="form-status" role="status" aria-live="polite"></p>
+      <footer><button type="button" data-close-refund-dialog>取消</button><button class="save-idea" type="submit">確認退款並撤回</button></footer>
+    </form>
+  </dialog>
+  <script src="{{ url_for('static', filename='admin.js', v='payment-verification-v7') }}" defer></script>
 </body>
 </html>

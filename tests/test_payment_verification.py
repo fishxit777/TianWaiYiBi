@@ -1,5 +1,6 @@
 import re
 import inspect
+from pathlib import Path
 
 from conftest import login_admin, set_public_csrf
 from tianwai.db import get_db
@@ -333,9 +334,16 @@ def test_admin_dashboard_has_separate_minimum_amount_verification_controls(clien
     assert 'id="create-payment-verification"' in body
     assert 'id="replace-payment-verification"' in body
     assert 'id="confirm-payment-verification-refund"' in body
+    assert 'id="payment-refund-dialog"' in body
+    assert 'id="payment-refund-form"' in body
+    assert 'id="payment-refund-confirmation"' in body
     assert 'target="_self"' in body
-    assert "payment-verification-v6" in body
+    assert "payment-verification-v7" in body
     assert "NT$6 正式付款驗證" in body
+
+    admin_script = (Path(__file__).parents[1] / "static" / "admin.js").read_text(encoding="utf-8")
+    assert "window.prompt" not in admin_script
+    assert "refundDialog.showModal()" in admin_script
 
 
 def test_payment_processing_locks_postgres_order_before_deduplication_update():

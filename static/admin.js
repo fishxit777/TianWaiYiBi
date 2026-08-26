@@ -6,6 +6,8 @@
   const status = document.querySelector('#admin-status');
   const editor = document.querySelector('#idea-editor');
   const editorForm = document.querySelector('#idea-editor-form');
+  const refundDialog = document.querySelector('#payment-refund-dialog');
+  const refundForm = document.querySelector('#payment-refund-form');
   const workspaceTitles = {
     overview: '今日總覽', orders: '交易訂單', ideas: '仙策內容',
     customers: '客戶開通', conversations: '傳音對話', integrations: '系統串接', security: '安全稽核'
@@ -865,19 +867,41 @@
     link.style.pointerEvents = 'none';
     link.textContent = '正在前往綠界…';
   });
-  document.querySelector('#confirm-payment-verification-refund').addEventListener('click', async () => {
+  document.querySelector('#confirm-payment-verification-refund').addEventListener('click', () => {
     const button = document.querySelector('#confirm-payment-verification-refund');
     const orderNo = button.dataset.orderNo || '';
-    const confirmation = window.prompt('只有在綠界後台已明確顯示退款／取消授權成功後才能繼續。請輸入完整驗證訂單編號：', '');
-    if (confirmation === null) return;
-    button.disabled = true;
+    if (!orderNo) {
+      showError(new Error('找不到目前的驗證訂單，請重新整理後再試。'));
+      return;
+    }
+    refundForm.dataset.orderNo = orderNo;
+    document.querySelector('#payment-refund-confirmation').value = '';
+    document.querySelector('#payment-refund-status').textContent = '';
+    refundDialog.showModal();
+    document.querySelector('#payment-refund-confirmation').focus();
+  });
+  document.querySelectorAll('[data-close-refund-dialog]').forEach((button) => button.addEventListener('click', () => refundDialog.close()));
+  refundDialog.addEventListener('click', (event) => { if (event.target === refundDialog) refundDialog.close(); });
+  refundForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!refundForm.reportValidity()) return;
+    const orderNo = refundForm.dataset.orderNo || '';
+    const confirmation = document.querySelector('#payment-refund-confirmation').value.trim().toUpperCase();
+    const refundStatus = document.querySelector('#payment-refund-status');
+    const submitButton = refundForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    refundStatus.textContent = '正在撤回本次驗收權限…';
     try {
       await api(`/admin/api/payment-verification/orders/${encodeURIComponent(orderNo)}/refund-confirmation`, {
         method: 'POST',
         body: JSON.stringify({external_refund_confirmed: true, confirmation})
       });
+      refundDialog.close();
       await loadDashboard('綠界退款確認已記錄，本地驗證權限已撤回。');
-    } catch (error) { showError(error); button.disabled = false; }
+    } catch (error) {
+      refundStatus.textContent = error.message;
+      submitButton.disabled = false;
+    }
   });
   document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => editor.close()));
   editor.addEventListener('click', (event) => { if (event.target === editor) editor.close(); });

@@ -1059,6 +1059,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .idea-editor footer { display: flex; justify-content: flex-end; gap: 9px; padding-top: 8px; }
 .idea-editor footer button { padding: 10px 15px; color: #34443d; border: 1px solid #aebbb4; background: transparent; cursor: pointer; }
 .idea-editor footer .save-idea { color: white; border-color: #2e6652; background: #2e6652; }
+.payment-refund-dialog { width: min(560px, calc(100% - 28px)); }
+.payment-refund-dialog .form-status { color: #9b4237; }
 
 @media (max-width: 1100px) {
   .integration-grid { grid-template-columns: repeat(3, 1fr); }
