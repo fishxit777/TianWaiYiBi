@@ -84,6 +84,7 @@
 
 ## 驗證結果
 
+- 管理摘要訊號品質 V2 已由提交 `8bd3b3d` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=admin-summary-signal-v2`。正式首頁回 200、維持「摘要開放」且結帳連結 0 個；正式 `admin.js` 已包含公開收款安全關閉與過期通知排除文案。管理登入回 200、`Cache-Control: no-store`、`X-Frame-Options: DENY`。正式驗收只讀取公開端點，未寄送通知、未重試歷史佇列、未登入後台、未建立訂單或變更正式資料。
 - 2026-08-28 管理摘要訊號品質 V2 本機完整驗證：`python -m pytest -q` 為 159 passed、1 skipped；通知／金流／安全專項 39 passed。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check` 與新增行機密掃描通過。測試覆蓋歷史通知排除、今日失敗、LINE 頻道／收件人分流、缺少通道不重試、24 小時／7 天時效、金流安全關閉、真人工作階段去重、機器／後台預覽排除與 10 人樣本門檻；沒有刪除正式佇列、建立訂單、開啟 NT$199 收款或傳送通知。
 - 2026-08-27 仙策需求雷達 V1 本機完整驗證：`python -m pytest -q` 為 151 passed、1 skipped；Python compileall、兩支 JavaScript syntax、`pip check`、`git diff --check` 通過。隔離資料庫驗證匿名意願去重、事件白名單、機器排除、信心門檻、收款關閉診斷與舊資料庫加法升級；桌機 1280px 與手機 390×844 無根頁面水平溢位，7／30／90 日切換與匿名意願回饋成功，console 0 error／0 warning。QA 未操作正式客戶、訂單、留言、Passkey、復原碼或備份。
 - 仙策需求雷達 V1 首次部署提交 `8c2804b` 因既有資料表尚未增補新欄位時，基礎 schema 先建立依賴新欄位的索引而啟動失敗；舊正式版本持續健康服務，未中斷官網。修正提交 `1f94335` 將四個新索引延後到加法遷移補欄位後建立，並加入舊 SQLite 資料庫升級回歸測試；重新部署後 `/healthz` 回 200、`status=ok`、`release=demand-radar-v1`，證明既有 Neon PostgreSQL 已完成增補並成功啟動。
