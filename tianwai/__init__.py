@@ -89,7 +89,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "demand-radar-v1",
+                "release": "admin-summary-signal-v2",
             }
         )
 

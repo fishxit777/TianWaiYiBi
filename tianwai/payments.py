@@ -67,22 +67,35 @@ def payment_checkout_status(verification=False):
             and _enabled("ECPAY_VERIFICATION_ENABLED", False)
             and EMAIL_PATTERN.fullmatch(verification_email)
         )
-        ready = bool(
-            credentials_ready
-            and email_delivery_ready()
-            and callback_ready
-            and (verification_ready if verification else live_confirmed)
-        )
+        email_ready = email_delivery_ready()
+        configuration_ready = bool(credentials_ready and email_ready and callback_ready)
+        gate_ready = verification_ready if verification else live_confirmed
+        ready = bool(configuration_ready and gate_ready)
+        if ready:
+            state = "open"
+        elif configuration_ready and config["mode"] == "production" and not gate_ready:
+            state = "closed"
+        else:
+            state = "misconfigured"
+        if verification and config["mode"] == "production":
+            label = "綠界 NT$6 驗證模式" if ready else "綠界 NT$6 驗證模式（已停用）"
+        elif config["mode"] == "stage":
+            label = "綠界測試金流" if ready else "綠界測試金流（設定未完成）"
+        elif state == "closed":
+            label = "綠界正式金流（公開收款關閉）"
+        elif state == "misconfigured":
+            label = "綠界正式金流（設定未完成）"
+        else:
+            label = "綠界正式金流"
         return {
             "provider": "ecpay" if ready else "unavailable",
-            "label": (
-                "綠界 NT$6 驗證模式"
-                if verification and config["mode"] == "production"
-                else ("綠界測試金流" if config["mode"] == "stage" else "綠界正式金流")
-            ),
+            "label": label,
             "ready": ready,
+            "state": state,
+            "configuration_ready": configuration_ready,
+            "public_sales_open": bool(ready and not verification),
             "credentials_ready": credentials_ready,
-            "email_ready": email_delivery_ready(),
+            "email_ready": email_ready,
             "callback_ready": callback_ready,
             "live_confirmed": live_confirmed,
             "verification_enabled": verification_ready,
@@ -93,6 +106,9 @@ def payment_checkout_status(verification=False):
         "provider": "mock" if development_ready else "unavailable",
         "label": "本機模擬付款" if development_ready else "正式付款尚未開放",
         "ready": development_ready,
+        "state": "development" if development_ready else "closed",
+        "configuration_ready": development_ready,
+        "public_sales_open": False,
         "credentials_ready": False,
         "email_ready": email_delivery_ready(),
         "mode": "development" if development_ready else "unavailable",

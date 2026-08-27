@@ -14,6 +14,8 @@
 
 2026-08-28 已完成 20 人需求驗證衝刺設計：停止繼續堆疊非瓶頸功能，七天只驗證「一人門派自動化」與「一頁破局試煉」，每策定向邀請 10 位合格目標客戶；網站保持不收款、不新增個資表單，使用現有匿名雷達與 LINE／傳音承接。邀請文案、追蹤網址、訪談題綱、繼續／改寫／暫停門檻見 `docs/plans/2026-08-28-20-user-demand-validation-sprint.md`。
 
+2026-08-28 已完成管理摘要訊號品質 V2：歷史 `failed`／`skipped` 通知保留供稽核，但不再冒充今日異常或被批次洪水式重送；每日摘要只把今日真正失敗列入待辦。LINE 官方帳號頻道與管理員私訊收件人分開顯示；綠界正式設定完整但公開收款閘門關閉時標示為正常關閉；流量改為排除機器及後台預覽的不重複真人工作階段，熱門仙策未達 10 人明示樣本不足。
+
 已完成：
 
 - Flask 應用工廠與 SQLite 自動建表／種子資料。
@@ -56,6 +58,7 @@
 - V17 官網第二輪 20 點專業化已完成：新增手機章節導覽、長頁進度、目前章節、緊湊頁首與「已購取回」入口；付款狀態由伺服器真實決定，公開收款關閉時首頁與詳情不再出現結帳入口，六卡改為先看摘要。另加入適合／不適合判斷、可還原篩選網址、焦點安全、空狀態、麵包屑與正確頁尾信任文案。
 - V17 後台第二輪 20 點專業化已完成：手機七個工作區完整單列顯示；儀表板具載入／成功／錯誤與中文斷線重試；KPI 可鍵盤導頁，訂單搜尋可清除；價格、上下架、裝置撤銷、解除封鎖、安全測試與留言審核均改用站內影響確認；編輯器具未儲存保護，傳音範圍即時說明，歷史付款驗收區降級收納，安全事件預設高風險優先。
 - 管理通知 V1 已完成：台北時間 08:00／12:00／20:00 詳細營運摘要；高／重大登入、存取、付款、LINE 與系統事件立即分送管理員 LINE＋Gmail。兩通道個別佇列、個別重試、日期／時段防重送；通知會遮罩 Email／IP 並移除驗證碼、Token、Cookie、密碼及簽章值。
+- 管理摘要訊號品質 V2 已完成：今日失敗、今日略過與歷史稽核存量分離；每日摘要只重試 24 小時內資料，其他管理通知只重試 7 天內資料，未設定通道不增加嘗試次數。後台付款卡把已驗收但公開關閉視為正常就緒，不再誤報缺少特店設定。
 - 手機六脈卡片字型一致性已修正：字型子集建置補入 `tianwai/db.py` 與全部公開交易頁文案，Regular／Bold 皆重新輸出；角色名與技能分類統一 MasaFont Regular 14px，主標統一同系 Display，手機 29px。六脈共 83 個不同卡片漢字已驗證缺字 0，並加入版本參數避免 iPhone 延用舊快取。
 - 管理員憑證 V2 已完成：本機與正式輪替工具可產生 32 bytes／43 位 Base64url／256-bit 密碼；伺服器支援 Argon2id（19 MiB、2 次、p=1）且 Hash 存在時禁止降級使用舊明文。後台安全稽核新增 Argon2id 狀態；正式新明文不得進 Git、文件或對話，需由擁有者在可信任終端產生並直接保存到密碼管理器後，再設定 Render `ADMIN_PASSWORD_HASH`、驗收並移除 `ADMIN_PASSWORD`。
 - 管理員憑證本機交接 V2 已完成：`scripts/admin_credential_handoff.py` 以一次性 Windows 視窗顯示 43 位密碼；複製 Argon2id verifier 後視窗仍保持開啟，可在 Render 部署完成後再次複製真正登入密碼，直到正式登入成功才銷毀，避免密碼管理器未保存時鎖死。明文不寫入磁碟、終端、Git、LINE、Gmail 或 Chat。
@@ -81,6 +84,7 @@
 
 ## 驗證結果
 
+- 2026-08-28 管理摘要訊號品質 V2 本機完整驗證：`python -m pytest -q` 為 159 passed、1 skipped；通知／金流／安全專項 39 passed。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check` 與新增行機密掃描通過。測試覆蓋歷史通知排除、今日失敗、LINE 頻道／收件人分流、缺少通道不重試、24 小時／7 天時效、金流安全關閉、真人工作階段去重、機器／後台預覽排除與 10 人樣本門檻；沒有刪除正式佇列、建立訂單、開啟 NT$199 收款或傳送通知。
 - 2026-08-27 仙策需求雷達 V1 本機完整驗證：`python -m pytest -q` 為 151 passed、1 skipped；Python compileall、兩支 JavaScript syntax、`pip check`、`git diff --check` 通過。隔離資料庫驗證匿名意願去重、事件白名單、機器排除、信心門檻、收款關閉診斷與舊資料庫加法升級；桌機 1280px 與手機 390×844 無根頁面水平溢位，7／30／90 日切換與匿名意願回饋成功，console 0 error／0 warning。QA 未操作正式客戶、訂單、留言、Passkey、復原碼或備份。
 - 仙策需求雷達 V1 首次部署提交 `8c2804b` 因既有資料表尚未增補新欄位時，基礎 schema 先建立依賴新欄位的索引而啟動失敗；舊正式版本持續健康服務，未中斷官網。修正提交 `1f94335` 將四個新索引延後到加法遷移補欄位後建立，並加入舊 SQLite 資料庫升級回歸測試；重新部署後 `/healthz` 回 200、`status=ok`、`release=demand-radar-v1`，證明既有 Neon PostgreSQL 已完成增補並成功啟動。
 - 正式純讀驗收：首頁、仙策詳情、V17 CSS／JavaScript 與管理登入頁皆回 200；首頁有 6 個仙策詳情入口、0 個結帳連結，仙策詳情有匿名意願與傳音入口、0 個結帳連結。管理登入維持 `no-store`、`DENY` 且不公開驗證技術；驗收未送出意願、未建立訂單、未登入後台，也未操作正式客戶、留言、Passkey、復原碼或備份。
@@ -123,7 +127,7 @@
 - 管理通知 V1 正式 Render 部署已驗證：實作 commit `197740d` 上線後 `/healthz` 回傳 `release=admin-notifications-v1`；官網與後台登入回 200，未帶密鑰的摘要端點回 404，公開首頁沒有 `/admin` 或內部通知連結。GitHub 已正確載入 `Daily admin summary` workflow，沒有 invalid workflow；正式雙通道實際收件仍需先補 Render／GitHub 私密設定。
 - 手機卡片字型修正已正式部署：實作 commit `4872bbe` 上線後 `/healthz` 回傳 `release=mobile-card-type-v1`；正式 390×844 首頁六張主標皆載入 `Tianwai Masa Display`，角色名與技能分類皆為 `Tianwai Masa` 14px，`商機觀星盤` 實看無混字、無水平溢位，console 0 error／0 warning。
 - 管理員憑證 V2 已完成正式輪替：擁有者透過本機交接 V2 保存 43 位／256-bit 新密碼，正式登入成功後才銷毀本機明文；Render 現在只保留 `ADMIN_PASSWORD_HASH`，legacy `ADMIN_PASSWORD` 已刪除並再次部署為 Live。`/healthz` 回傳 `release=admin-credential-v2`，登入頁 200、no-store、frame deny 且未洩漏 verifier。第一次交接因視窗過早關閉導致登入失敗，已如實記錄並由 V2 防鎖死流程修復，不列為成功驗收。
-- 管理通知外部排程已接通：Render 已設定獨立 `NOTIFICATION_CRON_SECRET` 與管理員收件地址，GitHub Actions 已設定同名加密 Secret；正式密鑰端點回 200 並建立兩通道佇列，手動 `Daily admin summary #1` 執行成功。Gmail 仍因 SMTP 未設定而為 `failed`，LINE 仍因 `LINE_ADMIN_USER_ID` 未設定而為 `skipped`，沒有沿用其他專案收件人。
+- 管理通知外部排程已接通：Render 已設定獨立 `NOTIFICATION_CRON_SECRET` 與管理員收件地址，GitHub Actions 已設定同名加密 Secret；正式密鑰端點回 200 並建立兩通道佇列，手動 `Daily admin summary #1` 執行成功。首次部署時 Gmail 因寄送服務未設定而為 `failed`，後續已由 Brevo 實際送達管理摘要；LINE 仍因 `LINE_ADMIN_USER_ID` 未設定而為 `skipped`，沒有沿用其他專案收件人。
 - 新建本機資料庫：6 筆仙策、0 筆訂單；`orders` 只有 `access_token_hash`，沒有明文 `access_token` 欄位。
 - 桌機瀏覽器：V13 官網、分類篩選、商品詳情、建單、模擬付款、內容解鎖、Logo 評估、LINE 六張卡片、後台登入、KPI、串接狀態與內容編輯器均通過。
 - 手機 390 × 844：官網、V13 主視覺、LINE 模擬器、後台與內容編輯 dialog 都沒有根頁面水平溢位。

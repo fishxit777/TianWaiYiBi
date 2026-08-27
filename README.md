@@ -77,7 +77,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前本機自動驗證結果為 `135 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
+目前本機自動驗證結果為 `159 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
 
 ## 公開部署
 
@@ -182,14 +182,14 @@ py -3 scripts\admin_credential_handoff.py
 
 ## 待完成
 
-- 綠界程式介面已完成；仍缺正式特店資料與 stage／正式小額驗收。
-- SMTP 程式介面已完成；仍缺寄信帳號、寄件網域與實際收信驗收。
-- 電子發票、退款後撤銷權益、付款失敗補單與客服 SOP。
+- 綠界正式小額閉環已完成付款、Brevo 交付、內容開通、全額退刷與本地撤權驗收；公開 NT$199 收款仍刻意關閉。
+- Brevo 交易信與管理 Gmail 摘要均已實際送達；不得把歷史寄送失敗誤判成目前 Gmail 故障。
+- 電子發票、正式公開銷售條件、付款失敗補單與客服 SOP 仍需在公開收款前定案。
 - Neon PostgreSQL、Turnstile、兩把 Passkey、10 組復原碼、Passkey-only、GitHub 加密備份與隔離還原均已正式驗收；不得重做或以破壞性方式消耗復原碼。後續只需監控每日排程並每季做一次非正式庫還原演練。
-- Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET`、管理員收件地址及手動排程測試已完成；目前 Gmail 只缺 SMTP 寄件組態。
+- Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET`、管理員收件地址、Brevo 寄送及手動排程測試已完成。
 - 在 Render 設定天外一筆專屬 `LINE_ADMIN_USER_ID` 後，實測一筆高風險私下推播；未設定時事件仍會完整留在後台佇列。
 
-正式接線前先決定支付供應商、單次購買／訂閱模式、退款規則、電子發票與正式網域。這些選擇會影響資料模型與法務文案，不應在沒有帳號與政策確認時假設。
+公開收款前仍須定案售價、電子發票、正式退款／客服政策與銷售文案；綠界技術驗收完成不代表應立即開放收款。
 
 ## 文件
 

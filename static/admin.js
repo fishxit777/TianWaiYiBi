@@ -148,12 +148,23 @@
   }
 
   function integrationItems(config) {
+    const paymentReady = ['open', 'closed'].includes(config.payment_state);
+    const paymentDetail = config.payment_state === 'closed'
+      ? '正式設定完整；公開收款安全閘門目前關閉'
+      : (config.payment_state === 'open' ? '以伺服器付款通知為準' : '缺少特店憑證、回呼或交付設定');
+    const paymentNext = config.payment_state === 'closed'
+      ? '維持關閉；待售價、發票與公開條件完成再開放'
+      : (config.payment_state === 'open' ? '定期核對回呼與訂單金額' : '先完成設定，維持公開收款關閉');
+    const alertsReady = config.line_admin_alert && config.admin_email_alert && config.daily_summary_schedule;
+    const alertValue = alertsReady
+      ? 'LINE＋Gmail 雙通道'
+      : (config.admin_email_alert && !config.line_admin_alert ? 'Gmail 已就緒・LINE 私訊待設定' : '雙通道尚未完整');
     return [
       {label: '公開官網', value: config.public_https ? '正式 HTTPS' : '尚未使用 HTTPS', ready: config.public_https, detail: config.base_url, next: config.public_https ? '定期確認憑證與健康狀態' : '設定正式 HTTPS 網址', key: 'WEB'},
       {label: 'LINE 客服', value: config.line_channel ? '正式頻道已連線' : '尚未設定頻道', ready: config.line_channel, detail: `已接收 ${config.line_events || 0} 筆事件`, next: config.line_channel ? '確認傳音與私下告警可送達' : '補上頻道憑證並驗簽', key: 'LINE'},
-      {label: '付款服務', value: config.payment_label || config.payment_provider, ready: !['mock', 'unavailable'].includes(config.payment_provider), detail: config.payment_provider === 'unavailable' ? '缺少特店憑證或交付設定' : '以伺服器付款通知為準', next: !['mock', 'unavailable'].includes(config.payment_provider) ? '定期核對回呼與訂單金額' : '完成特店憑證與回呼驗收', key: 'PAY'},
+      {label: '付款服務', value: config.payment_label || config.payment_provider, ready: paymentReady, detail: paymentDetail, next: paymentNext, key: 'PAY'},
       {label: 'Email 交付', value: config.email_delivery ? '寄送服務已啟用' : '尚未啟用寄送', ready: config.email_delivery, detail: '付款後寄送專屬開通資料', next: config.email_delivery ? '監看交付失敗與退信' : '設定寄送服務並測試交付', key: 'MAIL'},
-      {label: '管理員通知', value: config.line_admin_alert && config.admin_email_alert ? 'LINE＋Gmail 雙通道' : '雙通道尚未完整', ready: config.line_admin_alert && config.admin_email_alert && config.daily_summary_schedule, detail: config.daily_summary_schedule ? '每日 08:00／12:00／20:00 摘要，異常即時通知' : '排程密鑰尚未就緒', next: config.line_admin_alert && config.admin_email_alert && config.daily_summary_schedule ? '定期抽查送達與失敗佇列' : '補齊 LINE、管理 Gmail 與排程密鑰', key: 'ALERT'}
+      {label: '管理員通知', value: alertValue, ready: alertsReady, detail: config.daily_summary_schedule ? '每日 08:00／12:00／20:00 摘要，異常即時通知' : '排程密鑰尚未就緒', next: alertsReady ? '定期抽查近期失敗與歷史稽核' : '補齊天外一筆專屬 LINE 管理員收件人', key: 'ALERT'}
     ];
   }
 
@@ -1156,7 +1167,7 @@
     button.disabled = true;
     try {
       const result = await api('/admin/api/security/notifications/retry', {method: 'POST'});
-      await loadDashboard(`私下警示已重試 ${result.processed} 筆，送達 ${result.sent} 筆。`);
+      await loadDashboard(`近期通知已重試 ${result.processed} 筆，送達 ${result.sent} 筆；排除過期 ${result.ignored_stale || 0} 筆，待設定通道 ${result.deferred_unconfigured || 0} 筆。`);
     } catch (error) { showError(error); }
     finally { button.disabled = false; }
   });

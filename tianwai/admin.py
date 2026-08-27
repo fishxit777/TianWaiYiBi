@@ -867,6 +867,9 @@ def dashboard_data():
                 ),
                 "payment_provider": checkout_status["provider"],
                 "payment_label": checkout_status["label"],
+                "payment_state": checkout_status.get("state", "misconfigured"),
+                "payment_configuration_ready": checkout_status.get("configuration_ready", False),
+                "public_sales_open": checkout_status.get("public_sales_open", False),
                 "email_delivery": email_delivery_ready(),
                 "admin_email_alert": bool(
                     os.environ.get("ADMIN_ALERT_EMAIL") and email_delivery_ready()

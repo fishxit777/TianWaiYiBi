@@ -220,12 +220,15 @@ def test_admin_can_inspect_and_revoke_trusted_device(app, client):
     assert client.get("/customer/library").status_code == 302
 
 
-def test_admin_can_update_incident_and_retry_private_alerts(app, client):
+def test_admin_can_update_incident_and_retry_private_alerts(app, client, monkeypatch):
     from tianwai.risk import record_access_event
 
     csrf = login_admin(client)
     with app.test_request_context("/test-risk", environ_base={"REMOTE_ADDR": "203.0.113.44"}):
         record_access_event("automated_security_test", 70, "rejected")
+
+    monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "test-line-access-token")
+    monkeypatch.setattr("tianwai.notifications._deliver", lambda _row: ("sent", ""))
 
     dashboard = client.get("/admin/api/dashboard").get_json()
     incident = dashboard["risk_incidents"][0]

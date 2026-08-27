@@ -11,6 +11,9 @@ from .db import get_db, utc_now
 
 
 TAIPEI = timezone(timedelta(hours=8), name="Asia/Taipei")
+TOP_IDEA_MINIMUM_SESSIONS = 10
+DAILY_SUMMARY_RETRY_HOURS = 24
+PRIVATE_ALERT_RETRY_DAYS = 7
 SLOTS = {
     "morning": "晨間 08:00",
     "noon": "午間 12:00",
@@ -378,16 +381,27 @@ def _daily_metrics():
     ).fetchone()
     traffic = connection.execute(
         """
-        SELECT COUNT(*) AS views FROM analytics_events
-        WHERE event_name IN ('page_view', 'view_idea') AND created_at >= ? AND created_at <= ?
+        SELECT
+          COUNT(DISTINCT session_id) AS visitors,
+          COUNT(DISTINCT CASE WHEN event_name = 'page_view' THEN session_id END) AS homepage,
+          COUNT(DISTINCT CASE WHEN event_name = 'view_idea' THEN session_id END) AS idea_visitors
+        FROM analytics_events
+        WHERE event_name IN ('page_view', 'view_idea')
+          AND is_automated = 0 AND source <> 'admin-preview'
+          AND session_id IS NOT NULL AND session_id <> ''
+          AND created_at >= ? AND created_at <= ?
         """,
         (start_utc, now_utc),
     ).fetchone()
     top_idea = connection.execute(
         """
-        SELECT ideas.title, COUNT(*) AS count
+        SELECT ideas.title, COUNT(DISTINCT analytics_events.session_id) AS count
         FROM analytics_events JOIN ideas ON ideas.id = analytics_events.idea_id
         WHERE analytics_events.event_name = 'view_idea'
+          AND analytics_events.is_automated = 0
+          AND analytics_events.source <> 'admin-preview'
+          AND analytics_events.session_id IS NOT NULL
+          AND analytics_events.session_id <> ''
           AND analytics_events.created_at >= ? AND analytics_events.created_at <= ?
         GROUP BY ideas.id ORDER BY count DESC, ideas.id LIMIT 1
         """,
@@ -400,10 +414,12 @@ def _daily_metrics():
           (SELECT COUNT(*) FROM access_events WHERE severity IN ('high', 'critical') AND created_at >= ?) AS high_access,
           (SELECT COUNT(*) FROM security_events WHERE severity IN ('high', 'critical') AND created_at >= ?) AS high_security,
           (SELECT COUNT(*) FROM blocked_ips WHERE blocked_until > ?) AS blocked_ips,
-          (SELECT COUNT(*) FROM notification_queue WHERE status IN ('failed', 'skipped')) AS notification_failures,
+          (SELECT COUNT(*) FROM notification_queue WHERE status = 'failed' AND created_at >= ?) AS notification_failures_today,
+          (SELECT COUNT(*) FROM notification_queue WHERE status = 'skipped' AND created_at >= ?) AS notification_skipped_today,
+          (SELECT COUNT(*) FROM notification_queue WHERE status IN ('failed', 'skipped') AND created_at < ?) AS notification_history,
           (SELECT COUNT(*) FROM email_events WHERE status = 'failed' AND created_at >= ?) AS email_failures
         """,
-        (start_utc, start_utc, now_utc, start_utc),
+        (start_utc, start_utc, now_utc, start_utc, start_utc, start_utc, start_utc),
     ).fetchone()
     from .mailer import email_delivery_ready
     from .payments import payment_checkout_status
@@ -411,9 +427,12 @@ def _daily_metrics():
 
     checkout = payment_checkout_status()
     base_url = os.environ.get("BASE_URL", "http://127.0.0.1:5088").strip()
-    line_ready = bool(
-        os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
-        and os.environ.get("LINE_ADMIN_USER_ID", "").strip()
+    line_token_ready = bool(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip())
+    line_channel_ready = bool(
+        line_token_ready and os.environ.get("LINE_CHANNEL_SECRET", "").strip()
+    )
+    line_admin_ready = bool(
+        line_token_ready and os.environ.get("LINE_ADMIN_USER_ID", "").strip()
     )
     email_ready = bool(
         os.environ.get("ADMIN_ALERT_EMAIL", "").strip() and email_delivery_ready()
@@ -432,14 +451,26 @@ def _daily_metrics():
             "devices": int(access["devices"] or 0),
         },
         "traffic": {
-            "views": int(traffic["views"] or 0),
-            "top": f"{top_idea['title']}（{top_idea['count']} 次）" if top_idea else "目前無想法頁瀏覽紀錄",
+            "visitors": int(traffic["visitors"] or 0),
+            "homepage": int(traffic["homepage"] or 0),
+            "idea_visitors": int(traffic["idea_visitors"] or 0),
+            "top": (
+                f"{top_idea['title']}（{top_idea['count']} 位有效訪客）"
+                if top_idea and int(top_idea["count"] or 0) >= TOP_IDEA_MINIMUM_SESSIONS
+                else (
+                    f"暫不排名：最高「{top_idea['title']}」{top_idea['count']} 位，"
+                    f"未達 {TOP_IDEA_MINIMUM_SESSIONS} 位門檻"
+                    if top_idea
+                    else "目前沒有有效仙策詳情訪客"
+                )
+            ),
         },
         "risk": {key: int(risk[key] or 0) for key in risk.keys()},
         "integrations": {
-            "line": line_ready,
+            "line_channel": line_channel_ready,
+            "line_admin": line_admin_ready,
             "email": email_ready,
-            "payment": checkout["provider"] != "unavailable",
+            "payment_state": checkout.get("state", "misconfigured"),
             "payment_label": checkout["label"],
             "https": base_url.lower().startswith("https://") or current_app.config.get("TESTING", False),
             "chain": bool(chain["valid"]),
@@ -460,18 +491,20 @@ def build_daily_summary(slot):
     todo = []
     if risk["open_incidents"]:
         todo.append(f"立即複核 {risk['open_incidents']} 件未結風險案件。")
-    if risk["notification_failures"]:
-        todo.append(f"重試或修正 {risk['notification_failures']} 筆未送達管理通知。")
+    if risk["notification_failures_today"]:
+        todo.append(f"今日有 {risk['notification_failures_today']} 筆管理通知送達失敗，請檢查近期佇列。")
     if risk["email_failures"]:
         todo.append(f"確認 {risk['email_failures']} 筆今日交易郵件寄送失敗。")
     if access["pending"]:
         todo.append(f"確認 {access['pending']} 份已付款但尚未完成開通的權限。")
-    if not integrations["line"]:
-        todo.append("補齊或檢查 LINE 管理員推播設定。")
+    if not integrations["line_channel"]:
+        todo.append("LINE 官方帳號頻道未設定完整，請檢查 webhook 驗簽與存取權杖。")
+    elif not integrations["line_admin"]:
+        todo.append("LINE 官方帳號已連線，但管理員私訊收件人尚未設定。")
     if not integrations["email"]:
         todo.append("補齊或檢查交易郵件與管理員告警設定。")
-    if not integrations["payment"]:
-        todo.append("金流目前不可用，付款前請先完成設定。")
+    if integrations["payment_state"] == "misconfigured":
+        todo.append("金流設定未完成；維持公開收款關閉，完成檢查前不得建立訂單。")
     if not integrations["chain"]:
         todo.append("重大：存取證據鏈驗證失敗，請停止手動變更並立即查核。")
     if not todo:
@@ -481,9 +514,17 @@ def build_daily_summary(slot):
         f"今日高／重大存取事件 {risk['high_access']} 件；一般安全事件高／重大 {risk['high_security']} 件。",
         f"證據鏈{'完整' if integrations['chain'] else '異常'}，已驗證 {integrations['chain_checked']} 筆存取事件。",
         f"目前封鎖來源 {risk['blocked_ips']} 個；活躍工作階段 {access['sessions']} 個。",
-        f"LINE 管理告警{'已就緒' if integrations['line'] else '尚未就緒'}；Gmail 告警{'已就緒' if integrations['email'] else '尚未就緒'}。",
+        (
+            f"LINE 官方帳號{'已連線' if integrations['line_channel'] else '未就緒'}；"
+            f"管理員私訊{'已就緒' if integrations['line_admin'] else '未設定'}；"
+            f"Gmail 告警{'已就緒' if integrations['email'] else '尚未就緒'}。"
+        ),
         f"金流：{integrations['payment_label']}；HTTPS：{'正常' if integrations['https'] else '未啟用'}。",
     ]
+    if risk["notification_history"]:
+        normal.append(
+            f"歷史未投遞紀錄 {risk['notification_history']} 筆保留供稽核，已排除於即時待辦且不自動重送。"
+        )
     heading = f"天外一筆｜{SLOTS[slot]}管理員營運摘要"
     sections = [
         heading,
@@ -492,7 +533,11 @@ def build_daily_summary(slot):
         "",
         "【訂單與營收】",
         f"今日訂單 {orders['total']} 筆｜已付款 {orders['paid']}｜待付款 {orders['pending']}｜取消／退款 {orders['reversed']}",
-        f"今日實收 NT$ {orders['revenue']:,}｜瀏覽 {data['traffic']['views']} 次｜熱門想法：{data['traffic']['top']}",
+        (
+            f"今日實收 NT$ {orders['revenue']:,}｜有效訪客 {data['traffic']['visitors']} 位｜"
+            f"首頁 {data['traffic']['homepage']} 位｜仙策詳情 {data['traffic']['idea_visitors']} 位"
+        ),
+        f"熱門仙策：{data['traffic']['top']}",
         "",
         "【開通與存取】",
         f"已付款權限 {access['entitlements']}｜已開通 {access['activated']}｜待開通 {access['pending']}",
@@ -502,8 +547,18 @@ def build_daily_summary(slot):
         f"未結案件 {risk['open_incidents']}｜今日高／重大存取 {risk['high_access']}｜高／重大安全事件 {risk['high_security']}｜封鎖來源 {risk['blocked_ips']}",
         "",
         "【系統與通知】",
-        f"未送達管理通知 {risk['notification_failures']}｜今日交易郵件失敗 {risk['email_failures']}",
-        f"LINE {'就緒' if integrations['line'] else '未就緒'}｜Gmail {'就緒' if integrations['email'] else '未就緒'}｜金流 {integrations['payment_label']}｜HTTPS {'正常' if integrations['https'] else '未啟用'}",
+        (
+            f"今日管理通知失敗 {risk['notification_failures_today']}｜"
+            f"今日略過 {risk['notification_skipped_today']} 筆｜"
+            f"歷史稽核存量 {risk['notification_history']}｜"
+            f"今日交易郵件失敗 {risk['email_failures']}"
+        ),
+        (
+            f"LINE 頻道 {'就緒' if integrations['line_channel'] else '未就緒'}｜"
+            f"管理員私訊 {'就緒' if integrations['line_admin'] else '未設定'}｜"
+            f"Gmail {'就緒' if integrations['email'] else '未就緒'}｜"
+            f"金流 {integrations['payment_label']}｜HTTPS {'正常' if integrations['https'] else '未啟用'}"
+        ),
         "",
         "【需要處理】",
         *[f"{index}. {item}" for index, item in enumerate(todo, 1)],
@@ -537,20 +592,60 @@ def queue_daily_summary(slot):
 
 def retry_private_alerts(limit=10):
     connection = get_db()
+    attempt_limit = max(1, min(int(limit), 50))
+    now = datetime.now(timezone.utc)
+    summary_cutoff = (now - timedelta(hours=DAILY_SUMMARY_RETRY_HOURS)).isoformat(timespec="seconds")
+    alert_cutoff = (now - timedelta(days=PRIVATE_ALERT_RETRY_DAYS)).isoformat(timespec="seconds")
+    eligibility = """
+        ((dedupe_key LIKE '%:daily-summary:%' AND created_at >= ?)
+         OR (dedupe_key NOT LIKE '%:daily-summary:%' AND created_at >= ?))
+    """
+    stale = connection.execute(
+        f"""
+        SELECT COUNT(*) AS count FROM notification_queue
+        WHERE channel IN ('line', 'email') AND status IN ('pending', 'failed', 'skipped')
+          AND NOT {eligibility}
+        """,
+        (summary_cutoff, alert_cutoff),
+    ).fetchone()
     rows = connection.execute(
-        """
+        f"""
         SELECT * FROM notification_queue
         WHERE channel IN ('line', 'email') AND status IN ('pending', 'failed', 'skipped')
+          AND {eligibility}
         ORDER BY id ASC LIMIT ?
         """,
-        (max(1, min(int(limit), 50)),),
+        (summary_cutoff, alert_cutoff, 50),
     ).fetchall()
     sent = 0
+    processed = 0
+    deferred_unconfigured = 0
     by_channel = {"line": 0, "email": 0}
     for row in rows:
+        if processed >= attempt_limit:
+            break
+        if row["channel"] == "line" and not (
+            os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
+            and os.environ.get("LINE_ADMIN_USER_ID", "").strip()
+        ):
+            deferred_unconfigured += 1
+            continue
+        if row["channel"] == "email":
+            from .mailer import email_delivery_ready
+
+            if not os.environ.get("ADMIN_ALERT_EMAIL", "").strip() or not email_delivery_ready():
+                deferred_unconfigured += 1
+                continue
         status, error = _deliver(row)
         _persist_delivery(row["id"], status, error)
+        processed += 1
         if status == "sent":
             sent += 1
             by_channel[row["channel"]] += 1
-    return {"processed": len(rows), "sent": sent, "sent_by_channel": by_channel}
+    return {
+        "processed": processed,
+        "sent": sent,
+        "sent_by_channel": by_channel,
+        "ignored_stale": int(stale["count"] or 0),
+        "deferred_unconfigured": deferred_unconfigured,
+    }

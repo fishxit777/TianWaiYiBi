@@ -1,6 +1,7 @@
 import json
+from datetime import datetime, timedelta, timezone
 
-from tianwai.db import get_db
+from tianwai.db import get_db, utc_now
 
 
 def _stub_line(monkeypatch):
@@ -8,6 +9,18 @@ def _stub_line(monkeypatch):
     monkeypatch.setattr(
         "tianwai.notifications.send_line_push",
         lambda _message: ("sent", ""),
+    )
+
+
+def _insert_notification(connection, key, status, created_at, channel="line"):
+    connection.execute(
+        """
+        INSERT INTO notification_queue
+            (dedupe_key, channel, recipient_masked, payload_json, status,
+             attempts, last_error, created_at, updated_at)
+        VALUES (?, ?, 'masked', '{}', ?, 1, 'test', ?, ?)
+        """,
+        (key, channel, status, created_at, created_at),
     )
 
 
@@ -58,6 +71,168 @@ def test_daily_summary_queues_detailed_private_line_and_email(client, app, monke
     assert "admin-alerts@example.com" not in combined
     assert "test-notification-secret" not in combined
     assert "目前無需立即處理" in combined
+
+
+def test_daily_summary_keeps_historical_delivery_debt_out_of_current_todo(app):
+    from tianwai.notifications import build_daily_summary
+
+    with app.app_context():
+        connection = get_db()
+        _insert_notification(connection, "line:daily-summary:old", "skipped", "2026-01-01T00:00:00+00:00")
+        _insert_notification(connection, "email:risk:old", "failed", "2026-01-01T00:00:00+00:00", "email")
+        connection.commit()
+        summary = build_daily_summary("morning")["email"]
+
+    assert "重試或修正 2 筆未送達管理通知" not in summary
+    assert "歷史未投遞紀錄 2 筆" in summary
+    assert "不自動重送" in summary
+
+
+def test_daily_summary_only_marks_recent_failed_delivery_as_actionable(app):
+    from tianwai.notifications import build_daily_summary
+
+    with app.app_context():
+        connection = get_db()
+        now = utc_now()
+        _insert_notification(connection, "email:risk:recent", "failed", now, "email")
+        _insert_notification(connection, "line:risk:recent", "skipped", now)
+        connection.commit()
+        summary = build_daily_summary("morning")["email"]
+
+    assert "今日有 1 筆管理通知送達失敗" in summary
+    assert "今日略過 1 筆" in summary
+    assert "今日有 2 筆" not in summary
+
+
+def test_daily_summary_distinguishes_line_channel_from_admin_recipient(app, monkeypatch):
+    from tianwai.notifications import build_daily_summary
+
+    monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "channel-token")
+    monkeypatch.setenv("LINE_CHANNEL_SECRET", "channel-secret")
+    monkeypatch.delenv("LINE_ADMIN_USER_ID", raising=False)
+
+    with app.app_context():
+        summary = build_daily_summary("morning")["email"]
+
+    assert "LINE 官方帳號已連線，但管理員私訊收件人尚未設定" in summary
+    assert "LINE 官方帳號頻道未設定" not in summary
+
+
+def test_daily_summary_treats_verified_payment_config_with_closed_gate_as_normal(app, monkeypatch):
+    from tianwai.notifications import build_daily_summary
+
+    monkeypatch.setenv("PAYMENT_PROVIDER", "ecpay")
+    monkeypatch.setenv("ECPAY_MODE", "production")
+    monkeypatch.setenv("ECPAY_MERCHANT_ID", "merchant")
+    monkeypatch.setenv("ECPAY_HASH_KEY", "hash-key")
+    monkeypatch.setenv("ECPAY_HASH_IV", "hash-iv")
+    monkeypatch.delenv("ECPAY_LIVE_CONFIRMED", raising=False)
+
+    with app.app_context():
+        summary = build_daily_summary("morning")["email"]
+
+    assert "綠界正式金流（公開收款關閉）" in summary
+    assert "金流設定未完成" not in summary
+    assert "金流目前不可用" not in summary
+
+
+def test_daily_summary_counts_unique_human_sessions_and_gates_top_idea(app):
+    from tianwai.notifications import build_daily_summary
+
+    with app.app_context():
+        connection = get_db()
+        idea_id = connection.execute(
+            "SELECT id FROM ideas WHERE slug = 'brand-world-forge'"
+        ).fetchone()["id"]
+        now = utc_now()
+        rows = [
+            ("page_view", None, "direct", "human-1", 0),
+            ("view_idea", idea_id, "web", "human-1", 0),
+            ("view_idea", idea_id, "web", "human-1", 0),
+            ("page_view", None, "direct", "human-2", 0),
+            ("view_idea", idea_id, "web", "human-3", 0),
+            ("page_view", None, "direct", "bot-1", 1),
+            ("view_idea", idea_id, "admin-preview", "admin-1", 0),
+        ]
+        for index, (event_name, stored_idea_id, source, session_id, automated) in enumerate(rows):
+            connection.execute(
+                """
+                INSERT INTO analytics_events
+                    (event_name, idea_id, source, session_id, event_value, event_version,
+                     dedupe_key, is_automated, page_path, created_at)
+                VALUES (?, ?, ?, ?, '', 1, ?, ?, '/', ?)
+                """,
+                (event_name, stored_idea_id, source, session_id, f"event-{index}", automated, now),
+            )
+        connection.commit()
+        summary = build_daily_summary("morning")["email"]
+
+    assert "有效訪客 3 位" in summary
+    assert "首頁 2 位" in summary
+    assert "仙策詳情 2 位" in summary
+    assert "暫不排名" in summary
+    assert "未達 10 位門檻" in summary
+
+
+def test_retry_private_alerts_ignores_stale_summaries_and_alerts(app, monkeypatch):
+    from tianwai.notifications import retry_private_alerts
+
+    monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "test-line-access-token")
+    monkeypatch.setattr("tianwai.notifications._deliver", lambda _row: ("sent", ""))
+    now = datetime.now(timezone.utc)
+    with app.app_context():
+        connection = get_db()
+        _insert_notification(
+            connection,
+            "line:daily-summary:stale",
+            "failed",
+            (now - timedelta(days=2)).isoformat(timespec="seconds"),
+        )
+        _insert_notification(
+            connection,
+            "line:daily-summary:recent",
+            "failed",
+            (now - timedelta(hours=2)).isoformat(timespec="seconds"),
+        )
+        _insert_notification(
+            connection,
+            "line:risk:stale",
+            "failed",
+            (now - timedelta(days=8)).isoformat(timespec="seconds"),
+        )
+        _insert_notification(
+            connection,
+            "line:risk:recent",
+            "failed",
+            (now - timedelta(days=6)).isoformat(timespec="seconds"),
+        )
+        connection.commit()
+        result = retry_private_alerts(limit=20)
+
+    assert result["processed"] == 2
+    assert result["sent"] == 2
+    assert result["ignored_stale"] == 2
+
+
+def test_retry_private_alerts_does_not_repeatedly_attempt_unconfigured_line(app, monkeypatch):
+    from tianwai.notifications import retry_private_alerts
+
+    monkeypatch.delenv("LINE_CHANNEL_ACCESS_TOKEN", raising=False)
+    with app.app_context():
+        connection = get_db()
+        _insert_notification(connection, "line:risk:waiting", "skipped", utc_now())
+        connection.commit()
+        before = connection.execute(
+            "SELECT attempts FROM notification_queue WHERE dedupe_key = 'line:risk:waiting'"
+        ).fetchone()["attempts"]
+        result = retry_private_alerts(limit=20)
+        after = connection.execute(
+            "SELECT attempts FROM notification_queue WHERE dedupe_key = 'line:risk:waiting'"
+        ).fetchone()["attempts"]
+
+    assert result["processed"] == 0
+    assert result["deferred_unconfigured"] == 1
+    assert after == before
 
 
 def test_daily_summary_is_idempotent_per_taipei_date_slot_and_channel(client, app, monkeypatch):
