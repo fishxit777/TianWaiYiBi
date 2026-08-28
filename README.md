@@ -94,7 +94,6 @@ python -m pytest -q
 - `LINE_CHANNEL_SECRET`
 - `LINE_CHANNEL_ACCESS_TOKEN`
 - `LINE_ADMIN_USER_ID`（天外一筆管理員本人的 LINE userId；不得沿用其他專案）
-- `ADMIN_ALERT_EMAIL`（天外一筆管理員本人的收件地址；不得使用客戶 Email）
 - `NOTIFICATION_CRON_SECRET`（至少 32 字元，Render 與 GitHub Actions 使用同一獨立值）
 - `ECPAY_MERCHANT_ID`
 - `ECPAY_HASH_KEY`
@@ -163,7 +162,7 @@ py -3 scripts\admin_credential_handoff.py
 - 綠界 AioCheckOut V5 回呼驗證 CheckMacValue、MerchantID、訂單編號、金額、狀態與重送；前端返回頁不是唯一付款依據。
 - 開通與登入碼最多嘗試 5 次，寄送請求限流；正式頁不顯示明文驗證碼。
 - 2 台可信裝置上限、單一有效內容工作階段、7 天絕對／24 小時閒置 session，並偵測已撤銷工作階段重播。
-- 客戶存取事件使用 HMAC 串鏈；後台可看匿名客戶／裝置代碼、風險分數、案件、LINE／Gmail 通知送達狀態，並可撤銷裝置、處理案件或重試告警。
+- 客戶存取事件使用 HMAC 串鏈；後台可看匿名客戶／裝置代碼、風險分數、案件與 LINE 通知送達狀態，並可撤銷裝置、處理案件或重試告警。
 - 每日摘要由 GitHub Actions 以獨立密鑰呼叫只接受 POST 的內部端點；日期、時段及通道均有唯一防重送鍵，人工重跑不會重複建立通知。
 - 安全預檢攔截 `.env`、`.git`、WordPress 掃描、路徑穿越與常見注入探測；不記錄 Cookie、token 或訊息全文。
 - CSP 禁止第三方腳本與 inline script；後台禁止快取與 frame 嵌入。
@@ -184,11 +183,10 @@ py -3 scripts\admin_credential_handoff.py
 ## 待完成
 
 - 綠界正式小額閉環已完成付款、Brevo 交付、內容開通、全額退刷與本地撤權驗收；公開 NT$199 收款仍刻意關閉。
-- Brevo 交易信與管理 Gmail 摘要均已實際送達；不得把歷史寄送失敗誤判成目前 Gmail 故障。
+- 管理摘要已改為每日 08:00／12:00／20:00 由 LINE Bot 推播；舊管理 Gmail 紀錄只留作稽核且不再重試。Brevo 只保留客戶交易 Email。
 - 電子發票、正式公開銷售條件、付款失敗補單與客服 SOP 仍需在公開收款前定案。
 - Neon PostgreSQL、Turnstile、兩把 Passkey、10 組復原碼、Passkey-only、GitHub 加密備份與隔離還原均已正式驗收；不得重做或以破壞性方式消耗復原碼。後續只需監控每日排程並每季做一次非正式庫還原演練。
-- Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET`、管理員收件地址、Brevo 寄送及手動排程測試已完成。
-- 在 Render 設定天外一筆專屬 `LINE_ADMIN_USER_ID` 後，實測一筆高風險私下推播；未設定時事件仍會完整留在後台佇列。
+- Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET` 與每日三次排程已完成；管理通知只使用天外一筆專屬 `LINE_ADMIN_USER_ID`。
 
 公開收款前仍須定案售價、電子發票、正式退款／客服政策與銷售文案；綠界技術驗收完成不代表應立即開放收款。
 
@@ -219,6 +217,7 @@ py -3 scripts\admin_credential_handoff.py
 - `docs/updates/2026-08-23-device-trust-risk-access-update.md`
 - `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`
 - `docs/updates/2026-08-23-admin-dual-channel-notifications.md`
+- `docs/updates/2026-08-28-line-only-admin-notifications.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`

@@ -155,16 +155,16 @@
     const paymentNext = config.payment_state === 'closed'
       ? '維持關閉；待售價、發票與公開條件完成再開放'
       : (config.payment_state === 'open' ? '定期核對回呼與訂單金額' : '先完成設定，維持公開收款關閉');
-    const alertsReady = config.line_admin_alert && config.admin_email_alert && config.daily_summary_schedule;
+    const alertsReady = config.line_admin_alert && config.daily_summary_schedule;
     const alertValue = alertsReady
-      ? 'LINE＋Gmail 雙通道'
-      : (config.admin_email_alert && !config.line_admin_alert ? 'Gmail 已就緒・LINE 私訊待設定' : '雙通道尚未完整');
+      ? 'LINE 管理推播已就緒'
+      : (config.line_admin_alert ? 'LINE 已就緒・排程待設定' : 'LINE 管理推播待設定');
     return [
       {label: '公開官網', value: config.public_https ? '正式 HTTPS' : '尚未使用 HTTPS', ready: config.public_https, detail: config.base_url, next: config.public_https ? '定期確認憑證與健康狀態' : '設定正式 HTTPS 網址', key: 'WEB'},
       {label: 'LINE 客服', value: config.line_channel ? '正式頻道已連線' : '尚未設定頻道', ready: config.line_channel, detail: `已接收 ${config.line_events || 0} 筆事件`, next: config.line_channel ? '確認傳音與私下告警可送達' : '補上頻道憑證並驗簽', key: 'LINE'},
       {label: '付款服務', value: config.payment_label || config.payment_provider, ready: paymentReady, detail: paymentDetail, next: paymentNext, key: 'PAY'},
       {label: 'Email 交付', value: config.email_delivery ? '寄送服務已啟用' : '尚未啟用寄送', ready: config.email_delivery, detail: '付款後寄送專屬開通資料', next: config.email_delivery ? '監看交付失敗與退信' : '設定寄送服務並測試交付', key: 'MAIL'},
-      {label: '管理員通知', value: alertValue, ready: alertsReady, detail: config.daily_summary_schedule ? '每日 08:00／12:00／20:00 摘要，異常即時通知' : '排程密鑰尚未就緒', next: alertsReady ? '定期抽查近期失敗與歷史稽核' : '補齊天外一筆專屬 LINE 管理員收件人', key: 'ALERT'}
+      {label: '管理員通知', value: alertValue, ready: alertsReady, detail: config.daily_summary_schedule ? '每日 08:00／12:00／20:00 LINE 摘要，高風險異常即時推播' : '排程密鑰尚未就緒', next: alertsReady ? '定期抽查 LINE 送達與歷史稽核' : '補齊天外一筆專屬 LINE 管理員收件人', key: 'ALERT'}
     ];
   }
 
@@ -717,8 +717,9 @@
       const row = node('article', `event-item severity-${item.status === 'sent' ? 'low' : 'medium'}`);
       const copy = node('div');
       const notificationType = item.dedupe_key.includes('daily-summary') ? '營運摘要' : '即時告警';
+      const channelLabel = item.channel === 'email' ? '歷史 Gmail・停止重試' : 'LINE';
       copy.append(
-        node('strong', '', `${notificationType}・${item.channel.toUpperCase()}・${item.status}`),
+        node('strong', '', `${notificationType}・${channelLabel}・${item.status}`),
         node('span', '', `${item.recipient_masked}・嘗試 ${item.attempts} 次${item.last_error ? `・${item.last_error}` : ''}`)
       );
       row.append(copy, node('time', '', dateText(item.updated_at)));
@@ -806,8 +807,7 @@
       ['後台工作階段綁定', config.session_ip_binding, '降低 Cookie 遭竊風險'],
       ['金流通知驗簽', config.payment_signature_configured, '確認付款來源'],
       ['LINE 事件驗簽', config.line_signature_configured, '拒絕偽造訊息'],
-      ['管理員私下 LINE 告警', config.line_admin_alert, '高風險與重大事件才推播'],
-      ['管理員 Gmail 告警', config.admin_email_alert, '異常與每日摘要分通道送達'],
+      ['管理員 LINE 告警', config.line_admin_alert, '高風險與重大事件立即推播'],
       ['每日三次營運摘要', config.daily_summary_schedule, '台北時間 08:00／12:00／20:00'],
       ['2 台可信裝置上限', config.trusted_device_limit === 2, '單一工作階段、10 分鐘驗證碼'],
       ['後台 IP 白名單', config.allowlist_required, '限制可登入來源']

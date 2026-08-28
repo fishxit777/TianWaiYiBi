@@ -93,7 +93,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "analytics-traffic-integrity-v2",
+                "release": "line-admin-notifications-v3",
             }
         )
 

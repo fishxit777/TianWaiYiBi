@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from tianwai.db import get_db, utc_now
 
@@ -39,7 +40,36 @@ def test_daily_summary_endpoint_requires_secret(client):
     assert wrong.status_code == 404
 
 
-def test_daily_summary_queues_detailed_private_line_and_email(client, app, monkeypatch):
+def test_daily_summary_workflow_runs_exactly_three_taipei_slots():
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github"
+        / "workflows"
+        / "daily-admin-summary.yml"
+    ).read_text(encoding="utf-8")
+
+    assert workflow.count("- cron:") == 3
+    assert '- cron: "0 0 * * *"' in workflow
+    assert '- cron: "0 4 * * *"' in workflow
+    assert '- cron: "0 12 * * *"' in workflow
+    assert "Request private LINE summary" in workflow
+    assert "Gmail summary" not in workflow
+
+
+def test_admin_dashboard_presents_line_only_management_notifications():
+    root = Path(__file__).resolve().parents[1]
+    template = (root / "templates" / "admin_dashboard.html").read_text(encoding="utf-8")
+    script = (root / "static" / "admin.js").read_text(encoding="utf-8")
+
+    assert "LINE 管理通知佇列" in template
+    assert "重試近期 LINE 未送達" in template
+    assert "LINE＋Gmail" not in template
+    assert "LINE 管理推播已就緒" in script
+    assert "管理員 Gmail 告警" not in script
+    assert "歷史 Gmail・停止重試" in script
+
+
+def test_daily_summary_queues_detailed_private_line_only(client, app, monkeypatch):
     _stub_line(monkeypatch)
 
     response = client.post(
@@ -53,14 +83,14 @@ def test_daily_summary_queues_detailed_private_line_and_email(client, app, monke
     assert response.status_code == 200
     body = response.get_json()
     assert body["slot"] == "morning"
-    assert body["queued"] == 2
-    assert body["channels"] == {"email": "sent", "line": "sent"}
+    assert body["queued"] == 1
+    assert body["channels"] == {"line": "sent"}
 
     with app.app_context():
         rows = get_db().execute(
             "SELECT channel, recipient_masked, payload_json FROM notification_queue ORDER BY channel"
         ).fetchall()
-        assert [row["channel"] for row in rows] == ["email", "line"]
+        assert [row["channel"] for row in rows] == ["line"]
         payloads = [json.loads(row["payload_json"]) for row in rows]
         combined = "\n".join(
             payload.get("message", payload.get("text", "")) for payload in payloads
@@ -81,7 +111,7 @@ def test_daily_summary_keeps_historical_delivery_debt_out_of_current_todo(app):
         _insert_notification(connection, "line:daily-summary:old", "skipped", "2026-01-01T00:00:00+00:00")
         _insert_notification(connection, "email:risk:old", "failed", "2026-01-01T00:00:00+00:00", "email")
         connection.commit()
-        summary = build_daily_summary("morning")["email"]
+        summary = build_daily_summary("morning")["line"]
 
     assert "重試或修正 2 筆未送達管理通知" not in summary
     assert "歷史未投遞紀錄 2 筆" in summary
@@ -97,9 +127,9 @@ def test_daily_summary_only_marks_recent_failed_delivery_as_actionable(app):
         _insert_notification(connection, "email:risk:recent", "failed", now, "email")
         _insert_notification(connection, "line:risk:recent", "skipped", now)
         connection.commit()
-        summary = build_daily_summary("morning")["email"]
+        summary = build_daily_summary("morning")["line"]
 
-    assert "今日有 1 筆管理通知送達失敗" in summary
+    assert "今日有 1 筆管理通知送達失敗" not in summary
     assert "今日略過 1 筆" in summary
     assert "今日有 2 筆" not in summary
 
@@ -112,7 +142,7 @@ def test_daily_summary_distinguishes_line_channel_from_admin_recipient(app, monk
     monkeypatch.delenv("LINE_ADMIN_USER_ID", raising=False)
 
     with app.app_context():
-        summary = build_daily_summary("morning")["email"]
+        summary = build_daily_summary("morning")["line"]
 
     assert "LINE 官方帳號已連線，但管理員私訊收件人尚未設定" in summary
     assert "LINE 官方帳號頻道未設定" not in summary
@@ -129,7 +159,7 @@ def test_daily_summary_treats_verified_payment_config_with_closed_gate_as_normal
     monkeypatch.delenv("ECPAY_LIVE_CONFIRMED", raising=False)
 
     with app.app_context():
-        summary = build_daily_summary("morning")["email"]
+        summary = build_daily_summary("morning")["line"]
 
     assert "綠界正式金流（公開收款關閉）" in summary
     assert "金流設定未完成" not in summary
@@ -165,7 +195,7 @@ def test_daily_summary_counts_unique_human_sessions_and_gates_top_idea(app):
                 (event_name, stored_idea_id, source, session_id, f"event-{index}", automated, now),
             )
         connection.commit()
-        summary = build_daily_summary("morning")["email"]
+        summary = build_daily_summary("morning")["line"]
 
     assert "公開工作階段 3" in summary
     assert "首頁 2" in summary
@@ -201,7 +231,7 @@ def test_daily_summary_separates_public_attribution_preview_bot_and_legacy(app, 
                 (event_name, source, session_id, f"traffic-{index}", automated, created_at),
             )
         connection.commit()
-        summary = build_daily_summary("morning")["email"]
+        summary = build_daily_summary("morning")["line"]
 
     assert "公開工作階段 2" in summary
     assert "可歸因 1｜未歸因 1" in summary
@@ -250,6 +280,38 @@ def test_retry_private_alerts_ignores_stale_summaries_and_alerts(app, monkeypatc
     assert result["ignored_stale"] == 2
 
 
+def test_retry_private_alerts_never_retries_legacy_admin_email(app, monkeypatch):
+    from tianwai.notifications import retry_private_alerts
+
+    monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "test-line-access-token")
+    delivered_channels = []
+
+    def deliver(row):
+        delivered_channels.append(row["channel"])
+        return "sent", ""
+
+    monkeypatch.setattr("tianwai.notifications._deliver", deliver)
+    with app.app_context():
+        connection = get_db()
+        now = utc_now()
+        _insert_notification(connection, "email:risk:legacy", "failed", now, "email")
+        _insert_notification(connection, "line:risk:current", "failed", now, "line")
+        connection.commit()
+        email_attempts_before = connection.execute(
+            "SELECT attempts FROM notification_queue WHERE dedupe_key = 'email:risk:legacy'"
+        ).fetchone()["attempts"]
+        result = retry_private_alerts(limit=20)
+        email_row = connection.execute(
+            "SELECT attempts, status FROM notification_queue WHERE dedupe_key = 'email:risk:legacy'"
+        ).fetchone()
+
+    assert delivered_channels == ["line"]
+    assert result["processed"] == 1
+    assert result["ignored_legacy_email"] == 1
+    assert email_row["attempts"] == email_attempts_before
+    assert email_row["status"] == "failed"
+
+
 def test_retry_private_alerts_does_not_repeatedly_attempt_unconfigured_line(app, monkeypatch):
     from tianwai.notifications import retry_private_alerts
 
@@ -290,15 +352,15 @@ def test_daily_summary_is_idempotent_per_taipei_date_slot_and_channel(client, ap
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert second.get_json()["deduplicated"] == 2
+    assert second.get_json()["deduplicated"] == 1
     with app.app_context():
         count = get_db().execute(
             "SELECT COUNT(*) AS count FROM notification_queue"
         ).fetchone()["count"]
-    assert count == 2
+    assert count == 1
 
 
-def test_high_risk_access_event_creates_two_privacy_safe_alerts(app, monkeypatch):
+def test_high_risk_access_event_creates_one_privacy_safe_line_alert(app, monkeypatch):
     from tianwai.risk import record_access_event
 
     _stub_line(monkeypatch)
@@ -324,7 +386,7 @@ def test_high_risk_access_event_creates_two_privacy_safe_alerts(app, monkeypatch
         ).fetchall()
         payload_text = "\n".join(row["payload_json"] for row in rows)
 
-    assert [row["channel"] for row in rows] == ["email", "line"]
+    assert [row["channel"] for row in rows] == ["line"]
     assert event_id in payload_text
     assert "重大" in payload_text
     assert "203.0.113.*" in payload_text
@@ -333,7 +395,7 @@ def test_high_risk_access_event_creates_two_privacy_safe_alerts(app, monkeypatch
     assert "203.0.113.44" not in payload_text
 
 
-def test_high_security_event_queues_immediate_dual_channel_alert(app, monkeypatch):
+def test_high_security_event_queues_immediate_line_alert(app, monkeypatch):
     from tianwai.security import log_security_event
 
     _stub_line(monkeypatch)
@@ -354,7 +416,7 @@ def test_high_security_event_queues_immediate_dual_channel_alert(app, monkeypatc
         ).fetchall()
         combined = "\n".join(row["payload_json"] for row in rows)
 
-    assert [row["channel"] for row in rows] == ["email", "line"]
+    assert [row["channel"] for row in rows] == ["line"]
     assert "payment_signature_rejected" in combined
     assert "198.51.100.*" in combined
     assert "must-not-leak" not in combined
@@ -386,8 +448,8 @@ def test_transactional_email_failure_alerts_line_without_recursive_queue(app, mo
         ).fetchone()["count"]
         combined = "\n".join(row["payload_json"] for row in rows)
 
-    assert [row["channel"] for row in rows] == ["email", "line"]
-    assert email_event_count == 2
+    assert [row["channel"] for row in rows] == ["line"]
+    assert email_event_count == 1
     assert "secret code" not in combined
     assert "customer@example.com" not in combined
 

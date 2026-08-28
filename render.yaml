@@ -86,8 +86,6 @@ services:
         sync: false
       - key: MAIL_FROM
         sync: false
-      - key: ADMIN_ALERT_EMAIL
-        sync: false
       - key: NOTIFICATION_CRON_SECRET
         sync: false
       - key: LINE_CHANNEL_SECRET

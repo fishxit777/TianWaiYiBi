@@ -128,7 +128,7 @@ def test_high_risk_code_failures_queue_privacy_minimized_alert(client, app):
         ).fetchall()
         payload = json.loads(notification["payload_json"])["message"]
         assert incident is not None
-        assert [row["channel"] for row in channels] == ["email", "line"]
+        assert [row["channel"] for row in channels] == ["line"]
         assert notification["status"] in {"sent", "failed", "skipped"}
         assert "traveler@example.com" not in payload
         assert activation_code.replace("-", "") not in payload

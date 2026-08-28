@@ -56,13 +56,6 @@ def _mask_line(value):
     return f"LINE:{'*' * max(len(value) - 4, 4)}{value[-4:]}"
 
 
-def _mask_email(value):
-    local, separator, domain = str(value or "").partition("@")
-    if not separator:
-        return "not-configured"
-    return f"{local[:1]}***@{domain}"
-
-
 def mask_ip(value):
     value = str(value or "unknown").strip()
     if value in {"unknown", "system"}:
@@ -142,20 +135,7 @@ def _deliver(row):
         if row["channel"] == "line":
             return send_line_push(payload["message"])
         if row["channel"] == "email":
-            recipient = os.environ.get("ADMIN_ALERT_EMAIL", "").strip()
-            if not recipient:
-                return "skipped", "admin_alert_email_not_configured"
-            from .mailer import send_email
-
-            result = send_email(
-                recipient,
-                payload["subject"],
-                payload["text"],
-                payload.get("kind", "admin_alert"),
-            )
-            if result in {"sent", "development"}:
-                return "sent", ""
-            return "failed", "smtp_delivery_failed"
+            return "skipped", "legacy_admin_email_delivery_disabled"
         return "failed", "unsupported_channel"
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         return "failed", "invalid_queue_payload"
@@ -180,26 +160,15 @@ def queue_admin_messages(
     dedupe_base,
     *,
     line_message,
-    email_subject,
-    email_text,
-    email_kind="admin_alert",
     incident_id=None,
 ):
-    """Queue and independently deliver an admin-only LINE and email message."""
+    """Queue and deliver one privacy-minimized admin-only LINE message."""
     connection = get_db()
     now = utc_now()
     channel_payloads = {
         "line": (
             _mask_line(os.environ.get("LINE_ADMIN_USER_ID", "").strip()),
             {"message": str(line_message)[:1800]},
-        ),
-        "email": (
-            _mask_email(os.environ.get("ADMIN_ALERT_EMAIL", "").strip()),
-            {
-                "subject": str(email_subject)[:160],
-                "text": str(email_text)[:12000],
-                "kind": str(email_kind)[:40],
-            },
         ),
     }
     result = {"queued": 0, "deduplicated": 0, "channels": {}}
@@ -287,9 +256,8 @@ def _event_messages(
             "隱私提醒：通知已隱藏完整 Email、完整 IP、驗證碼、Token 與密鑰。",
         ]
     )
-    email_text = "天外一筆管理員即時異常告警\n\n" + "\n".join(details)
     line_details = ["天外一筆｜即時異常告警"] + details
-    return "\n".join(line_details)[:1800], f"[天外一筆][{level_text}] {event_text}", email_text
+    return "\n".join(line_details)[:1800]
 
 
 def queue_private_alert(
@@ -308,7 +276,7 @@ def queue_private_alert(
     detail="",
     occurred_at=None,
 ):
-    line, subject, email = _event_messages(
+    line = _event_messages(
         level=level,
         event_type=event_type,
         event_id=event_id,
@@ -325,21 +293,15 @@ def queue_private_alert(
     return queue_admin_messages(
         f"risk:{incident_no}",
         line_message=line,
-        email_subject=subject,
-        email_text=email,
-        email_kind="admin_security_alert",
         incident_id=incident_id,
     )
 
 
 def queue_security_alert(security_event_id, **context):
-    line, subject, email = _event_messages(**context)
+    line = _event_messages(**context)
     return queue_admin_messages(
         f"security:{security_event_id}",
         line_message=line,
-        email_subject=subject,
-        email_text=email,
-        email_kind="admin_security_alert",
     )
 
 
@@ -444,8 +406,8 @@ def _daily_metrics():
           (SELECT COUNT(*) FROM access_events WHERE severity IN ('high', 'critical') AND created_at >= ?) AS high_access,
           (SELECT COUNT(*) FROM security_events WHERE severity IN ('high', 'critical') AND created_at >= ?) AS high_security,
           (SELECT COUNT(*) FROM blocked_ips WHERE blocked_until > ?) AS blocked_ips,
-          (SELECT COUNT(*) FROM notification_queue WHERE status = 'failed' AND created_at >= ?) AS notification_failures_today,
-          (SELECT COUNT(*) FROM notification_queue WHERE status = 'skipped' AND created_at >= ?) AS notification_skipped_today,
+          (SELECT COUNT(*) FROM notification_queue WHERE channel = 'line' AND status = 'failed' AND created_at >= ?) AS notification_failures_today,
+          (SELECT COUNT(*) FROM notification_queue WHERE channel = 'line' AND status = 'skipped' AND created_at >= ?) AS notification_skipped_today,
           (SELECT COUNT(*) FROM notification_queue WHERE status IN ('failed', 'skipped') AND created_at < ?) AS notification_history,
           (SELECT COUNT(*) FROM email_events WHERE status = 'failed' AND created_at >= ?) AS email_failures
         """,
@@ -464,9 +426,7 @@ def _daily_metrics():
     line_admin_ready = bool(
         line_token_ready and os.environ.get("LINE_ADMIN_USER_ID", "").strip()
     )
-    email_ready = bool(
-        os.environ.get("ADMIN_ALERT_EMAIL", "").strip() and email_delivery_ready()
-    )
+    transactional_email_ready = email_delivery_ready()
     chain = verify_access_event_chain()
     return {
         "date": now_local.date().isoformat(),
@@ -505,7 +465,7 @@ def _daily_metrics():
         "integrations": {
             "line_channel": line_channel_ready,
             "line_admin": line_admin_ready,
-            "email": email_ready,
+            "transactional_email": transactional_email_ready,
             "payment_state": checkout.get("state", "misconfigured"),
             "payment_label": checkout["label"],
             "https": base_url.lower().startswith("https://") or current_app.config.get("TESTING", False),
@@ -537,8 +497,8 @@ def build_daily_summary(slot):
         todo.append("LINE 官方帳號頻道未設定完整，請檢查 webhook 驗簽與存取權杖。")
     elif not integrations["line_admin"]:
         todo.append("LINE 官方帳號已連線，但管理員私訊收件人尚未設定。")
-    if not integrations["email"]:
-        todo.append("補齊或檢查交易郵件與管理員告警設定。")
+    if not integrations["transactional_email"]:
+        todo.append("補齊或檢查客戶交易郵件寄送設定。")
     if integrations["payment_state"] == "misconfigured":
         todo.append("金流設定未完成；維持公開收款關閉，完成檢查前不得建立訂單。")
     if not integrations["chain"]:
@@ -553,7 +513,7 @@ def build_daily_summary(slot):
         (
             f"LINE 官方帳號{'已連線' if integrations['line_channel'] else '未就緒'}；"
             f"管理員私訊{'已就緒' if integrations['line_admin'] else '未設定'}；"
-            f"Gmail 告警{'已就緒' if integrations['email'] else '尚未就緒'}。"
+            f"客戶交易 Email {'已就緒' if integrations['transactional_email'] else '尚未就緒'}。"
         ),
         f"金流：{integrations['payment_label']}；HTTPS：{'正常' if integrations['https'] else '未啟用'}。",
     ]
@@ -599,7 +559,7 @@ def build_daily_summary(slot):
         (
             f"LINE 頻道 {'就緒' if integrations['line_channel'] else '未就緒'}｜"
             f"管理員私訊 {'就緒' if integrations['line_admin'] else '未設定'}｜"
-            f"Gmail {'就緒' if integrations['email'] else '未就緒'}｜"
+            f"交易 Email {'就緒' if integrations['transactional_email'] else '未就緒'}｜"
             f"金流 {integrations['payment_label']}｜HTTPS {'正常' if integrations['https'] else '未啟用'}"
         ),
         "",
@@ -612,12 +572,10 @@ def build_daily_summary(slot):
         f"完整資料：{data['admin_url']}",
         "本通知僅供管理員；完整客戶 Email、IP、驗證碼與 Token 不會出現在通知中。",
     ]
-    email_text = "\n".join(sections)
+    summary_text = "\n".join(sections)
     return {
         "date": data["date"],
-        "line": email_text[:1800],
-        "subject": f"[天外一筆] {SLOTS[slot]}營運摘要｜{data['date']}",
-        "email": email_text,
+        "line": summary_text[:1800],
     }
 
 
@@ -626,9 +584,6 @@ def queue_daily_summary(slot):
     result = queue_admin_messages(
         f"daily-summary:{summary['date']}:{slot}",
         line_message=summary["line"],
-        email_subject=summary["subject"],
-        email_text=summary["email"],
-        email_kind="admin_daily_summary",
     )
     return {"slot": slot, **result}
 
@@ -646,7 +601,7 @@ def retry_private_alerts(limit=10):
     stale = connection.execute(
         f"""
         SELECT COUNT(*) AS count FROM notification_queue
-        WHERE channel IN ('line', 'email') AND status IN ('pending', 'failed', 'skipped')
+        WHERE channel = 'line' AND status IN ('pending', 'failed', 'skipped')
           AND NOT {eligibility}
         """,
         (summary_cutoff, alert_cutoff),
@@ -654,7 +609,7 @@ def retry_private_alerts(limit=10):
     rows = connection.execute(
         f"""
         SELECT * FROM notification_queue
-        WHERE channel IN ('line', 'email') AND status IN ('pending', 'failed', 'skipped')
+        WHERE channel = 'line' AND status IN ('pending', 'failed', 'skipped')
           AND {eligibility}
         ORDER BY id ASC LIMIT ?
         """,
@@ -663,7 +618,7 @@ def retry_private_alerts(limit=10):
     sent = 0
     processed = 0
     deferred_unconfigured = 0
-    by_channel = {"line": 0, "email": 0}
+    by_channel = {"line": 0}
     for row in rows:
         if processed >= attempt_limit:
             break
@@ -673,22 +628,23 @@ def retry_private_alerts(limit=10):
         ):
             deferred_unconfigured += 1
             continue
-        if row["channel"] == "email":
-            from .mailer import email_delivery_ready
-
-            if not os.environ.get("ADMIN_ALERT_EMAIL", "").strip() or not email_delivery_ready():
-                deferred_unconfigured += 1
-                continue
         status, error = _deliver(row)
         _persist_delivery(row["id"], status, error)
         processed += 1
         if status == "sent":
             sent += 1
             by_channel[row["channel"]] += 1
+    legacy_email = connection.execute(
+        """
+        SELECT COUNT(*) AS count FROM notification_queue
+        WHERE channel = 'email' AND status IN ('pending', 'failed', 'skipped')
+        """
+    ).fetchone()
     return {
         "processed": processed,
         "sent": sent,
         "sent_by_channel": by_channel,
         "ignored_stale": int(stale["count"] or 0),
+        "ignored_legacy_email": int(legacy_email["count"] or 0),
         "deferred_unconfigured": deferred_unconfigured,
     }

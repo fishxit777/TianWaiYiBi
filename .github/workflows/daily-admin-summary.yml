@@ -52,7 +52,7 @@ jobs:
           fi
           echo "slot=$slot" >> "$GITHUB_OUTPUT"
 
-      - name: Request private LINE and Gmail summary
+      - name: Request private LINE summary
         shell: bash
         env:
           SLOT: ${{ steps.slot.outputs.slot }}

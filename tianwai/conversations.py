@@ -298,9 +298,6 @@ def _notify_admin_new_message(context, visibility, public_id):
         queue_admin_messages(
             f"conversation:{public_id}",
             line_message=notice,
-            email_subject=f"天外一筆｜新{scope}傳音",
-            email_text=notice,
-            email_kind="conversation_notice",
         )
     except Exception:
         current_app.logger.exception("Unable to queue conversation notification")

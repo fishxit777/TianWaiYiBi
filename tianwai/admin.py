@@ -886,9 +886,6 @@ def dashboard_data():
                 "payment_configuration_ready": checkout_status.get("configuration_ready", False),
                 "public_sales_open": checkout_status.get("public_sales_open", False),
                 "email_delivery": email_delivery_ready(),
-                "admin_email_alert": bool(
-                    os.environ.get("ADMIN_ALERT_EMAIL") and email_delivery_ready()
-                ),
                 "daily_summary_schedule": len(
                     os.environ.get("NOTIFICATION_CRON_SECRET", "").strip()
                 ) >= 32,
@@ -911,9 +908,6 @@ def dashboard_data():
                 "line_admin_alert": bool(
                     os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
                     and os.environ.get("LINE_ADMIN_USER_ID")
-                ),
-                "admin_email_alert": bool(
-                    os.environ.get("ADMIN_ALERT_EMAIL") and email_delivery_ready()
                 ),
                 "daily_summary_schedule": len(
                     os.environ.get("NOTIFICATION_CRON_SECRET", "").strip()
