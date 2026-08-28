@@ -90,6 +90,7 @@
 ## 驗證結果
 
 - 2026-08-28 管理推播 LINE Bot 化本機驗證：通知、風險與健康專項 24 passed；全套 `python -m pytest -q` 為 167 passed、1 skipped。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check`、固定三時段排程檢查與新增行機密掃描均通過。測試覆蓋每次摘要只建立一筆 LINE、防重送、即時高風險告警、舊 Gmail 永不重試、交易 Email 保留及後台 LINE-only 文案。
+- 管理推播 LINE Bot 化已由提交 `3ba47ee` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=line-admin-notifications-v3`；正式 `admin.js` 顯示 LINE 管理推播且不含舊雙通道文案，未帶密鑰的摘要端點回 404。部署驗收沒有觸發摘要、即時告警、訂單或正式資料寫入；下一個 08:00／12:00／20:00 排程才會送出正常摘要。
 - 2026-08-28 流量訊號完整性 V2 本機驗證：相關分類／摘要／安全專項 46 passed；全套 `python -m pytest -q` 為 164 passed、1 skipped。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check`、執行面誤導詞掃描與不回印內容的新增行機密掃描均通過。測試覆蓋可信基準、舊資料保留排除、可歸因／未歸因、管理測試、機器流量、公開參數不可自稱管理預覽、登入保護、固定安全導向與八小時簽章 Session。
 - 流量訊號完整性 V2 已由提交 `6cef2b2` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=analytics-traffic-integrity-v2`；正式 `admin.js` 含公開／可歸因工作階段且不含「有效訪客」。首頁回 200、維持「摘要開放」及 0 個結帳連結；管理登入維持 `no-store`／`DENY`。未登入 `/admin/preview` 固定轉往管理登入，未登入後台 API 回 401。正式驗收未登入後台、未寄通知、未建立訂單、未讀取客戶資料，也未變更 Passkey、復原碼或備份。
 - 管理摘要訊號品質 V2 已由提交 `8bd3b3d` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=admin-summary-signal-v2`。正式首頁回 200、維持「摘要開放」且結帳連結 0 個；正式 `admin.js` 已包含公開收款安全關閉與過期通知排除文案。管理登入回 200、`Cache-Control: no-store`、`X-Frame-Options: DENY`。正式驗收只讀取公開端點，未寄送通知、未重試歷史佇列、未登入後台、未建立訂單或變更正式資料。

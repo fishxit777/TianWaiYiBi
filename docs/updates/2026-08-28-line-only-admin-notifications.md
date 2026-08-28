@@ -35,4 +35,7 @@ LINE Bot 傳送；客戶付款、開通及登入所需的交易 Email 完整保�
 - 全套：167 passed、1 skipped；skipped 只在 PostgreSQL 17 CI 執行。
 - Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check`、三時段
   排程檢查與不回印內容的新增行機密掃描均通過。
-- 正式部署狀態另記於 `HANDOFF.md`。
+- 實作提交 `3ba47ee` 已推送；正式 `/healthz` 回 200、`status=ok`、
+  `release=line-admin-notifications-v3`。
+- 正式 `admin.js` 已顯示 LINE 管理推播且不再含雙通道文案；未帶排程密鑰的內部
+  端點回 404。部署驗收沒有手動觸發摘要或即時告警，因此不會多送第 4 則通知。
