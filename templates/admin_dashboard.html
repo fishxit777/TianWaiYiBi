@@ -27,7 +27,7 @@
       <button type="button" data-admin-view="security"><i>安</i><span>安全稽核</span></button>
     </nav>
     <div class="admin-sidebar-footer">
-      <a class="admin-preview-link" href="{{ url_for('public.home') }}" target="_blank" rel="noopener"><span>官網預覽</span><b aria-hidden="true">↗</b></a>
+      <a class="admin-preview-link" href="{{ url_for('admin.preview_public_site') }}" target="_blank" rel="noopener"><span>官網預覽</span><b aria-hidden="true">↗</b></a>
       <form action="{{ url_for('admin.logout') }}" method="post">
         <input type="hidden" name="csrf_token" value="{{ admin_csrf }}">
         <button type="submit"><span>安全登出</span><b aria-hidden="true">→</b></button>
@@ -71,7 +71,7 @@
       </div>
       <section class="admin-panel demand-radar-panel" aria-labelledby="demand-radar-title">
         <div class="panel-heading demand-radar-heading">
-          <div><span>DEMAND EVIDENCE</span><h3 id="demand-radar-title">仙策需求雷達</h3><p>以不重複有效訪客、閱讀、主動意願與實際交易證據判讀；資料不足時不下結論。</p></div>
+          <div><span>DEMAND EVIDENCE</span><h3 id="demand-radar-title">仙策需求雷達</h3><p>以可信仙策工作階段、閱讀、主動意願與實際交易證據判讀；資料不足時不下結論。</p></div>
           <div id="demand-window-controls" class="demand-window-controls" role="group" aria-label="需求雷達觀察期間">
             <button type="button" data-demand-days="7" aria-pressed="false">7 日</button>
             <button type="button" data-demand-days="30" aria-pressed="true">30 日</button>

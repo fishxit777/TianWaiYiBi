@@ -3,6 +3,7 @@ import re
 
 from conftest import login_admin, set_public_csrf
 from test_customer_access import _pay_and_get_activation
+from tianwai.db import get_db
 from tianwai.security import (
     ADMIN_PASSWORD_ENTROPY_BITS,
     generate_admin_password,
@@ -123,6 +124,34 @@ def test_admin_dashboard_uses_seven_separate_operational_workspaces(client):
     assert 'id="clear-order-search"' in body
     assert 'id="admin-confirm-dialog"' in body
     assert 'data-security-filter="priority"' in body
+    assert 'href="/admin/preview"' in body
+
+
+def test_admin_preview_requires_login_and_marks_followup_public_events(app, client):
+    unauthenticated = client.get("/admin/preview")
+    assert unauthenticated.status_code == 302
+    assert "/admin/login" in unauthenticated.headers["Location"]
+
+    login_admin(client)
+    preview = client.get("/admin/preview")
+    assert preview.status_code == 302
+    assert preview.headers["Location"].endswith("/")
+    assert "no-store" in preview.headers.get("Cache-Control", "")
+
+    assert client.get("/").status_code == 200
+    assert client.get("/ideas/brand-world-forge").status_code == 200
+    with client.session_transaction() as public_session:
+        assert public_session["analytics_preview_until"]
+    with app.app_context():
+        rows = get_db().execute(
+            """
+            SELECT event_name, source FROM analytics_events
+            WHERE event_name IN ('page_view', 'view_idea') ORDER BY id DESC LIMIT 2
+            """
+        ).fetchall()
+
+    assert {row["event_name"] for row in rows} == {"page_view", "view_idea"}
+    assert {row["source"] for row in rows} == {"admin-preview"}
 
 
 def test_admin_customer_access_summary_tracks_paid_then_activated(client):

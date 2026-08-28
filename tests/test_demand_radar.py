@@ -11,7 +11,17 @@ def _idea_id(connection, slug="brand-world-forge"):
     return connection.execute("SELECT id FROM ideas WHERE slug = ?", (slug,)).fetchone()["id"]
 
 
-def _event(connection, idea_id, name, session_id, value="", *, automated=0, source="direct"):
+def _event(
+    connection,
+    idea_id,
+    name,
+    session_id,
+    value="",
+    *,
+    automated=0,
+    source="direct",
+    created_at=None,
+):
     connection.execute(
         """
         INSERT INTO analytics_events
@@ -26,7 +36,7 @@ def _event(connection, idea_id, name, session_id, value="", *, automated=0, sour
             session_id,
             value,
             automated,
-            datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            created_at or datetime.now(timezone.utc).isoformat(timespec="seconds"),
         ),
     )
 
@@ -127,6 +137,18 @@ def test_public_interest_is_anonymous_validated_and_deduplicated(app, client):
     assert row["event_value"] == ""
 
 
+def test_public_query_cannot_self_declare_admin_preview(app, client):
+    response = client.get("/?source=admin-preview")
+
+    assert response.status_code == 200
+    with app.app_context():
+        row = get_db().execute(
+            "SELECT source FROM analytics_events WHERE event_name = 'page_view' ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+
+    assert row["source"] != "admin-preview"
+
+
 def test_demand_radar_gates_small_samples_and_excludes_automated_traffic(app):
     with app.app_context():
         connection = get_db()
@@ -163,6 +185,71 @@ def test_demand_radar_gates_small_samples_and_excludes_automated_traffic(app):
     assert qualified["method"]["claim"] == "需求證據指數，不是購買機率"
 
 
+def test_demand_radar_excludes_legacy_baseline_and_classifies_sessions(app):
+    baseline = "2026-08-29T16:00:00+00:00"
+    app.config["ANALYTICS_TRUSTED_AFTER"] = baseline
+    with app.app_context():
+        connection = get_db()
+        idea_id = _idea_id(connection)
+        _event(
+            connection,
+            idea_id,
+            "view_idea",
+            "legacy-session",
+            created_at="2026-08-29T15:00:00+00:00",
+        )
+        _event(
+            connection,
+            idea_id,
+            "view_idea",
+            "search-session",
+            source="search",
+            created_at="2026-08-29T17:00:00+00:00",
+        )
+        _event(
+            connection,
+            idea_id,
+            "view_idea",
+            "direct-session",
+            source="direct",
+            created_at="2026-08-29T17:01:00+00:00",
+        )
+        _event(
+            connection,
+            idea_id,
+            "view_idea",
+            "preview-session",
+            source="admin-preview",
+            created_at="2026-08-29T17:02:00+00:00",
+        )
+        _event(
+            connection,
+            idea_id,
+            "view_idea",
+            "bot-session",
+            automated=1,
+            created_at="2026-08-29T17:03:00+00:00",
+        )
+        connection.commit()
+
+        radar = build_demand_radar(
+            connection,
+            days=7,
+            now=datetime(2026, 8, 30, 12, tzinfo=timezone.utc),
+            payment_ready=False,
+        )
+        item = next(entry for entry in radar["items"] if entry["slug"] == "brand-world-forge")
+
+    assert item["funnel"]["visitors"] == 2
+    assert radar["data_quality"]["public_sessions"] == 2
+    assert radar["data_quality"]["attributable_sessions"] == 1
+    assert radar["data_quality"]["unattributed_sessions"] == 1
+    assert radar["data_quality"]["admin_preview_sessions"] == 1
+    assert radar["data_quality"]["automated_sessions"] == 1
+    assert radar["data_quality"]["legacy_excluded_sessions"] == 1
+    assert radar["method"]["trusted_after"] == baseline
+
+
 def test_admin_dashboard_exposes_auditable_radar_and_window_controls(client):
     login_admin(client)
     page = client.get("/admin").get_data(as_text=True)
@@ -175,3 +262,12 @@ def test_admin_dashboard_exposes_auditable_radar_and_window_controls(client):
     assert payload["demand_radar"]["window_days"] == 7
     assert payload["demand_radar"]["method"]["minimum_sample"] == 10
     assert "conversion_available" in payload["metrics"]
+
+
+def test_admin_dashboard_uses_work_session_language():
+    script = (Path(__file__).parents[1] / "static" / "admin.js").read_text(encoding="utf-8")
+
+    assert "有效訪客" not in script
+    assert "不重複訪客" not in script
+    assert "公開工作階段" in script
+    assert "可歸因工作階段" in script

@@ -167,11 +167,47 @@ def test_daily_summary_counts_unique_human_sessions_and_gates_top_idea(app):
         connection.commit()
         summary = build_daily_summary("morning")["email"]
 
-    assert "有效訪客 3 位" in summary
-    assert "首頁 2 位" in summary
-    assert "仙策詳情 2 位" in summary
+    assert "公開工作階段 3" in summary
+    assert "首頁 2" in summary
+    assert "仙策詳情 2" in summary
     assert "暫不排名" in summary
-    assert "未達 10 位門檻" in summary
+    assert "未達 10 個工作階段門檻" in summary
+    assert "有效訪客" not in summary
+
+
+def test_daily_summary_separates_public_attribution_preview_bot_and_legacy(app, monkeypatch):
+    from tianwai.notifications import build_daily_summary
+
+    fixed_now = datetime(2026, 8, 30, 12, tzinfo=timezone(timedelta(hours=8)))
+    monkeypatch.setattr("tianwai.notifications._taipei_now", lambda: fixed_now)
+    app.config["ANALYTICS_TRUSTED_AFTER"] = "2026-08-30T02:00:00+00:00"
+    with app.app_context():
+        connection = get_db()
+        rows = [
+            ("page_view", "legacy", "direct", 0, "2026-08-30T01:00:00+00:00"),
+            ("page_view", "search", "search", 0, "2026-08-30T03:00:00+00:00"),
+            ("page_view", "direct", "direct", 0, "2026-08-30T03:01:00+00:00"),
+            ("page_view", "preview", "admin-preview", 0, "2026-08-30T03:02:00+00:00"),
+            ("page_view", "bot", "direct", 1, "2026-08-30T03:03:00+00:00"),
+        ]
+        for index, (event_name, session_id, source, automated, created_at) in enumerate(rows):
+            connection.execute(
+                """
+                INSERT INTO analytics_events
+                    (event_name, source, session_id, event_value, event_version,
+                     dedupe_key, is_automated, page_path, created_at)
+                VALUES (?, ?, ?, '', 1, ?, ?, '/', ?)
+                """,
+                (event_name, source, session_id, f"traffic-{index}", automated, created_at),
+            )
+        connection.commit()
+        summary = build_daily_summary("morning")["email"]
+
+    assert "公開工作階段 2" in summary
+    assert "可歸因 1｜未歸因 1" in summary
+    assert "管理測試 1｜機器 1" in summary
+    assert "舊基準排除 1" in summary
+    assert "有效訪客" not in summary
 
 
 def test_retry_private_alerts_ignores_stale_summaries_and_alerts(app, monkeypatch):

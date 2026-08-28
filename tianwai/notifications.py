@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from flask import current_app
 
+from .analytics import trusted_analytics_start
 from .db import get_db, utc_now
 
 
@@ -348,6 +349,7 @@ def _daily_metrics():
     start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
     start_utc = start_local.astimezone(timezone.utc).isoformat(timespec="seconds")
     now_utc = now_local.astimezone(timezone.utc).isoformat(timespec="seconds")
+    trusted_start_utc = trusted_analytics_start(start_utc)
 
     orders = connection.execute(
         """
@@ -382,16 +384,44 @@ def _daily_metrics():
     traffic = connection.execute(
         """
         SELECT
-          COUNT(DISTINCT session_id) AS visitors,
-          COUNT(DISTINCT CASE WHEN event_name = 'page_view' THEN session_id END) AS homepage,
-          COUNT(DISTINCT CASE WHEN event_name = 'view_idea' THEN session_id END) AS idea_visitors
+          COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
+                                AND source <> 'admin-preview' THEN session_id END) AS public_sessions,
+          COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
+                                AND source <> 'admin-preview' AND event_name = 'page_view'
+                              THEN session_id END) AS homepage,
+          COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
+                                AND source <> 'admin-preview' AND event_name = 'view_idea'
+                              THEN session_id END) AS idea_sessions,
+          COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
+                                AND source <> 'admin-preview'
+                                AND source IN ('search', 'social', 'referral', 'line', 'email')
+                              THEN session_id END) AS attributable_sessions,
+          COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
+                                AND source <> 'admin-preview'
+                                AND source NOT IN ('search', 'social', 'referral', 'line', 'email')
+                              THEN session_id END) AS unattributed_sessions,
+          COUNT(DISTINCT CASE WHEN created_at >= ? AND source = 'admin-preview'
+                              THEN session_id END) AS admin_preview_sessions,
+          COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 1
+                              THEN session_id END) AS automated_sessions,
+          COUNT(DISTINCT CASE WHEN created_at < ? THEN session_id END) AS legacy_sessions
         FROM analytics_events
         WHERE event_name IN ('page_view', 'view_idea')
-          AND is_automated = 0 AND source <> 'admin-preview'
           AND session_id IS NOT NULL AND session_id <> ''
           AND created_at >= ? AND created_at <= ?
         """,
-        (start_utc, now_utc),
+        (
+            trusted_start_utc,
+            trusted_start_utc,
+            trusted_start_utc,
+            trusted_start_utc,
+            trusted_start_utc,
+            trusted_start_utc,
+            trusted_start_utc,
+            trusted_start_utc,
+            start_utc,
+            now_utc,
+        ),
     ).fetchone()
     top_idea = connection.execute(
         """
@@ -405,7 +435,7 @@ def _daily_metrics():
           AND analytics_events.created_at >= ? AND analytics_events.created_at <= ?
         GROUP BY ideas.id ORDER BY count DESC, ideas.id LIMIT 1
         """,
-        (start_utc, now_utc),
+        (trusted_start_utc, now_utc),
     ).fetchone()
     risk = connection.execute(
         """
@@ -451,17 +481,23 @@ def _daily_metrics():
             "devices": int(access["devices"] or 0),
         },
         "traffic": {
-            "visitors": int(traffic["visitors"] or 0),
+            "visitors": int(traffic["public_sessions"] or 0),
+            "public_sessions": int(traffic["public_sessions"] or 0),
             "homepage": int(traffic["homepage"] or 0),
-            "idea_visitors": int(traffic["idea_visitors"] or 0),
+            "idea_visitors": int(traffic["idea_sessions"] or 0),
+            "attributable_sessions": int(traffic["attributable_sessions"] or 0),
+            "unattributed_sessions": int(traffic["unattributed_sessions"] or 0),
+            "admin_preview_sessions": int(traffic["admin_preview_sessions"] or 0),
+            "automated_sessions": int(traffic["automated_sessions"] or 0),
+            "legacy_sessions": int(traffic["legacy_sessions"] or 0),
             "top": (
-                f"{top_idea['title']}（{top_idea['count']} 位有效訪客）"
+                f"{top_idea['title']}（{top_idea['count']} 個仙策工作階段）"
                 if top_idea and int(top_idea["count"] or 0) >= TOP_IDEA_MINIMUM_SESSIONS
                 else (
-                    f"暫不排名：最高「{top_idea['title']}」{top_idea['count']} 位，"
-                    f"未達 {TOP_IDEA_MINIMUM_SESSIONS} 位門檻"
+                    f"暫不排名：最高「{top_idea['title']}」{top_idea['count']} 個工作階段，"
+                    f"未達 {TOP_IDEA_MINIMUM_SESSIONS} 個工作階段門檻"
                     if top_idea
-                    else "目前沒有有效仙策詳情訪客"
+                    else "目前沒有公開仙策詳情工作階段"
                 )
             ),
         },
@@ -534,8 +570,15 @@ def build_daily_summary(slot):
         "【訂單與營收】",
         f"今日訂單 {orders['total']} 筆｜已付款 {orders['paid']}｜待付款 {orders['pending']}｜取消／退款 {orders['reversed']}",
         (
-            f"今日實收 NT$ {orders['revenue']:,}｜有效訪客 {data['traffic']['visitors']} 位｜"
-            f"首頁 {data['traffic']['homepage']} 位｜仙策詳情 {data['traffic']['idea_visitors']} 位"
+            f"今日實收 NT$ {orders['revenue']:,}｜公開工作階段 {data['traffic']['public_sessions']}｜"
+            f"首頁 {data['traffic']['homepage']}｜仙策詳情 {data['traffic']['idea_visitors']}"
+        ),
+        (
+            f"流量分類：可歸因 {data['traffic']['attributable_sessions']}｜"
+            f"未歸因 {data['traffic']['unattributed_sessions']}｜"
+            f"管理測試 {data['traffic']['admin_preview_sessions']}｜"
+            f"機器 {data['traffic']['automated_sessions']}｜"
+            f"舊基準排除 {data['traffic']['legacy_sessions']}"
         ),
         f"熱門仙策：{data['traffic']['top']}",
         "",

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, make_response, redirect, render_template, request, session, url_for
 from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRegistrationResponse
 
-from .analytics import ALLOWED_WINDOWS, build_demand_radar
+from .analytics import ALLOWED_WINDOWS, build_demand_radar, trusted_analytics_start
 from .db import get_db, get_setting_int, utc_now
 from .mailer import email_delivery_ready
 from .risk import verify_access_event_chain
@@ -458,6 +458,19 @@ def dashboard():
     )
 
 
+@admin_bp.get("/preview")
+@admin_required
+def preview_public_site():
+    """Open the public site while classifying follow-up analytics as admin QA."""
+    session["analytics_preview_until"] = (
+        datetime.now(timezone.utc) + timedelta(hours=8)
+    ).isoformat(timespec="seconds")
+    session["analytics_source"] = "admin-preview"
+    response = make_response(redirect(url_for("public.home")))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @admin_bp.get("/api/dashboard")
 @admin_required
 def dashboard_data():
@@ -486,9 +499,9 @@ def dashboard_data():
         WHERE purpose = 'sale'
         """
     ).fetchone()
-    analytics_period_start = (
+    analytics_period_start = trusted_analytics_start(
         datetime.now(timezone.utc) - timedelta(days=30)
-    ).isoformat(timespec="seconds")
+    )
     views = connection.execute(
         """
         SELECT COUNT(DISTINCT session_id) AS count FROM analytics_events
@@ -502,6 +515,7 @@ def dashboard_data():
         """
         SELECT COUNT(DISTINCT session_id) AS count FROM analytics_events
         WHERE event_name = 'purchase_completed' AND is_automated = 0
+          AND source <> 'admin-preview'
           AND session_id IS NOT NULL AND session_id <> '' AND created_at >= ?
         """,
         (analytics_period_start,),
@@ -654,12 +668,13 @@ def dashboard_data():
     ).fetchall()
     traffic_sources = connection.execute(
         """
-        SELECT source, COUNT(*) AS count
+        SELECT source, COUNT(DISTINCT session_id) AS count
         FROM analytics_events
         WHERE created_at >= ? AND is_automated = 0 AND source <> 'admin-preview'
+          AND session_id IS NOT NULL AND session_id <> ''
         GROUP BY source ORDER BY count DESC
         """,
-        ((datetime.now(timezone.utc) - timedelta(days=29)).isoformat(timespec="seconds"),),
+        (trusted_analytics_start(datetime.now(timezone.utc) - timedelta(days=29)),),
     ).fetchall()
     line_event_count = connection.execute("SELECT COUNT(*) AS count FROM line_events").fetchone()["count"]
     conversation_counts = connection.execute(

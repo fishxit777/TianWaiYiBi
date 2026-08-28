@@ -34,6 +34,10 @@ def create_app(test_config=None):
             os.environ.get("LINE_ADD_FRIEND_URL", "").strip()
             or "https://line.me/R/ti/p/%40279plitu"
         ),
+        ANALYTICS_TRUSTED_AFTER=(
+            os.environ.get("ANALYTICS_TRUSTED_AFTER", "").strip()
+            or "2026-08-28T16:00:00+00:00"
+        ),
     )
     if test_config:
         app.config.update(test_config)
@@ -89,7 +93,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "admin-summary-signal-v2",
+                "release": "analytics-traffic-integrity-v2",
             }
         )
 

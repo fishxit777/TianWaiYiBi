@@ -48,6 +48,45 @@ SOCIAL_HOSTS = (
     "x.com",
     "twitter.com",
 )
+ATTRIBUTABLE_SOURCES = {"search", "social", "referral", "line", "email"}
+DEFAULT_TRUSTED_AFTER = "2026-08-28T16:00:00+00:00"
+
+
+def _as_utc_datetime(value, fallback):
+    try:
+        parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        parsed = fallback
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def analytics_trusted_after():
+    configured = current_app.config.get("ANALYTICS_TRUSTED_AFTER", DEFAULT_TRUSTED_AFTER)
+    fallback = datetime.fromisoformat(DEFAULT_TRUSTED_AFTER)
+    return _as_utc_datetime(configured, fallback)
+
+
+def trusted_analytics_start(value):
+    baseline = analytics_trusted_after()
+    requested = _as_utc_datetime(value, baseline)
+    return max(requested, baseline).isoformat(timespec="seconds")
+
+
+def _admin_preview_active():
+    if not has_request_context():
+        return False
+    raw_until = session.get("analytics_preview_until")
+    if not raw_until:
+        return False
+    until = _as_utc_datetime(raw_until, datetime.min.replace(tzinfo=timezone.utc))
+    if until <= datetime.now(timezone.utc):
+        session.pop("analytics_preview_until", None)
+        if session.get("analytics_source") == "admin-preview":
+            session.pop("analytics_source", None)
+        return False
+    return True
 
 
 def ensure_analytics_session():
@@ -61,8 +100,10 @@ def ensure_analytics_session():
 def _coarse_source():
     if not has_request_context():
         return "web"
+    if _admin_preview_active():
+        return "admin-preview"
     explicit = str(request.args.get("source", "")).strip().lower()
-    if explicit in {"line", "admin-preview"}:
+    if explicit == "line":
         source = explicit
     else:
         utm_source = str(request.args.get("utm_source", "")).strip().lower()
@@ -89,8 +130,7 @@ def _coarse_source():
                 source = str(session.get("analytics_source", "web"))
             else:
                 source = "direct"
-    if source != "admin-preview":
-        session["analytics_source"] = source
+    session["analytics_source"] = source
     return source
 
 
@@ -183,7 +223,7 @@ def _rate(numerator, denominator):
 
 def _confidence(visitors):
     if visitors < 10:
-        return {"level": "insufficient", "label": "資料不足", "note": "少於 10 位有效訪客，不下營運結論"}
+        return {"level": "insufficient", "label": "資料不足", "note": "少於 10 個仙策工作階段，不下營運結論"}
     if visitors < 30:
         return {"level": "exploratory", "label": "探索級", "note": "可觀察現象，不代表需求已成立"}
     if visitors < 100:
@@ -252,7 +292,7 @@ def _diagnosis(funnel, payment_ready, confidence):
         return {
             "code": "insufficient_sample",
             "title": "先收集，不下結論",
-            "evidence": f"有效訪客 {visitors} 位；最低判讀門檻為 10 位",
+            "evidence": f"仙策工作階段 {visitors} 個；最低判讀門檻為 10 個",
             "action": "繼續導入目標客戶，暫不改價格或內容方向。",
         }
     if _rate(read_50, visitors) < 35:
@@ -313,6 +353,8 @@ def _diagnosis(funnel, payment_ready, confidence):
 
 
 def _period_aggregates(connection, start, end):
+    if start >= end:
+        return {}, {}
     rows = connection.execute(
         """
         SELECT idea_id, event_name, event_value,
@@ -363,12 +405,15 @@ def build_demand_radar(connection=None, *, days=30, now=None, payment_ready=Fals
     end_dt = (end_dt + timedelta(seconds=1)).replace(microsecond=0)
     start_dt = end_dt - timedelta(days=days)
     previous_start_dt = start_dt - timedelta(days=days)
+    baseline_dt = analytics_trusted_after()
+    trusted_start_dt = max(start_dt, baseline_dt)
+    trusted_previous_start_dt = max(previous_start_dt, baseline_dt)
     current, current_engaged = _period_aggregates(
-        database, start_dt.isoformat(timespec="seconds"), end_dt.isoformat(timespec="seconds")
+        database, trusted_start_dt.isoformat(timespec="seconds"), end_dt.isoformat(timespec="seconds")
     )
     previous, _previous_engaged = _period_aggregates(
         database,
-        previous_start_dt.isoformat(timespec="seconds"),
+        trusted_previous_start_dt.isoformat(timespec="seconds"),
         start_dt.isoformat(timespec="seconds"),
     )
     ideas = database.execute(
@@ -425,16 +470,43 @@ def build_demand_radar(connection=None, *, days=30, now=None, payment_ready=Fals
                 },
             }
         )
+    baseline_iso = baseline_dt.isoformat(timespec="seconds")
+    trusted_start_iso = trusted_start_dt.isoformat(timespec="seconds")
     quality = database.execute(
         """
         SELECT COUNT(*) AS total,
-               SUM(CASE WHEN is_automated = 1 THEN 1 ELSE 0 END) AS automated,
-               SUM(CASE WHEN source = 'admin-preview' THEN 1 ELSE 0 END) AS admin_preview,
+               SUM(CASE WHEN created_at >= ? AND is_automated = 1 THEN 1 ELSE 0 END) AS automated,
+               SUM(CASE WHEN created_at >= ? AND source = 'admin-preview' THEN 1 ELSE 0 END) AS admin_preview,
                SUM(CASE WHEN session_id IS NULL OR session_id = '' THEN 1 ELSE 0 END) AS missing_session,
-               COUNT(DISTINCT CASE WHEN is_automated = 0 AND source <> 'admin-preview' THEN session_id END) AS usable_sessions
+               COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
+                                     AND source <> 'admin-preview' THEN session_id END) AS public_sessions,
+               COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
+                                     AND source <> 'admin-preview'
+                                     AND source IN ('search', 'social', 'referral', 'line', 'email')
+                                   THEN session_id END) AS attributable_sessions,
+               COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
+                                     AND source <> 'admin-preview'
+                                     AND source NOT IN ('search', 'social', 'referral', 'line', 'email')
+                                   THEN session_id END) AS unattributed_sessions,
+               COUNT(DISTINCT CASE WHEN created_at >= ? AND source = 'admin-preview'
+                                   THEN session_id END) AS admin_preview_sessions,
+               COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 1
+                                   THEN session_id END) AS automated_sessions,
+               COUNT(DISTINCT CASE WHEN created_at < ? THEN session_id END) AS legacy_sessions
         FROM analytics_events WHERE created_at >= ? AND created_at < ?
         """,
-        (start_dt.isoformat(timespec="seconds"), end_dt.isoformat(timespec="seconds")),
+        (
+            trusted_start_iso,
+            trusted_start_iso,
+            trusted_start_iso,
+            trusted_start_iso,
+            trusted_start_iso,
+            trusted_start_iso,
+            trusted_start_iso,
+            baseline_iso,
+            start_dt.isoformat(timespec="seconds"),
+            end_dt.isoformat(timespec="seconds"),
+        ),
     ).fetchone()
     ranked = [
         item
@@ -455,12 +527,19 @@ def build_demand_radar(connection=None, *, days=30, now=None, payment_ready=Fals
             "automated_excluded": int(quality["automated"] or 0),
             "admin_preview_excluded": int(quality["admin_preview"] or 0),
             "missing_session": int(quality["missing_session"] or 0),
-            "usable_sessions": int(quality["usable_sessions"] or 0),
+            "usable_sessions": int(quality["public_sessions"] or 0),
+            "public_sessions": int(quality["public_sessions"] or 0),
+            "attributable_sessions": int(quality["attributable_sessions"] or 0),
+            "unattributed_sessions": int(quality["unattributed_sessions"] or 0),
+            "admin_preview_sessions": int(quality["admin_preview_sessions"] or 0),
+            "automated_sessions": int(quality["automated_sessions"] or 0),
+            "legacy_excluded_sessions": int(quality["legacy_sessions"] or 0),
         },
         "method": {
             "event_version": EVENT_VERSION,
             "minimum_sample": 10,
             "stable_sample": 100,
             "claim": "需求證據指數，不是購買機率",
+            "trusted_after": baseline_iso,
         },
     }

@@ -123,7 +123,7 @@
       [
         '付款轉換',
         metrics.conversion_available ? `${metrics.conversion}%` : '—',
-        metrics.conversion_available ? `近 30 日・${metrics.paid_sessions} 付款／${metrics.views} 位有效訪客` : '正式收款目前關閉，不顯示失真轉換率',
+        metrics.conversion_available ? `近 30 日・${metrics.paid_sessions} 付款／${metrics.views} 個仙策工作階段` : '正式收款目前關閉，不顯示失真轉換率',
         'conversion',
         null
       ]
@@ -212,7 +212,7 @@
     clear(target);
     const summary = data.customer_access?.summary || {};
     [
-      ['有效瀏覽', data.metrics.views, '近 30 日不重複訪客'],
+      ['仙策公開工作階段', data.metrics.views, '近 30 日・可信基準後去重'],
       ['付費客戶', summary.paid_customers || 0, '不重複 Email'],
       ['已開通內容', summary.activated_entitlements || 0, `共 ${summary.paid_entitlements || 0} 份權限`],
       ['目前登入客戶', summary.active_sessions || 0, '有效工作階段']
@@ -289,9 +289,12 @@
     const quality = radar.data_quality || {};
     [
       ['觀察期間', `${radar.window_days} 日`],
-      ['可用工作階段', quality.usable_sessions || 0],
-      ['排除機器事件', quality.automated_excluded || 0],
-      ['排除後台預覽', quality.admin_preview_excluded || 0],
+      ['公開工作階段', quality.public_sessions || 0],
+      ['可歸因工作階段', quality.attributable_sessions || 0],
+      ['未歸因工作階段', quality.unattributed_sessions || 0],
+      ['管理測試', quality.admin_preview_sessions || 0],
+      ['機器工作階段', quality.automated_sessions || 0],
+      ['舊基準排除', quality.legacy_excluded_sessions || 0],
       ['缺少工作階段', quality.missing_session || 0]
     ].forEach(([label, value]) => {
       const fact = node('div', 'demand-quality-fact');
@@ -318,7 +321,7 @@
       );
       const funnel = node('ol', 'demand-funnel');
       const funnelSteps = [
-        ['有效訪客', item.funnel.visitors, null],
+        ['仙策工作階段', item.funnel.visitors, null],
         ['讀至 50%', item.funnel.read_50, item.rates.read_50],
         ['有效閱讀', item.funnel.engaged, item.rates.engaged],
         ['主動意願', item.funnel.interest + item.funnel.conversations, item.rates.interest]
@@ -342,14 +345,14 @@
         node('p', 'demand-next-action', `下一步：${item.diagnosis.action}`)
       );
       const trendText = item.trend.percent === null
-        ? (item.trend.current_visitors ? '前期無基準，暫不計增幅' : '本期尚無有效訪客')
+        ? (item.trend.current_visitors ? '前期無基準，暫不計增幅' : '本期尚無仙策工作階段')
         : `較前一期 ${item.trend.percent > 0 ? '+' : ''}${item.trend.percent}%`;
       card.append(heading, confidence, funnel, diagnosis, node('div', 'demand-trend', `${item.stage.label}・${trendText}`));
       target.appendChild(card);
     });
     methodTarget.append(
-      node('p', '', `${radar.method.claim}。低於 ${radar.method.minimum_sample} 位有效訪客一律標示資料不足；達 ${radar.method.stable_sample} 位才進入穩定級。`),
-      node('p', '', `目前事件規格版本 v${radar.method.event_version}。同一工作階段的重複事件會去重，機器流量與後台預覽不列入判讀。`),
+      node('p', '', `${radar.method.claim}。低於 ${radar.method.minimum_sample} 個仙策工作階段一律標示資料不足；達 ${radar.method.stable_sample} 個才進入穩定級。`),
+      node('p', '', `可信流量基準自 ${radar.method.trusted_after} 起算。事件規格 v${radar.method.event_version}；同一工作階段重複事件去重，並分開呈現可歸因、未歸因、管理測試、機器與舊基準資料。`),
       node('p', '', radar.payment_ready ? '正式收款已開啟，因此結帳、建單與付款納入診斷。' : '正式收款未開啟，因此不以零結帳或零付款判定商品失敗。')
     );
   }

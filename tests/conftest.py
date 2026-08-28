@@ -35,6 +35,7 @@ def app(tmp_path, monkeypatch):
             "TESTING": True,
             "DATABASE": str(tmp_path / "test.db"),
             "SESSION_COOKIE_SECURE": False,
+            "ANALYTICS_TRUSTED_AFTER": "2000-01-01T00:00:00+00:00",
         }
     )
     yield application
