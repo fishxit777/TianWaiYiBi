@@ -87,7 +87,8 @@
 
 ## 驗證結果
 
-- 2026-08-28 流量訊號完整性 V2 本機驗證：相關分類／摘要／安全專項 46 passed；全套 `python -m pytest -q` 為 164 passed、1 skipped。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check`、執行面誤導詞掃描與不回印內容的新增行機密掃描均通過。測試覆蓋可信基準、舊資料保留排除、可歸因／未歸因、管理測試、機器流量、公開參數不可自稱管理預覽、登入保護、固定安全導向與八小時簽章 Session。正式部署結果待本次提交上線後補記。
+- 2026-08-28 流量訊號完整性 V2 本機驗證：相關分類／摘要／安全專項 46 passed；全套 `python -m pytest -q` 為 164 passed、1 skipped。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check`、執行面誤導詞掃描與不回印內容的新增行機密掃描均通過。測試覆蓋可信基準、舊資料保留排除、可歸因／未歸因、管理測試、機器流量、公開參數不可自稱管理預覽、登入保護、固定安全導向與八小時簽章 Session。
+- 流量訊號完整性 V2 已由提交 `6cef2b2` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=analytics-traffic-integrity-v2`；正式 `admin.js` 含公開／可歸因工作階段且不含「有效訪客」。首頁回 200、維持「摘要開放」及 0 個結帳連結；管理登入維持 `no-store`／`DENY`。未登入 `/admin/preview` 固定轉往管理登入，未登入後台 API 回 401。正式驗收未登入後台、未寄通知、未建立訂單、未讀取客戶資料，也未變更 Passkey、復原碼或備份。
 - 管理摘要訊號品質 V2 已由提交 `8bd3b3d` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=admin-summary-signal-v2`。正式首頁回 200、維持「摘要開放」且結帳連結 0 個；正式 `admin.js` 已包含公開收款安全關閉與過期通知排除文案。管理登入回 200、`Cache-Control: no-store`、`X-Frame-Options: DENY`。正式驗收只讀取公開端點，未寄送通知、未重試歷史佇列、未登入後台、未建立訂單或變更正式資料。
 - 2026-08-28 管理摘要訊號品質 V2 本機完整驗證：`python -m pytest -q` 為 159 passed、1 skipped；通知／金流／安全專項 39 passed。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check` 與新增行機密掃描通過。測試覆蓋歷史通知排除、今日失敗、LINE 頻道／收件人分流、缺少通道不重試、24 小時／7 天時效、金流安全關閉、匿名工作階段去重、機器／後台預覽排除與 10 個工作階段樣本門檻；沒有刪除正式佇列、建立訂單、開啟 NT$199 收款或傳送通知。
 - 2026-08-27 仙策需求雷達 V1 本機完整驗證：`python -m pytest -q` 為 151 passed、1 skipped；Python compileall、兩支 JavaScript syntax、`pip check`、`git diff --check` 通過。隔離資料庫驗證匿名意願去重、事件白名單、機器排除、信心門檻、收款關閉診斷與舊資料庫加法升級；桌機 1280px 與手機 390×844 無根頁面水平溢位，7／30／90 日切換與匿名意願回饋成功，console 0 error／0 warning。QA 未操作正式客戶、訂單、留言、Passkey、復原碼或備份。
