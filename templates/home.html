@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}天外盲策｜只在拆封後現世的原創概念卷{% endblock %}
+{% block hero_image_preload %}<link rel="preload" href="{{ url_for('static', filename='brand/sealed-scroll-casket-v20.webp') }}" as="image" type="image/webp" fetchpriority="high">{% endblock %}
 {% block body_class %}home-page blindbox-home{% endblock %}
 {% block content %}
 <section class="blind-hero section-shell">
@@ -15,9 +16,16 @@
     </div>
     <p class="availability-ribbon {{ 'is-open' if payment_status.ready else 'is-preview' }}"><span aria-hidden="true"></span>{% if payment_status.ready %}<strong>正式開放</strong> 付款後立即揭示完整圖文{% else %}<strong>展示中</strong> 公開收款仍關閉，不會建立扣款{% endif %}</p>
   </div>
-  <aside class="sealed-scroll-visual reveal delay-1" aria-label="一卷尚未拆封的原創概念卷">
-    <div class="sealed-scroll-orbit" aria-hidden="true"></div>
-    <div class="sealed-scroll"><span class="sealed-scroll-mark">盲</span><p>內容未揭</p><b>ORIGINAL CONCEPT</b></div>
+  <aside class="sealed-scroll-visual celestial-casket reveal delay-1" aria-label="一件由仙門禁制封存、尚未拆封的原創概念卷匣">
+    <div class="casket-stage" aria-hidden="true">
+      <span class="casket-aura"></span>
+      <span class="casket-orbit casket-orbit-outer"></span>
+      <span class="casket-orbit casket-orbit-inner"></span>
+      <span class="casket-cloud casket-cloud-left"></span>
+      <span class="casket-cloud casket-cloud-right"></span>
+      <img class="casket-artifact" src="{{ url_for('static', filename='brand/sealed-scroll-casket-v20.webp') }}" alt="" width="1122" height="1402" fetchpriority="high">
+      <span class="casket-status"><i>壹</i><span><strong>封印未解</strong><small>禁制完整・內容未揭</small></span></span>
+    </div>
     <dl><div><dt>購買前</dt><dd>問題線索</dd></div><div><dt>拆封後</dt><dd>完整圖文</dd></div><div><dt>授權</dt><dd>非專屬閱讀</dd></div></dl>
   </aside>
 </section>

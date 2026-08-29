@@ -88,7 +88,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "readable-typography-v19",
+                "release": "xianxia-sealed-casket-v20",
             }
         )
 

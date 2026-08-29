@@ -1,0 +1,394 @@
+/* V20 — the blind concept appears as a sealed xianxia artifact, never a paper package. */
+.blindbox-home {
+  background:
+    radial-gradient(circle at 79% 13%, rgba(51, 137, 127, .18), transparent 24%),
+    radial-gradient(circle at 88% 26%, rgba(166, 57, 43, .12), transparent 19%),
+    radial-gradient(circle at 68% 7%, rgba(194, 155, 81, .11), transparent 31%),
+    #090b21;
+}
+
+.blind-hero {
+  position: relative;
+  isolation: isolate;
+  grid-template-columns: minmax(0, 1fr) minmax(440px, .86fr);
+}
+
+.blind-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 6% -7% 8% 54%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 58% 44%, rgba(221, 190, 116, .09), transparent 2%, transparent 31%),
+    linear-gradient(118deg, transparent 41%, rgba(221, 190, 116, .08) 41.3%, transparent 41.7%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 84%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 84%, transparent);
+}
+
+.celestial-casket {
+  min-height: 660px;
+  overflow: visible;
+  align-self: stretch;
+}
+
+.casket-stage {
+  position: relative;
+  isolation: isolate;
+  width: min(43vw, 620px);
+  height: 630px;
+  margin: 0 auto 70px;
+  display: grid;
+  place-items: center;
+  perspective: 1100px;
+}
+
+.casket-stage::before,
+.casket-stage::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.casket-stage::before {
+  z-index: -4;
+  width: 68%;
+  height: 74%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(122, 222, 203, .18), rgba(38, 76, 91, .05) 47%, transparent 72%);
+  filter: blur(14px);
+  animation: casket-breathe 5.8s ease-in-out infinite;
+}
+
+.casket-stage::after {
+  z-index: 4;
+  left: 16%;
+  right: 9%;
+  bottom: 7%;
+  height: 9%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(7, 8, 22, .86), transparent 71%);
+  filter: blur(9px);
+}
+
+.casket-aura {
+  position: absolute;
+  z-index: -3;
+  width: 86%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 37%, rgba(128, 220, 201, .08) 38%, transparent 41%),
+    conic-gradient(from 30deg, transparent, rgba(218, 181, 103, .14), transparent 22%, rgba(110, 205, 190, .11), transparent 56%, rgba(170, 55, 42, .14), transparent 78%);
+  filter: blur(3px);
+  animation: casket-aura-pulse 6.8s ease-in-out infinite;
+}
+
+.casket-orbit {
+  position: absolute;
+  z-index: -2;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.casket-orbit::before,
+.casket-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 9%;
+  border: 1px solid rgba(227, 198, 126, .19);
+  border-radius: 50%;
+}
+
+.casket-orbit::after {
+  inset: 23%;
+  border-color: rgba(119, 218, 199, .17);
+  border-style: dashed;
+}
+
+.casket-orbit-outer {
+  width: 94%;
+  border: 1px solid rgba(227, 198, 126, .23);
+  box-shadow: 0 0 90px rgba(61, 155, 143, .09), inset 0 0 70px rgba(170, 55, 42, .045);
+  animation: casket-orbit-spin 34s linear infinite;
+}
+
+.casket-orbit-outer::before {
+  background: repeating-conic-gradient(from 0deg, rgba(226, 195, 119, .38) 0 1deg, transparent 1deg 30deg);
+  border: 0;
+  -webkit-mask: radial-gradient(circle, transparent 68%, #000 69% 71%, transparent 72%);
+  mask: radial-gradient(circle, transparent 68%, #000 69% 71%, transparent 72%);
+}
+
+.casket-orbit-inner {
+  width: 65%;
+  border: 1px dashed rgba(119, 218, 199, .19);
+  transform: rotate(18deg);
+  animation: casket-orbit-reverse 23s linear infinite;
+}
+
+.casket-cloud {
+  position: absolute;
+  z-index: -1;
+  width: 48%;
+  height: 14%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(102, 192, 177, .16), rgba(46, 65, 90, .08) 42%, transparent 72%);
+  filter: blur(12px);
+}
+
+.casket-cloud-left {
+  left: 1%;
+  bottom: 24%;
+  transform: rotate(-9deg);
+  animation: casket-cloud-left 8s ease-in-out infinite;
+}
+
+.casket-cloud-right {
+  right: -1%;
+  top: 26%;
+  transform: rotate(7deg);
+  animation: casket-cloud-right 9.2s ease-in-out infinite;
+}
+
+.casket-artifact {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: min(88%, 520px);
+  height: auto;
+  transform: translate3d(3%, -1%, 0) rotate(-1deg);
+  transform-origin: 50% 50%;
+  filter:
+    drop-shadow(0 34px 34px rgba(0, 0, 0, .58))
+    drop-shadow(0 0 24px rgba(109, 213, 195, .12))
+    saturate(.96)
+    contrast(1.02);
+  animation: casket-float 6.4s ease-in-out infinite;
+}
+
+.casket-status {
+  position: absolute;
+  z-index: 5;
+  left: 2%;
+  bottom: 9%;
+  min-width: 230px;
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 13px;
+  align-items: center;
+  padding: 11px 16px 11px 11px;
+  color: #f6ecd5;
+  background: linear-gradient(110deg, rgba(9, 12, 31, .95), rgba(20, 25, 49, .84));
+  border: 1px solid rgba(222, 188, 112, .38);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .37), inset 0 0 25px rgba(110, 207, 191, .035);
+  backdrop-filter: blur(14px);
+}
+
+.casket-status::after {
+  content: "";
+  position: absolute;
+  right: -28px;
+  top: 50%;
+  width: 38px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(222, 188, 112, .7), transparent);
+}
+
+.casket-status > i {
+  width: 46px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  color: #fff1d2;
+  background: #8d342c;
+  border: 1px solid #d8ab66;
+  border-radius: 50%;
+  font-style: normal;
+  font-size: 19px;
+  font-weight: 900;
+  box-shadow: 0 0 0 4px rgba(141, 52, 44, .16), 0 0 22px rgba(189, 65, 46, .2);
+}
+
+.casket-status > span {
+  display: grid;
+  gap: 1px;
+}
+
+.casket-status strong {
+  font-size: 15px;
+  letter-spacing: .12em;
+}
+
+.casket-status small {
+  color: #9da9af;
+  font-size: 12px;
+  letter-spacing: .05em;
+}
+
+.celestial-casket dl {
+  bottom: 0;
+  overflow: hidden;
+  background: linear-gradient(105deg, rgba(8, 11, 29, .94), rgba(18, 25, 48, .87));
+  border-color: rgba(222, 188, 112, .3);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .035);
+}
+
+.celestial-casket dl::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(#d9b266, #8c342c);
+}
+
+.celestial-casket dl div {
+  position: relative;
+  padding: 16px 18px;
+}
+
+.celestial-casket dt {
+  color: #858fa0;
+}
+
+.celestial-casket dd {
+  color: #f2e8d1;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+
+@keyframes casket-float {
+  0%, 100% { transform: translate3d(3%, -1%, 0) rotate(-1deg); }
+  50% { transform: translate3d(3%, -3.1%, 20px) rotate(.2deg); }
+}
+
+@keyframes casket-breathe {
+  0%, 100% { opacity: .72; transform: scale(.96); }
+  50% { opacity: 1; transform: scale(1.035); }
+}
+
+@keyframes casket-aura-pulse {
+  0%, 100% { opacity: .62; transform: scale(.98); }
+  50% { opacity: .92; transform: scale(1.035); }
+}
+
+@keyframes casket-orbit-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes casket-orbit-reverse {
+  from { transform: rotate(18deg); }
+  to { transform: rotate(-342deg); }
+}
+
+@keyframes casket-cloud-left {
+  0%, 100% { opacity: .55; translate: -2% 0; }
+  50% { opacity: .9; translate: 8% -5%; }
+}
+
+@keyframes casket-cloud-right {
+  0%, 100% { opacity: .45; translate: 5% 0; }
+  50% { opacity: .82; translate: -7% 5%; }
+}
+
+@media (max-width: 1100px) {
+  .blind-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(390px, .82fr);
+    gap: clamp(28px, 4vw, 58px);
+  }
+
+  .casket-stage {
+    width: min(44vw, 540px);
+  }
+
+  .casket-status {
+    left: 0;
+  }
+}
+
+@media (max-width: 1000px) {
+  .blind-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .celestial-casket {
+    min-height: 650px;
+    margin-top: 10px;
+  }
+
+  .casket-stage {
+    width: min(88vw, 590px);
+    height: 580px;
+  }
+}
+
+@media (max-width: 640px) {
+  .blind-hero::before {
+    inset: 43% -10% 4%;
+  }
+
+  .celestial-casket {
+    min-height: 545px;
+    margin-top: 20px;
+  }
+
+  .casket-stage {
+    width: 100%;
+    height: 438px;
+    margin-bottom: 92px;
+  }
+
+  .casket-artifact {
+    width: min(94%, 360px);
+    transform: translate3d(2%, -1%, 0) rotate(-1deg);
+  }
+
+  .casket-orbit-outer {
+    width: min(112%, 430px);
+  }
+
+  .casket-orbit-inner {
+    width: 73%;
+  }
+
+  .casket-status {
+    left: 3%;
+    bottom: 4%;
+    min-width: 210px;
+    grid-template-columns: 40px 1fr;
+    padding: 9px 13px 9px 9px;
+  }
+
+  .casket-status > i {
+    width: 40px;
+    font-size: 17px;
+  }
+
+  .celestial-casket dl {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    margin: 0;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .celestial-casket dl div {
+    display: block;
+    padding: 11px 10px 12px;
+  }
+
+  .celestial-casket dd {
+    margin-top: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casket-stage::before,
+  .casket-aura,
+  .casket-orbit,
+  .casket-cloud,
+  .casket-artifact {
+    animation: none;
+  }
+}

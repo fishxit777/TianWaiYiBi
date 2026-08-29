@@ -29,6 +29,10 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "天外盲策" in body
     assert "只在拆封後現世的" in body
     assert "static/v18.css" in body
+    assert "static/v20.css" in body
+    assert "brand/sealed-scroll-casket-v20.webp" in body
+    assert "封印未解" in body
+    assert 'class="sealed-scroll"' not in body
     assert "blindbox-twin-tire-hero-v1.webp" in body
     assert 'id="idea-result-count"' in body
     assert 'aria-pressed="true">全部' in body
@@ -90,6 +94,7 @@ def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
         body = client.get(path).get_data(as_text=True)
         assert 'class="public-site ' in body
         assert "static/v19.css" in body
+        assert "static/v20.css" in body
         assert "fonts/tianwai-masa-regular.woff2" not in body
         assert "fonts/tianwai-masa-bold.woff2" not in body
 
@@ -113,6 +118,20 @@ def test_readable_typography_layer_covers_public_and_admin_interfaces():
     assert "font-size: 14px" in stylesheet
     assert "font-size: 16px !important" in stylesheet
     assert "Tianwai Masa" not in stylesheet
+
+
+def test_v20_hero_uses_an_optimized_xianxia_casket_asset():
+    project_root = Path(__file__).resolve().parents[1]
+    asset = project_root / "static" / "brand" / "sealed-scroll-casket-v20.webp"
+    data = asset.read_bytes()
+    stylesheet = (project_root / "static" / "v20.css").read_text(encoding="utf-8")
+
+    assert data[:4] == b"RIFF"
+    assert data[8:12] == b"WEBP"
+    assert len(data) < 400_000
+    for selector in (".celestial-casket", ".casket-artifact", ".casket-orbit", ".casket-status"):
+        assert selector in stylesheet
+    assert "@media (prefers-reduced-motion: reduce)" in stylesheet
 
 
 def test_all_management_templates_load_the_readable_typography_layer():
