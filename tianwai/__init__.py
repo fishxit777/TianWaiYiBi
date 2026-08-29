@@ -88,7 +88,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "sealed-blind-strategy-v1",
+                "release": "readable-typography-v19",
             }
         )
 

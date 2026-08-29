@@ -11,15 +11,13 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/favicon-192.png') }}">
   <link rel="preload" href="{{ url_for('static', filename='brand/wordmark-xianxia-v14.webp') }}" as="image" type="image/webp" fetchpriority="high">
   {% block hero_image_preload %}{% endblock %}
-  {% block font_preloads %}
-  <link rel="preload" href="{{ url_for('static', filename='fonts/tianwai-masa-regular.woff2', v='mobile-card-type-v1') }}" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="{{ url_for('static', filename='fonts/tianwai-masa-bold.woff2', v='mobile-card-type-v1') }}" as="font" type="font/woff2" crossorigin>
-  {% endblock %}
+  {% block font_preloads %}{% endblock %}
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='mobile-card-type-v1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v15.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v16.css', v='sealed-catalog-base-v1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v17.css', v='professional-ui-v17') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v18.css', v='sealed-blind-strategy-v1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v19.css', v='readable-typography-v19') }}">
   {% block page_scripts_head %}{% endblock %}
 </head>
 <body class="{% block site_scope_class %}public-site{% endblock %} {% block body_class %}{% endblock %}">

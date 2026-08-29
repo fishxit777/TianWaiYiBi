@@ -1,0 +1,320 @@
+/* V19 — readable typography for every interface; illustrated logo artwork stays unchanged. */
+:root {
+  --readable-ui: "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", "Heiti TC", sans-serif;
+}
+
+.public-site,
+.internal-tool-site,
+.admin-page,
+.admin-login-page {
+  --display: var(--readable-ui);
+  --serif: var(--readable-ui);
+  --sans: var(--readable-ui);
+  font-family: var(--readable-ui);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.public-site :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, a, button, label, input, textarea, select, option, dt, dd, li, th, td, summary, b, i, em, time),
+.internal-tool-site :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, a, button, label, input, textarea, select, option, dt, dd, li, th, td, summary, b, i, em, time),
+.admin-page :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, a, button, label, input, textarea, select, option, dt, dd, li, th, td, summary, b, i, em, time),
+.admin-login-page :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, a, button, label, input, textarea, select, option, dt, dd, li, th, td, summary, b, i, em, time) {
+  font-family: var(--readable-ui) !important;
+}
+
+.public-site ::before,
+.public-site ::after,
+.internal-tool-site ::before,
+.internal-tool-site ::after,
+.admin-page ::before,
+.admin-page ::after,
+.admin-login-page ::before,
+.admin-login-page ::after {
+  font-family: var(--readable-ui) !important;
+}
+
+/* Public storefront and customer flows */
+.public-site {
+  font-size: 18px;
+  line-height: 1.75;
+}
+
+.public-site :where(p, li, dd, blockquote) {
+  line-height: 1.8;
+}
+
+.public-site .main-nav a,
+.public-site .mobile-chapter-nav a,
+.public-site :where(button, input, textarea, select),
+.public-site .button,
+.public-site .text-link {
+  font-size: 15px !important;
+  font-weight: 700;
+}
+
+.public-site :where(.section-index, .section-deck, .eyebrow, .blind-volume, .maturity-chip, .detail-breadcrumb, .filter-result, .idea-tags span, .footer-trust span, figcaption, dt, small) {
+  font-size: 13px !important;
+  line-height: 1.6;
+}
+
+.public-site :where(.section-heading h2, .world-note h2, .how-intro h2, .creed-heading h2, .line-portal h2, .vein-index h2, .unseal-rules h2) {
+  font-size: clamp(34px, 4.2vw, 52px) !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  letter-spacing: .01em !important;
+}
+
+.public-site :where(.idea-card h3, .steps h3, .creed-grid h3, .vein-grid strong, .unseal-rules h3) {
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+  letter-spacing: .01em !important;
+}
+
+.blind-hero h1 {
+  font-size: clamp(56px, 7.4vw, 96px) !important;
+  font-weight: 900 !important;
+  line-height: 1.05 !important;
+  letter-spacing: .02em !important;
+}
+
+.blind-hero-line {
+  font-size: clamp(26px, 3.2vw, 40px) !important;
+  font-weight: 800 !important;
+  line-height: 1.4 !important;
+  letter-spacing: .02em !important;
+}
+
+.blind-hero-lead,
+.home-page .hero-lead,
+.public-site.transmission-v2-page .transmission-v2-lead {
+  font-size: 18px !important;
+  line-height: 1.85 !important;
+}
+
+.sealed-scroll p {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  letter-spacing: .08em !important;
+}
+
+.sealed-scroll b,
+.sealed-card-art em {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.sealed-scroll-visual dt,
+.sealed-scroll-visual dd,
+.vein-grid span,
+.maturity-panel span,
+.reveal-concept-hero figcaption,
+.reveal-visual-grid figcaption {
+  font-size: 13px !important;
+}
+
+.vein-grid strong {
+  font-size: 20px !important;
+}
+
+.sealed-card .idea-card h3,
+.home-page .idea-card h3 {
+  font-size: clamp(25px, 2.2vw, 30px) !important;
+}
+
+.home-page .idea-role,
+.home-page .idea-discipline,
+.home-page .idea-summary,
+.home-page .idea-fit strong,
+.home-page .idea-card footer,
+.public-site .footer-trust strong {
+  font-size: 14px !important;
+}
+
+.home-page .idea-summary,
+.unseal-rules p,
+.maturity-panel p,
+.license-note,
+.manuscript-copy {
+  font-size: 17px !important;
+}
+
+.public-site .site-footer,
+.public-site .footer-note {
+  font-size: 14px !important;
+  line-height: 1.7;
+}
+
+.public-site .availability-ribbon,
+.public-site .availability-ribbon strong {
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+
+/* Operations, authentication, and security pages */
+.admin-page,
+.admin-login-page {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.admin-page :where(button, input, textarea, select),
+.admin-login-page :where(button, input, textarea, select) {
+  font-size: 14px !important;
+  line-height: 1.45;
+}
+
+.admin-ops-page .admin-sidebar nav button span {
+  font-size: 14px !important;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+
+.admin-ops-page .admin-sidebar nav button i {
+  font-size: 13px !important;
+  font-weight: 800;
+}
+
+.admin-ops-page .admin-topbar h1,
+.admin-ops-page .admin-breadcrumb h1 {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+.admin-ops-page :where(.workspace-heading h2, .overview-intro h2, .idea-editor h2) {
+  font-size: clamp(25px, 2.4vw, 34px) !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0 !important;
+}
+
+.admin-ops-page .panel-heading h3,
+.admin-ops-page .demand-card-heading h4,
+.admin-ops-page .integration-card strong {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+}
+
+.admin-ops-page :where(.admin-status, .admin-status-bar, .workspace-heading p, .overview-intro p, .panel-note, .plain-ops-note p, .integration-next span, .advanced-tools, .demand-radar-heading p, .demand-method summary, .demand-method div, .conversation-admin-toolbar > p, .conversation-scope-note span, .payment-verification-state span, .payment-verification-state small, .payment-verification-warning) {
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+}
+
+.admin-ops-page :where(.workspace-kicker, .panel-heading span, .metric-label, .metric-card small, .attention-item small, .pulse-row small, .order-filters button, .order-filters button b, .admin-table th, .admin-table td, .admin-table td strong, .admin-table td small, .status-pill, .table-summary, .idea-admin-copy strong, .idea-admin-copy small, .idea-admin-price strong, .idea-admin-price small, .customer-metric span, .customer-metric small, .integration-summary strong, .integration-summary span, .integration-card h3, .integration-card small, .integration-next b, .security-flag strong, .security-flag small, .event-item strong, .event-item span, .event-item small, .event-item time, .demand-quality-fact span, .demand-quality-fact strong, .demand-card-heading span, .demand-score small, .demand-confidence, .demand-funnel span, .demand-funnel small, .demand-diagnosis > span, .demand-diagnosis p, .demand-trend, .traffic-percent, .editor-dirty) {
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+}
+
+.admin-ops-page .admin-table {
+  font-size: 13px !important;
+}
+
+.admin-ops-page :where(
+  .admin-brand small,
+  .admin-sidebar nav button b,
+  .admin-breadcrumb > span,
+  .last-sync,
+  .overview-date small,
+  .metric-card-head > i,
+  .revenue-day strong,
+  .revenue-day span,
+  .traffic-source-row span,
+  .traffic-source-row strong,
+  .integration-card-head > i,
+  .integration-dot,
+  .payment-verification-panel > summary b,
+  .payment-verification-panel > summary em,
+  .plain-ops-note strong,
+  .security-flag i,
+  label > span,
+  small
+) {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.admin-ops-page .order-search input,
+.admin-ops-page .idea-editor :where(input, textarea, select),
+.admin-login-page :where(input, textarea, select) {
+  font-size: 15px !important;
+}
+
+.admin-login-page :where(h1, .admin-login-card h1, .credential-setup-header h1) {
+  font-size: clamp(30px, 4vw, 44px) !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+}
+
+.admin-login-page :where(h2, .credential-panel h2) {
+  font-size: 24px !important;
+  font-weight: 800 !important;
+}
+
+.admin-login-page :where(p, label, small),
+.credential-setup-page :where(p, label, small) {
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+}
+
+@media (min-width: 761px) {
+  .admin-login-page .admin-login-brand {
+    padding-left: min(24vw, 240px);
+  }
+
+  .admin-login-page .admin-login-brand h1 {
+    white-space: nowrap;
+  }
+}
+
+/* Codes remain monospace because exact character recognition is operationally important. */
+.recovery-code-output li,
+.order-number,
+.order-number strong {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
+}
+
+@media (max-width: 640px) {
+  .public-site {
+    font-size: 17px;
+  }
+
+  .public-site :where(button, input, textarea, select),
+  .admin-page :where(input, textarea, select),
+  .admin-login-page :where(input, textarea, select) {
+    font-size: 16px !important;
+  }
+
+  .blind-hero h1 {
+    font-size: clamp(46px, 15vw, 62px) !important;
+  }
+
+  .blind-hero-line {
+    font-size: clamp(25px, 8vw, 32px) !important;
+  }
+
+  .public-site :where(.section-heading h2, .world-note h2, .how-intro h2, .creed-heading h2, .line-portal h2, .vein-index h2, .unseal-rules h2) {
+    font-size: clamp(30px, 9vw, 40px) !important;
+  }
+
+  .admin-ops-page .admin-sidebar nav button span {
+    font-size: 12px !important;
+  }
+
+  .admin-ops-page .admin-status-bar,
+  .admin-ops-page .last-sync {
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .public-site :where(.section-index, .section-deck, .eyebrow, .blind-volume, .maturity-chip, .detail-breadcrumb, .filter-result, .idea-tags span, .footer-trust span, figcaption, dt, small) {
+    font-size: 12px !important;
+  }
+
+  .admin-ops-page .admin-sidebar nav button span {
+    font-size: 12px !important;
+  }
+}

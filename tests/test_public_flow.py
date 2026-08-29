@@ -2,8 +2,6 @@ import re
 from pathlib import Path
 
 from conftest import set_public_csrf
-from scripts.build_webfonts import collect_codepoints
-from tianwai.db import BLINDBOX_SEEDS, IDEA_SEEDS
 
 
 def create_order(client, slug="sealed-twin-tire-safety"):
@@ -74,13 +72,14 @@ def test_transmission_landing_keeps_line_white_page_behind_branded_experience(cl
     assert "https://line.me/R/ti/p/%40279plitu" in body
     assert "啟動傳音法陣" in body
     assert 'data-copy-line-id="@279plitu"' in body
-    assert "fonts/tianwai-masa-regular.woff2" in body
-    assert "fonts/tianwai-masa-bold.woff2" in body
+    assert "static/v19.css" in body
+    assert "fonts/tianwai-masa-regular.woff2" not in body
+    assert "fonts/tianwai-masa-bold.woff2" not in body
     for private_label in ("Logo 評估", "管理後台", "開啟本機模擬器", "LINE Bot"):
         assert private_label not in body
 
 
-def test_all_customer_pages_share_the_sitewide_brush_shell(client):
+def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
     for path in (
         "/",
         "/transmission",
@@ -90,8 +89,9 @@ def test_all_customer_pages_share_the_sitewide_brush_shell(client):
     ):
         body = client.get(path).get_data(as_text=True)
         assert 'class="public-site ' in body
-        assert "fonts/tianwai-masa-regular.woff2" in body
-        assert "fonts/tianwai-masa-bold.woff2" in body
+        assert "static/v19.css" in body
+        assert "fonts/tianwai-masa-regular.woff2" not in body
+        assert "fonts/tianwai-masa-bold.woff2" not in body
 
 
 def test_internal_line_simulator_does_not_use_public_brand_font_shell(client):
@@ -101,59 +101,32 @@ def test_internal_line_simulator_does_not_use_public_brand_font_shell(client):
     assert "fonts/tianwai-masa" not in body
 
 
-def test_public_site_self_hosts_vector_brush_fonts():
+def test_readable_typography_layer_covers_public_and_admin_interfaces():
     project_root = Path(__file__).resolve().parents[1]
-    font_paths = (
-        project_root / "static" / "fonts" / "tianwai-masa-regular.woff2",
-        project_root / "static" / "fonts" / "tianwai-masa-bold.woff2",
-    )
-
-    for font_path in font_paths:
-        data = font_path.read_bytes()
-        assert data[:4] == b"wOF2"
-        assert 100_000 < len(data) < 500_000
-
-    assert not (project_root / "static" / "fonts" / "tianwai-masa-medium.woff2").exists()
-
-    stylesheet = (project_root / "static" / "styles.css").read_text(encoding="utf-8")
-    assert 'font-family: "Tianwai Masa"' in stylesheet
-    assert 'font-family: "Tianwai Masa Display"' in stylesheet
-    assert "--title-page-size" in stylesheet
-    assert "--title-section-size" in stylesheet
-    assert "--title-card-size" in stylesheet
-    assert "--body-readable-size: 18px" in stylesheet
-    assert "--lead-readable-size: 19px" in stylesheet
-    assert "--meta-readable-size: 13px" in stylesheet
-    assert "-webkit-font-smoothing: auto" in stylesheet
-    assert ".public-site .brand-copy small" in stylesheet
-    assert "font-size: 12px" in stylesheet
-    assert ".public-site .brand-wordmark" in stylesheet
-    assert ".public-site .hero-title-image-heading" in stylesheet
-    assert "-webkit-text-stroke" in stylesheet
-    assert "tianwai-brush-display.woff2" not in stylesheet
-    assert "tianwai-wenkai-body.woff2" not in stylesheet
-    assert stylesheet.count("?v=mobile-card-type-v1") == 3
+    stylesheet = (project_root / "static" / "v19.css").read_text(encoding="utf-8")
+    assert "--readable-ui" in stylesheet
+    assert '"Microsoft JhengHei UI"' in stylesheet
+    assert ".public-site" in stylesheet
+    assert ".admin-page" in stylesheet
+    assert ".admin-login-page" in stylesheet
+    assert "font-size: 18px" in stylesheet
+    assert "font-size: 14px" in stylesheet
+    assert "font-size: 16px !important" in stylesheet
+    assert "Tianwai Masa" not in stylesheet
 
 
-def test_webfont_subset_includes_all_dynamic_idea_card_copy():
-    codepoints = collect_codepoints()
+def test_all_management_templates_load_the_readable_typography_layer():
+    template_root = Path(__file__).resolve().parents[1] / "templates"
 
-    for idea in (*IDEA_SEEDS, *BLINDBOX_SEEDS):
-        visible_card_copy = f"{idea['role']}{idea['title']}{idea['discipline']}{idea.get('public_title', '')}{idea.get('primary_vein', '')}"
-        missing_characters = {
-            character for character in visible_card_copy if ord(character) not in codepoints
-        }
-        assert not missing_characters, (
-            f"Web font subset is missing card characters for {idea['slug']}: "
-            f"{''.join(sorted(missing_characters))}"
-        )
-
-    v16_stylesheet = (
-        Path(__file__).resolve().parents[1] / "static" / "v16.css"
-    ).read_text(encoding="utf-8")
-    assert '.home-page .idea-card h3 {' in v16_stylesheet
-    assert 'font-family: "Tianwai Masa Display"' in v16_stylesheet
-    assert '.home-page .idea-card h3 { font-size: 29px; }' in v16_stylesheet
+    for template_name in (
+        "admin_dashboard.html",
+        "admin_login.html",
+        "admin_passkeys.html",
+        "admin_recovery.html",
+    ):
+        template = (template_root / template_name).read_text(encoding="utf-8")
+        assert "static', filename='v19.css'" in template
+        assert "readable-typography-v19" in template
 
 
 def test_xianxia_title_art_is_web_optimized_and_versioned():

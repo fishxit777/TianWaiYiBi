@@ -1,6 +1,6 @@
-# TianWaiYiBi self-hosted public-site fonts
+# TianWaiYiBi historical self-hosted brush fonts
 
-The two WOFF2 files are glyph subsets used across every public customer-facing page: home, idea details, checkout, payment, delivery, message, and transmission. The admin console, hidden logo review, and local LINE simulator intentionally keep their utility typography.
+The two WOFF2 files are historical glyph subsets retained for license and rollback traceability. Since V19, public and management interfaces use the platform Traditional Chinese UI sans-serif stack and no longer preload or select these brush fonts. The illustrated Logo wordmark remains image artwork and is unaffected.
 
 ## Logo-aligned brush family
 
@@ -14,7 +14,7 @@ The two WOFF2 files are glyph subsets used across every public customer-facing p
 - Web Regular SHA-256: `6f1cf0932b46b176f3b697731c28db92c07fb4ec59b9e22bcae185880e4f037b`
 - Web Bold SHA-256: `58c4f0cf4ac4ed43bd99ce45da728787250f8cf08856fdd171810ae3a2811965`
 
-The illustrated logo wordmark is raster artwork rather than a reusable font file. MasaFont is the complete Traditional Chinese family used across the public site. Regular carries paragraphs and controls; Bold provides the dense brush skeleton required by the white-jade and moon-gold carved title treatment. Both remain live, selectable vector text.
+The illustrated logo wordmark is raster artwork rather than a reusable font file. MasaFont powered the earlier V14–V18 brush typography, but is no longer used for readable interface copy after V19.
 
 ## Rebuild
 
@@ -24,4 +24,4 @@ The illustrated logo wordmark is raster artwork rather than a reusable font file
 
    `python scripts/build_webfonts.py --regular <MasaFont-Regular.ttf> --bold <MasaFont-Bold.ttf>`
 
-The build script collects visible glyphs from all public templates, public/payment copy, seed content, and public JavaScript. Rebuild whenever public-facing text adds new characters.
+The build script remains available only for historical rollback or a future explicitly approved decorative use. Normal public-facing text changes do not require rebuilding these files.
