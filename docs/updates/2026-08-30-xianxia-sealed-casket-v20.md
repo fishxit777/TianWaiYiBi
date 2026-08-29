@@ -34,4 +34,9 @@
 
 ## 正式部署
 
-- 待實作提交推送並完成 Render 純讀驗證後補記。
+- 實作提交：`e13fc46`（`feat: replace blind scroll with xianxia sealed casket`）。
+- 正式 `/healthz`：HTTP 200、`status=ok`、`release=xianxia-sealed-casket-v20`。
+- 正式首頁、`static/v20.css` 與 `static/brand/sealed-scroll-casket-v20.webp` 均回 HTTP 200。
+- 正式首頁已載入 V20 與新封卷匣資產，「封印未解」存在，舊 `.sealed-scroll` 紙卷節點不存在。
+- 公開收款仍明確關閉，正式首頁結帳連結為 0。
+- 正式驗收只讀取公開端點，未登入後台、未建立訂單、未送出匿名意願、未寄通知，也未操作客戶、付款、Passkey、復原碼、備份或正式資料。
