@@ -95,6 +95,8 @@
 
 ## 驗證結果
 
+- 2026-08-30 天外盲策本機完整驗證：`python -m pytest -q` 為 162 passed、1 skipped；Python compileall、兩支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的新增檔案機密掃描通過。1440px 桌機及 390×844 手機均為 0 破圖、0 根頁面水平溢位；首頁、封印詳情、付款前頁面與開通前頁面均不顯示首卷真名，成功開通後才顯示完整文字與三張圖。
+- 天外盲策由提交 `77b16b1` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=sealed-blind-strategy-v1`。正式首頁、首卷封印詳情與結帳頁均回 200，公開真名洩漏 0、結帳連結 0、正式付款維持關閉；留言資產與元件均不存在，舊公開留言 API 回 404。管理登入維持 `no-store`／`DENY`。正式驗收只讀取公開端點，未建立訂單、未付款、未寄通知、未登入後台，也未操作客戶資料、Passkey、復原碼、備份或金流憑證。
 - 2026-08-28 管理推播 LINE Bot 化本機驗證：通知、風險與健康專項 24 passed；全套 `python -m pytest -q` 為 167 passed、1 skipped。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check`、固定三時段排程檢查與新增行機密掃描均通過。測試覆蓋每次摘要只建立一筆 LINE、防重送、即時高風險告警、舊 Gmail 永不重試、交易 Email 保留及後台 LINE-only 文案。
 - 管理推播 LINE Bot 化已由提交 `3ba47ee` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=line-admin-notifications-v3`；正式 `admin.js` 顯示 LINE 管理推播且不含舊雙通道文案，未帶密鑰的摘要端點回 404。部署驗收沒有觸發摘要、即時告警、訂單或正式資料寫入；下一個 08:00／12:00／20:00 排程才會送出正常摘要。
 - 2026-08-28 流量訊號完整性 V2 本機驗證：相關分類／摘要／安全專項 46 passed；全套 `python -m pytest -q` 為 164 passed、1 skipped。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check`、執行面誤導詞掃描與不回印內容的新增行機密掃描均通過。測試覆蓋可信基準、舊資料保留排除、可歸因／未歸因、管理測試、機器流量、公開參數不可自稱管理預覽、登入保護、固定安全導向與八小時簽章 Session。
