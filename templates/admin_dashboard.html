@@ -7,8 +7,9 @@
   <title>營運後台｜天外一筆</title>
   <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css', v='hybrid-conversations-v1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v16.css', v='sealed-admin-base-v1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v17.css', v='professional-ui-v17') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v18.css', v='sealed-blind-strategy-v1') }}">
 </head>
 <body class="admin-page admin-ops-page">
   <a class="skip-link" href="#admin-root">跳至主要內容</a>
@@ -20,9 +21,8 @@
     <nav aria-label="工作區">
       <button class="is-active" type="button" data-admin-view="overview" aria-current="page"><i>今</i><span>今日總覽</span><b id="nav-attention-count" hidden></b></button>
       <button type="button" data-admin-view="orders"><i>單</i><span>交易訂單</span><b id="nav-order-count" hidden></b></button>
-      <button type="button" data-admin-view="ideas"><i>策</i><span>仙策內容</span></button>
+      <button type="button" data-admin-view="ideas"><i>卷</i><span>盲策製作</span></button>
       <button type="button" data-admin-view="customers"><i>客</i><span>客戶開通</span><b id="nav-customer-count" hidden></b></button>
-      <button type="button" data-admin-view="conversations"><i>談</i><span>傳音對話</span><b id="nav-conversation-count" hidden></b></button>
       <button type="button" data-admin-view="integrations"><i>接</i><span>系統串接</span></button>
       <button type="button" data-admin-view="security"><i>安</i><span>安全稽核</span></button>
     </nav>
@@ -102,14 +102,19 @@
     </section>
 
     <section id="ideas-admin" class="admin-workspace" data-admin-panel="ideas" hidden>
-      <div class="workspace-heading"><div><span class="workspace-kicker">CATALOG</span><h2>仙策內容</h2><p>價格、上架狀態與付費內容集中管理；舊訂單不會被新價格回溯修改。</p></div></div>
+      <div class="workspace-heading"><div><span class="workspace-kicker">SEALED CONCEPT STUDIO</span><h2>盲策製作</h2><p>輸入原始想法後自動建議六脈，再補齊公開線索、完整圖文與安全邊界；未達完整性門檻不能上架。</p></div></div>
       <div class="catalog-layout">
+        <form id="idea-draft-form" class="admin-panel price-card blind-draft-card">
+          <div class="panel-heading"><div><span>NEW RAW IDEA</span><h3>新增原始想法</h3></div></div>
+          <label>只寫你現在想到的內容<textarea id="idea-draft-raw" minlength="10" maxlength="3000" rows="7" placeholder="例：在一個正常輪位放入兩個獨立窄胎，其中一個爆胎時另一個能暫時支撐…" required></textarea></label>
+          <button class="admin-primary-button" type="submit">自動歸脈並建立草稿</button><small>系統只做可解釋的分類，不會自動公開，也不會把想法傳給外部 AI。</small>
+        </form>
         <form id="price-form" class="admin-panel price-card">
           <div class="panel-heading"><div><span>DEFAULT PRICE</span><h3>全站預設價格</h3></div></div>
           <div class="price-input"><span>NT$</span><input id="global-price" name="price" type="number" min="1" max="100000" required></div>
           <button class="admin-primary-button" type="submit">更新預設價格</button><small>只影響沒有單獨設定價格的仙策。</small>
         </form>
-        <section class="admin-panel catalog-card"><div class="panel-heading"><div><span>SIX PATHS</span><h3>六脈上架與內容</h3></div><strong id="published-count" class="panel-note">—</strong></div><div id="idea-admin-list" class="idea-admin-list"></div></section>
+        <section class="admin-panel catalog-card"><div class="panel-heading"><div><span>SEALED CATALOG</span><h3>封印卷與製作狀態</h3></div><strong id="published-count" class="panel-note">—</strong></div><div id="idea-admin-list" class="idea-admin-list"></div></section>
       </div>
     </section>
 
@@ -123,37 +128,6 @@
       <div class="admin-panel table-panel">
         <div class="panel-heading table-heading"><div><span>TRUSTED DEVICES</span><h3>可信裝置與工作階段</h3></div></div>
         <div class="table-scroll"><table class="admin-table"><thead><tr><th>客戶代碼</th><th>裝置</th><th>網路概略</th><th>最後使用</th><th>狀態</th><th>操作</th></tr></thead><tbody id="customer-device-table"></tbody></table></div>
-      </div>
-    </section>
-
-    <section id="conversations-admin" class="admin-workspace" data-admin-panel="conversations" hidden>
-      <div class="workspace-heading"><div><span class="workspace-kicker">DIALOGUES</span><h2>傳音對話</h2><p>公開留言先審後發；私密內容只在指定客戶與守閣者之間流動。</p></div></div>
-      <div id="conversation-metrics" class="conversation-admin-metrics" aria-live="polite"></div>
-      <div class="conversation-admin-toolbar admin-panel">
-        <div id="conversation-filters" class="order-filters" role="group" aria-label="傳音狀態篩選">
-          <button class="is-active" type="button" data-conversation-filter="pending" aria-pressed="true">待審核 <b id="conversation-count-pending">0</b></button>
-          <button type="button" data-conversation-filter="private" aria-pressed="false">私密 <b id="conversation-count-private">0</b></button>
-          <button type="button" data-conversation-filter="public" aria-pressed="false">已公開 <b id="conversation-count-public">0</b></button>
-          <button type="button" data-conversation-filter="all" aria-pressed="false">全部 <b id="conversation-count-all">0</b></button>
-        </div>
-        <p>訊息正文不會寄到外部通知；所有管理操作都保留稽核紀錄。</p>
-      </div>
-      <div class="conversation-admin-layout">
-        <section class="admin-panel conversation-review-panel" aria-labelledby="conversation-review-title">
-          <div class="panel-heading"><div><span>REVIEW QUEUE</span><h3 id="conversation-review-title">傳音佇列</h3></div><strong id="conversation-result-count" class="panel-count">0</strong></div>
-          <div id="conversation-admin-list" class="conversation-admin-list"></div>
-        </section>
-        <form id="conversation-reply-form" class="admin-panel conversation-reply-panel">
-          <div class="panel-heading"><div><span>KEEPER REPLY</span><h3 id="conversation-reply-title">新指定傳音</h3></div><button id="conversation-reply-reset" type="button" hidden>取消回覆</button></div>
-          <input id="conversation-reply-to" type="hidden">
-          <label>傳音區塊<select id="conversation-section" required></select></label>
-          <label>傳音範圍<select id="conversation-visibility" required><option value="private">私密傳音</option><option value="public">公開回覆</option></select></label>
-          <p id="conversation-scope-note" class="conversation-scope-note" data-scope="private"><strong>私密傳音</strong><span>只有指定客戶與守閣者可讀；必須選擇客戶。</span></p>
-          <label>指定客戶<select id="conversation-customer"><option value="">不指定客戶</option></select></label>
-          <label>守閣者回覆<textarea id="conversation-reply-body" minlength="2" maxlength="800" rows="8" placeholder="請勿輸入密碼、驗證碼、復原碼或付款資料。" required></textarea></label>
-          <p id="conversation-reply-status" class="form-status" role="status" aria-live="polite"></p>
-          <button class="admin-primary-button" type="submit">送出傳音</button>
-        </form>
       </div>
     </section>
 
@@ -193,16 +167,19 @@
 
   <dialog id="idea-editor" class="idea-editor">
     <form id="idea-editor-form" method="dialog">
-      <header><div><span>IDEA CONTENT</span><h2>編輯仙策</h2><p id="idea-editor-slug"></p></div><button class="dialog-close" type="button" data-close-dialog aria-label="關閉編輯視窗">×</button></header>
+      <header><div><span>SEALED CONTENT</span><h2>編輯盲策卷</h2><p id="idea-editor-slug"></p></div><button class="dialog-close" type="button" data-close-dialog aria-label="關閉編輯視窗">×</button></header>
       <input id="idea-id" type="hidden">
       <div class="editor-grid">
-        <label>仙策名稱<input id="idea-title" maxlength="80" required></label><label>角色／技能者<input id="idea-role" maxlength="60" required></label><label>法印字<input id="idea-seal" maxlength="4" required></label>
+        <label>公開封印名稱<input id="idea-public-title" maxlength="80" required></label><label>拆封後真實標題<input id="idea-title" maxlength="80" required></label><label>卷內角色／定位<input id="idea-role" maxlength="60" required></label><label>法印字<input id="idea-seal" maxlength="4" required></label>
+        <label>主脈<select id="idea-primary-vein" required>{% for vein in ('守護脈','造物脈','靈機脈','破局脈','人間脈','傳音脈') %}<option value="{{ vein }}">{{ vein }}</option>{% endfor %}</select></label><label>副脈<select id="idea-secondary-vein"><option value="">不設定</option>{% for vein in ('守護脈','造物脈','靈機脈','破局脈','人間脈','傳音脈') %}<option value="{{ vein }}">{{ vein }}</option>{% endfor %}</select></label>
+        <label>製作狀態<select id="idea-workflow-status" required><option value="draft">草稿</option><option value="review">檢查中</option><option value="ready">可上架</option><option value="published">已上架</option><option value="archived">封存</option></select></label><label>成熟度<input id="idea-maturity" maxlength="80" required></label>
         <label>視覺色系<select id="idea-accent" required><option value="cinnabar">朱砂</option><option value="jade">青玉</option><option value="gold">月金</option><option value="azure">天青</option><option value="violet">靛紫</option><option value="silver">月銀</option></select></label>
         <label>排序<input id="idea-sort-order" type="number" min="1" max="999" required></label><label>單品價格（留空套用全站價）<input id="idea-price-override" type="number" min="1" max="100000" placeholder="套用全站價"></label>
       </div>
-      <label>專長分類<input id="idea-discipline" maxlength="100" required></label><label>卡片摘要<textarea id="idea-summary" minlength="10" maxlength="240" rows="3" required></textarea></label><label>免費公開殘頁<textarea id="idea-teaser" minlength="10" maxlength="600" rows="4" required></textarea></label><label>付費完整內容<textarea id="idea-paid-content" minlength="20" maxlength="6000" rows="10" required></textarea></label><label>交付物（以｜分隔）<input id="idea-deliverables" maxlength="500" required></label><label>標籤（以逗號分隔）<input id="idea-tags" maxlength="200" required></label>
+      <label>原始想法（內部）<textarea id="idea-raw-idea" minlength="2" maxlength="3000" rows="4" required></textarea></label><label>主題（內部）<input id="idea-topic" maxlength="120"></label><label>公開領域線索<input id="idea-discipline" maxlength="100" required></label><label>卡片摘要<textarea id="idea-summary" minlength="10" maxlength="240" rows="3" required></textarea></label><label>購買前封印線索<textarea id="idea-teaser" minlength="10" maxlength="600" rows="4" required></textarea></label><label>拆封後完整內容<textarea id="idea-paid-content" minlength="20" maxlength="6000" rows="12" required></textarea></label><label>取得內容（以｜分隔）<input id="idea-deliverables" maxlength="500" required></label><label>標籤（以逗號分隔）<input id="idea-tags" maxlength="200" required></label>
+      <div class="editor-grid"><label>主視覺路徑<input id="idea-hero-image" maxlength="180" placeholder="brand/example.webp"></label><label>結構圖路徑<input id="idea-diagram-image" maxlength="180" placeholder="brand/example.webp"></label><label>情境圖路徑<input id="idea-scene-image" maxlength="180" placeholder="brand/example.webp"></label></div>
       <p id="idea-editor-status" class="form-status" role="status" aria-live="polite"></p><p id="idea-editor-dirty" class="editor-dirty" hidden>尚有未儲存變更</p>
-      <footer><button type="button" data-close-dialog>取消</button><button class="save-idea" type="submit">儲存仙策內容</button></footer>
+      <footer><button type="button" data-close-dialog>取消</button><button class="save-idea" type="submit">儲存盲策內容</button></footer>
     </form>
   </dialog>
   <dialog id="admin-confirm-dialog" class="idea-editor admin-confirm-dialog" aria-labelledby="admin-confirm-title">
@@ -220,6 +197,6 @@
       <footer><button type="button" data-close-refund-dialog>取消</button><button class="save-idea" type="submit">確認退款並撤回</button></footer>
     </form>
   </dialog>
-  <script src="{{ url_for('static', filename='admin.js', v='professional-ui-v17') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin.js', v='sealed-blind-strategy-v1') }}" defer></script>
 </body>
 </html>

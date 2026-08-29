@@ -110,7 +110,7 @@ def test_customer_login_code_expires_after_ten_minutes_without_losing_entitlemen
         data={"csrf_token": csrf, "activation_code": activation_code},
         follow_redirects=True,
     )
-    assert "七日品牌世界觀鍛造表" in activated.get_data(as_text=True)
+    assert "雙生續行輪" in activated.get_data(as_text=True)
 
     client.post("/customer/logout", data={"csrf_token": csrf})
     login_csrf = set_public_csrf(client, "login-request-csrf")
@@ -174,7 +174,7 @@ def test_valid_relogin_code_restores_library_and_is_single_use(client):
     )
     assert logged_in.status_code == 200
     assert "已購內容" in logged_in.get_data(as_text=True)
-    assert "品牌世界觀鍛造" in logged_in.get_data(as_text=True)
+    assert "雙生續行輪" in logged_in.get_data(as_text=True)
 
     reused = client.post(
         "/customer/login/verify",

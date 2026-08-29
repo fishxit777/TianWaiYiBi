@@ -56,7 +56,6 @@ def create_app(test_config=None):
 
     from .admin import admin_bp
     from .access import access_bp
-    from .conversations import conversations_bp
     from .line_bot import line_bp
     from .notification_routes import notification_bp
     from .payments import payments_bp
@@ -65,7 +64,6 @@ def create_app(test_config=None):
     app.register_blueprint(public_bp)
     app.register_blueprint(payments_bp)
     app.register_blueprint(access_bp)
-    app.register_blueprint(conversations_bp)
     app.register_blueprint(line_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(notification_bp)
@@ -76,14 +74,11 @@ def create_app(test_config=None):
     @app.context_processor
     def inject_globals():
         from .payments import payment_checkout_status
-        from .turnstile import turnstile_configured, turnstile_site_key
 
         return {
             "csrf_token": get_public_csrf_token,
             "line_add_friend_url": app.config["LINE_ADD_FRIEND_URL"],
             "payment_status": payment_checkout_status(),
-            "conversation_turnstile_enabled": turnstile_configured(),
-            "turnstile_site_key": turnstile_site_key(),
         }
 
     @app.get("/healthz")
@@ -93,7 +88,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "line-admin-notifications-v3",
+                "release": "sealed-blind-strategy-v1",
             }
         )
 

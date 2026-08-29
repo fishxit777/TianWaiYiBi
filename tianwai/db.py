@@ -215,6 +215,34 @@ IDEA_SEEDS = [
     },
 ]
 
+BLINDBOX_SEEDS = [
+    {
+        "slug": "sealed-twin-tire-safety",
+        "public_title": "封印盲策・第壹卷",
+        "title": "雙生續行輪：可拆分式雙輪胎概念",
+        "role": "守護造物",
+        "seal": "守",
+        "discipline": "道路安全・模組化移動",
+        "primary_vein": "守護脈",
+        "secondary_vein": "造物脈",
+        "topic": "可拆分式雙輪胎",
+        "maturity": "概念提案・未經工程驗證",
+        "workflow_status": "published",
+        "raw_idea": "在一個正常輪位設置兩個可獨立承載的窄型輪胎模組；其中一側爆胎時，另一側暫時支撐車輛駛離危險路段。",
+        "summary": "當單一輪胎突然失效，能否多留一段安全離場的時間？",
+        "teaser": "這一卷封存一種同輪位、雙承載單元的道路安全構想。它不承諾讓車輛繼續高速行駛，而是試圖降低駕駛人在車流旁立即換胎的暴露風險。",
+        "paid_content": "概念原點\n道路爆胎的風險不只來自輪胎本身，也來自駕駛被迫停在快速車流旁處理故障。這份概念把問題重新定義為：如何在一個輪位部分失效後，保留短距離、低速、可控制的離場能力。\n\n概念機制\n將傳統單一寬胎的承載角色，拆成同一輪位內兩個並列、可獨立維持基本形狀與承載的窄型輪胎模組。當其中一個模組失壓，另一個模組提供有限支撐，讓駕駛以低速移至安全處等待道路救援。兩個模組仍共用車輪位置，但輪胎腔體與主要失效路徑彼此隔離。\n\n使用者價值\n一、把「立刻在路邊換胎」轉成「先離開高暴露位置再處理」。\n二、把單點輪胎失效改為部分承載能力下降，爭取反應時間。\n三、讓胎壓監測可分別識別兩個模組，較早提示偏載與異常。\n\n可能情境\n高速道路爆胎後低速駛入避車彎；夜間或雨天先移至照明較好的安全位置；偏遠道路先離開彎道或視線死角再等待救援。\n\n已知限制與未知\n這只是概念提案，尚未完成結構、熱衰退、操控、制動、輪圈、懸吊、法規、製造成本與道路測試。並列雙模組可能帶來不均勻磨耗、轉向偏移、散熱、噪音、重量及維修複雜度。任何原型都必須由輪胎、車輛動力與法規專業人員驗證。\n\n安全邊界\n任一輪胎模組失壓後，只能把剩餘承載視為協助駛離立即危險位置的暫時能力；不可高速續行、不可延後專業檢查，也不能取代道路救援與合格維修。",
+        "deliverables": "概念全卷｜結構視覺｜使用情境圖｜限制與未知清單",
+        "tags": "汽車,爆胎,道路安全,模組化輪胎,未驗證",
+        "accent": "jade",
+        "hero_image": "brand/blindbox-twin-tire-hero-v1.webp",
+        "diagram_image": "brand/blindbox-twin-tire-cutaway-v1.webp",
+        "scene_image": "brand/blindbox-twin-tire-scene-v1.webp",
+        "classification_confidence": 94,
+        "sort_order": 1,
+    }
+]
+
 
 def seed_database(connection):
     now = utc_now()
@@ -227,13 +255,36 @@ def seed_database(connection):
             """
             INSERT OR IGNORE INTO ideas
                 (slug, title, role, seal, discipline, summary, teaser, paid_content,
-                 deliverables, tags, accent, sort_order, published, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                 deliverables, tags, accent, workflow_status, sort_order, published,
+                 created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'archived', ?, 0, ?, ?)
             """,
             (
                 idea["slug"], idea["title"], idea["role"], idea["seal"], idea["discipline"],
                 idea["summary"], idea["teaser"], idea["paid_content"], idea["deliverables"],
                 idea["tags"], idea["accent"], idea["sort_order"], now, now,
+            ),
+        )
+    for idea in BLINDBOX_SEEDS:
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO ideas
+                (slug, title, public_title, role, seal, discipline, primary_vein,
+                 secondary_vein, topic, maturity, workflow_status, raw_idea,
+                 summary, teaser, paid_content, deliverables, tags, accent,
+                 hero_image, diagram_image, scene_image, classification_confidence,
+                 sort_order, published, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+            """,
+            (
+                idea["slug"], idea["title"], idea["public_title"], idea["role"],
+                idea["seal"], idea["discipline"], idea["primary_vein"],
+                idea["secondary_vein"], idea["topic"], idea["maturity"],
+                idea["workflow_status"], idea["raw_idea"], idea["summary"],
+                idea["teaser"], idea["paid_content"], idea["deliverables"],
+                idea["tags"], idea["accent"], idea["hero_image"],
+                idea["diagram_image"], idea["scene_image"],
+                idea["classification_confidence"], idea["sort_order"], now, now,
             ),
         )
     connection.commit()
@@ -386,6 +437,40 @@ def _migrate_section_messages(connection):
 def migrate_database(connection):
     """Apply additive SQLite migrations for databases created by earlier releases."""
     _migrate_section_messages(connection)
+    idea_columns = _column_names(connection, "ideas")
+    idea_migrations = {
+        "public_title": "TEXT NOT NULL DEFAULT ''",
+        "primary_vein": "TEXT NOT NULL DEFAULT ''",
+        "secondary_vein": "TEXT NOT NULL DEFAULT ''",
+        "topic": "TEXT NOT NULL DEFAULT ''",
+        "maturity": "TEXT NOT NULL DEFAULT '概念提案・未經工程驗證'",
+        "workflow_status": "TEXT NOT NULL DEFAULT 'draft'",
+        "raw_idea": "TEXT NOT NULL DEFAULT ''",
+        "hero_image": "TEXT NOT NULL DEFAULT ''",
+        "diagram_image": "TEXT NOT NULL DEFAULT ''",
+        "scene_image": "TEXT NOT NULL DEFAULT ''",
+        "classification_confidence": "INTEGER NOT NULL DEFAULT 0",
+    }
+    for column, definition in idea_migrations.items():
+        if column not in idea_columns:
+            connection.execute(f"ALTER TABLE ideas ADD COLUMN {column} {definition}")
+
+    migration_now = utc_now()
+    catalog_migration = connection.execute(
+        "SELECT value FROM settings WHERE key = ?", ("blindbox_catalog_v1_migrated",)
+    ).fetchone()
+    if catalog_migration is None:
+        legacy_slugs = tuple(idea["slug"] for idea in IDEA_SEEDS)
+        placeholders = ",".join("?" for _ in legacy_slugs)
+        connection.execute(
+            f"UPDATE ideas SET published = 0, workflow_status = 'archived', updated_at = ? "
+            f"WHERE slug IN ({placeholders})",
+            (migration_now, *legacy_slugs),
+        )
+        connection.execute(
+            "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+            ("blindbox_catalog_v1_migrated", "1", migration_now),
+        )
     if "activation_token_hash" not in _column_names(connection, "orders"):
         connection.execute("ALTER TABLE orders ADD COLUMN activation_token_hash TEXT")
     if "customer_id" not in _column_names(connection, "orders"):

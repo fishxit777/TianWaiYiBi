@@ -9,6 +9,7 @@ import urllib.request
 from flask import Blueprint, current_app, has_request_context, jsonify, render_template, request
 
 from .db import get_db, get_setting_int, utc_now
+from .payments import payment_checkout_status
 from .security import log_security_event, require_public_csrf
 
 
@@ -36,7 +37,8 @@ def line_signature_valid(raw_body, supplied):
 def _published_ideas():
     return get_db().execute(
         """
-        SELECT slug, title, role, seal, discipline, summary, accent, price_override
+        SELECT slug, public_title, primary_vein, seal, discipline, summary, maturity,
+               accent, price_override
         FROM ideas WHERE published = 1 ORDER BY sort_order, id
         """
     ).fetchall()
@@ -57,9 +59,9 @@ def _public_base_url():
 
 def _catalog_text(ideas):
     listing = "\n".join(
-        f"{index}.【{idea['seal']}】{idea['role']}｜{idea['title']}" for index, idea in enumerate(ideas, 1)
+        f"{index}.【{idea['seal']}】{idea['primary_vein']}｜{idea['public_title']}" for index, idea in enumerate(ideas, 1)
     )
-    return f"六脈仙策已開閣：\n{listing}\n\n點下卡片可看公開摘要，或直接回覆 1～{len(ideas)}。"
+    return f"天外盲策封印目錄：\n{listing}\n\n卡片只顯示購買前線索；完整概念在拆封後才現世。"
 
 
 def _idea_flex_bubble(idea, index, global_price, base_url):
@@ -73,9 +75,9 @@ def _idea_flex_bubble(idea, index, global_price, base_url):
             "paddingAll": "18px",
             "backgroundColor": accent,
             "contents": [
-                {"type": "text", "text": f"第 {index} 脈・{idea['seal']}", "color": "#F8F0DD", "size": "xs"},
+                {"type": "text", "text": f"第 {index} 卷・{idea['seal']}", "color": "#F8F0DD", "size": "xs"},
                 {
-                    "type": "text", "text": idea["role"], "color": "#FFFFFF", "size": "lg",
+                    "type": "text", "text": idea["primary_vein"], "color": "#FFFFFF", "size": "lg",
                     "weight": "bold", "margin": "sm", "wrap": True,
                 },
             ],
@@ -85,7 +87,7 @@ def _idea_flex_bubble(idea, index, global_price, base_url):
             "layout": "vertical",
             "paddingAll": "18px",
             "contents": [
-                {"type": "text", "text": idea["title"], "weight": "bold", "size": "xl", "wrap": True},
+                {"type": "text", "text": idea["public_title"], "weight": "bold", "size": "xl", "wrap": True},
                 {
                     "type": "text", "text": idea["discipline"], "color": "#766E86", "size": "xs",
                     "margin": "sm", "wrap": True,
@@ -95,7 +97,7 @@ def _idea_flex_bubble(idea, index, global_price, base_url):
                     "margin": "md", "wrap": True,
                 },
                 {
-                    "type": "text", "text": f"NT${_idea_price(idea, global_price)}・一次解鎖",
+                    "type": "text", "text": f"NT${_idea_price(idea, global_price)}・非專屬閱讀權",
                     "color": "#9B493E", "size": "sm", "weight": "bold", "margin": "lg",
                 },
             ],
@@ -111,7 +113,7 @@ def _idea_flex_bubble(idea, index, global_price, base_url):
                 "color": "#292652",
                 "action": {
                     "type": "uri",
-                    "label": "翻閱免費摘要",
+                    "label": "查看封印線索",
                     "uri": f"{base_url}/ideas/{idea['slug']}?source=line",
                 },
             }],
@@ -122,6 +124,7 @@ def _idea_flex_bubble(idea, index, global_price, base_url):
 def build_messages(message, event_type="message"):
     text = str(message or "").strip().lower()
     price = get_setting_int("idea_price", 199)
+    payment_ready = payment_checkout_status()["ready"]
     ideas = _published_ideas()
     base_url = _public_base_url()
 
@@ -129,20 +132,20 @@ def build_messages(message, event_type="message"):
         return [
             {
                 "type": "text",
-                "text": "歡迎來到天外一筆・仙策閣。這裡把天馬行空的想法煉成可執行心法。回覆『靈感』看六脈仙策，回覆『價格』看統一試行價。",
+                "text": "歡迎來到天外一筆・天外盲策。回覆『目錄』可看封印線索；真正概念與完整圖文只在購買拆封後揭示。付款或開通異常，也可在這裡取得私人協助。",
             }
         ]
     if any(keyword in text for keyword in ("價格", "多少", "price")):
         return [{
             "type": "text",
-            "text": f"目前六脈仙策統一試行價 NT${price}／份。每份皆為一次買斷的數位心法；正式金流上線前，本機測試不會真的扣款。",
+            "text": (f"目前封印卷預定價 NT${price}／卷，取得非專屬閱讀權。" + ("目前可由官網安全付款拆封。" if payment_ready else "公開收款目前關閉，不會建立訂單或扣款。")),
         }]
-    if any(keyword in text for keyword in ("靈感", "想法", "仙策", "目錄", "menu")):
+    if any(keyword in text for keyword in ("靈感", "想法", "盲策", "仙策", "目錄", "menu")):
         return [
             {"type": "text", "text": _catalog_text(ideas)},
             {
                 "type": "flex",
-                "altText": "天外一筆六脈仙策導覽",
+                "altText": "天外一筆封印盲策目錄",
                 "contents": {
                     "type": "carousel",
                     "contents": [
@@ -155,21 +158,21 @@ def build_messages(message, event_type="message"):
     if text.isdigit() and 1 <= int(text) <= len(ideas):
         idea = ideas[int(text) - 1]
         return [
-            {"type": "text", "text": f"你選的是第 {text} 脈：{idea['role']}。這一脈專治「{idea['discipline']}」。"},
+            {"type": "text", "text": f"你選的是第 {text} 卷：{idea['public_title']}。公開主脈為「{idea['primary_vein']}」，領域線索是「{idea['discipline']}」。"},
             {
                 "type": "flex",
-                "altText": f"{idea['role']}｜{idea['title']}",
+                "altText": f"{idea['primary_vein']}｜{idea['public_title']}",
                 "contents": _idea_flex_bubble(idea, int(text), price, base_url),
             },
         ]
     if any(keyword in text for keyword in ("開始", "說明", "幫助", "help", "你好", "哈囉")):
         return [{
             "type": "text",
-            "text": "可用指令：\n・靈感：查看六脈仙策卡片\n・價格：查看目前統一試行價\n・1～6：查看單一仙策\n・說明：再次查看這份指令表",
+            "text": "可用指令：\n・目錄：查看封印盲策\n・價格：查看預定價與收款狀態\n・數字：查看指定封印卷線索\n・說明：再次查看指令",
         }]
     return [{
         "type": "text",
-        "text": "我還沒辨識這句。你可以回覆『靈感』看六脈仙策、回覆『價格』，或直接輸入 1～6。",
+        "text": "我還沒辨識這句。你可以回覆『目錄』看封印盲策、回覆『價格』，或輸入卷號。",
     }]
 
 

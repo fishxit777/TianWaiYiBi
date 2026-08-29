@@ -16,11 +16,10 @@ PUBLIC_EVENT_VALUES = {
     "view_idea": None,
     "checkout_opened": None,
     "line_cta_clicked": None,
-    "filter_used": {"all", "品牌", "成長", "自動化", "策略"},
+    "filter_used": {"all", "守護脈", "造物脈", "靈機脈", "破局脈", "人間脈", "傳音脈"},
     "reading_depth": {"50", "90"},
     "engaged_read": {"45"},
     "interest_registered": None,
-    "conversation_cta_clicked": None,
 }
 IDEA_EVENTS = {
     "view_idea",
@@ -28,8 +27,6 @@ IDEA_EVENTS = {
     "reading_depth",
     "engaged_read",
     "interest_registered",
-    "conversation_cta_clicked",
-    "conversation_submitted",
     "order_created",
     "purchase_completed",
 }
@@ -210,7 +207,7 @@ def validate_public_event(event_name, event_value):
 
 def public_event_dedupe_scope(event_name, event_value=""):
     day = datetime.now(timezone.utc).date().isoformat()
-    if event_name in {"view_idea", "checkout_opened", "filter_used", "line_cta_clicked", "conversation_cta_clicked"}:
+    if event_name in {"view_idea", "checkout_opened", "filter_used", "line_cta_clicked"}:
         return f"{day}:{event_value}"
     if event_name in {"reading_depth", "engaged_read", "interest_registered"}:
         return event_value or event_name
@@ -240,7 +237,6 @@ def _evidence_index(funnel, payment_ready):
         "read_50": min(funnel["read_50"] / visitors, 1),
         "engaged": min(funnel["engaged"] / visitors, 1),
         "interest": min(funnel["interest"] / visitors, 1),
-        "conversations": min(funnel["conversations"] / visitors, 1),
         "checkout": min(funnel["checkout"] / visitors, 1),
         "orders": min(funnel["orders"] / visitors, 1),
         "paid": min(funnel["paid"] / visitors, 1),
@@ -251,7 +247,6 @@ def _evidence_index(funnel, payment_ready):
             + rates["read_50"] * 15
             + rates["engaged"] * 15
             + rates["interest"] * 15
-            + rates["conversations"] * 10
             + rates["checkout"] * 10
             + rates["orders"] * 10
             + rates["paid"] * 15
@@ -262,7 +257,6 @@ def _evidence_index(funnel, payment_ready):
             + rates["read_50"] * 20
             + rates["engaged"] * 20
             + rates["interest"] * 25
-            + rates["conversations"] * 15
         )
     return round(min(score, 100), 1)
 
@@ -274,7 +268,7 @@ def _stage(funnel):
         return "ordered", "已建立訂單"
     if funnel["checkout"]:
         return "checkout", "進入結帳"
-    if funnel["interest"] or funnel["conversations"]:
+    if funnel["interest"]:
         return "intent", "出現主動意願"
     if funnel["engaged"]:
         return "engaged", "出現有效閱讀"
@@ -287,7 +281,7 @@ def _diagnosis(funnel, payment_ready, confidence):
     visitors = funnel["visitors"]
     read_50 = funnel["read_50"]
     engaged = funnel["engaged"]
-    intent = funnel["interest"] + funnel["conversations"]
+    intent = funnel["interest"]
     if confidence["level"] == "insufficient":
         return {
             "code": "insufficient_sample",
@@ -313,7 +307,7 @@ def _diagnosis(funnel, payment_ready, confidence):
         return {
             "code": "intent_gap",
             "title": "有人讀完，但沒有主動意願",
-            "evidence": f"有效閱讀 {engaged} 位；意願與傳音皆為 0",
+            "evidence": f"有效閱讀 {engaged} 位；主動意願為 0",
             "action": "把交付結果與「適合誰」說得更具體，保留單一低摩擦意願按鈕。",
         }
     if not payment_ready:
@@ -321,13 +315,13 @@ def _diagnosis(funnel, payment_ready, confidence):
             return {
                 "code": "prelaunch_signal",
                 "title": "累積到可訪談的前置信號",
-                "evidence": f"主動意願與傳音合計 {intent} 位；正式收款仍關閉",
+                "evidence": f"主動意願 {intent} 位；正式收款仍關閉",
                 "action": "優先訪談這一策的目標客戶，確認交付內容與願付價格，不先開收款。",
             }
         return {
             "code": "collecting_prelaunch",
             "title": "閱讀成立，繼續收集意願",
-            "evidence": f"有效閱讀 {engaged} 位；主動意願與傳音合計 {intent} 位",
+            "evidence": f"有效閱讀 {engaged} 位；主動意願 {intent} 位",
             "action": "維持摘要，增加合格目標訪客；達 3 位主動意願後進行訪談。",
         }
     if funnel["checkout"] >= 5 and _rate(funnel["orders"], funnel["checkout"]) < 40:
@@ -417,7 +411,7 @@ def build_demand_radar(connection=None, *, days=30, now=None, payment_ready=Fals
         start_dt.isoformat(timespec="seconds"),
     )
     ideas = database.execute(
-        "SELECT id, slug, title, role, published, sort_order FROM ideas ORDER BY sort_order, id"
+        "SELECT id, slug, public_title, primary_vein, published, sort_order FROM ideas ORDER BY sort_order, id"
     ).fetchall()
     items = []
     for idea in ideas:
@@ -428,8 +422,6 @@ def build_demand_radar(connection=None, *, days=30, now=None, payment_ready=Fals
             "read_90": _aggregate_value(current, idea_id, "reading_depth", "90"),
             "engaged": int(current_engaged.get(idea_id, 0)),
             "interest": _aggregate_value(current, idea_id, "interest_registered"),
-            "conversation_clicks": _aggregate_value(current, idea_id, "conversation_cta_clicked"),
-            "conversations": _aggregate_value(current, idea_id, "conversation_submitted"),
             "checkout": _aggregate_value(current, idea_id, "checkout_opened"),
             "orders": _aggregate_value(current, idea_id, "order_created"),
             "paid": _aggregate_value(current, idea_id, "purchase_completed"),
@@ -443,14 +435,14 @@ def build_demand_radar(connection=None, *, days=30, now=None, payment_ready=Fals
         items.append(
             {
                 "slug": idea["slug"],
-                "title": idea["title"],
-                "role": idea["role"],
+                "title": idea["public_title"] or "未命名封印卷",
+                "role": idea["primary_vein"] or "待歸脈",
                 "published": bool(idea["published"]),
                 "funnel": funnel,
                 "rates": {
                     "read_50": _rate(funnel["read_50"], funnel["visitors"]),
                     "engaged": _rate(funnel["engaged"], funnel["visitors"]),
-                    "interest": _rate(funnel["interest"] + funnel["conversations"], funnel["visitors"]),
+                    "interest": _rate(funnel["interest"], funnel["visitors"]),
                     "checkout": _rate(funnel["checkout"], funnel["visitors"]),
                     "paid": _rate(funnel["paid"], funnel["visitors"]),
                 },

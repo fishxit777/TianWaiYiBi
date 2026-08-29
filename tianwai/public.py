@@ -196,10 +196,12 @@ def ideas_api():
             "ideas": [
                 {
                     "slug": item["slug"],
-                    "title": item["title"],
-                    "role": item["role"],
+                    "title": item["public_title"],
+                    "public_title": item["public_title"],
+                    "primary_vein": item["primary_vein"],
                     "discipline": item["discipline"],
                     "summary": item["summary"],
+                    "maturity": item["maturity"],
                     "tags": item["tags"].split(","),
                     "price": _idea_price(item),
                 }

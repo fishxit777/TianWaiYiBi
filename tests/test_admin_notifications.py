@@ -172,7 +172,7 @@ def test_daily_summary_counts_unique_human_sessions_and_gates_top_idea(app):
     with app.app_context():
         connection = get_db()
         idea_id = connection.execute(
-            "SELECT id FROM ideas WHERE slug = 'brand-world-forge'"
+            "SELECT id FROM ideas WHERE slug = 'sealed-twin-tire-safety'"
         ).fetchone()["id"]
         now = utc_now()
         rows = [

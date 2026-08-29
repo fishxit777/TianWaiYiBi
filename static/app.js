@@ -1,411 +1,72 @@
 (() => {
   const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
-  const activityStorageKey = (slug, visibility, scope = 'public') => `twyb:idea-transmission-seen:${slug}:${visibility}:${visibility === 'private' ? scope : 'public'}`;
-  const readActivityMarker = (slug, visibility, scope = 'public') => {
-    try {
-      const value = Number.parseInt(localStorage.getItem(activityStorageKey(slug, visibility, scope)) || '0', 10);
-      return Number.isFinite(value) && value > 0 ? value : 0;
-    } catch (_error) {
-      return 0;
-    }
-  };
-  const activityTargets = [...document.querySelectorAll('[data-idea-activity]')];
-  const activitySummary = document.querySelector('[data-ideas-activity-summary]');
-  const activityNav = document.querySelector('[data-ideas-nav-activity]');
   const siteHeader = document.querySelector('.site-header');
   const readingProgress = document.querySelector('[data-reading-progress]');
-
   const updateReadingPosition = () => {
-    const scrollRange = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-    const ratio = Math.min(1, Math.max(0, window.scrollY / scrollRange));
-    if (readingProgress) readingProgress.style.width = `${ratio * 100}%`;
-    siteHeader?.classList.toggle('is-compact', window.scrollY > 36);
+    const range = Math.max(document.documentElement.scrollHeight - innerHeight, 1);
+    if (readingProgress) readingProgress.style.width = `${Math.min(1, Math.max(0, scrollY / range)) * 100}%`;
+    siteHeader?.classList.toggle('is-compact', scrollY > 36);
   };
   updateReadingPosition();
-  window.addEventListener('scroll', updateReadingPosition, {passive: true});
-  window.addEventListener('resize', updateReadingPosition, {passive: true});
+  addEventListener('scroll', updateReadingPosition, {passive:true});
+  addEventListener('resize', updateReadingPosition, {passive:true});
 
-  const chapterLinks = [...document.querySelectorAll('.main-nav a[href*="#"], .mobile-chapter-nav a[href*="#"]')]
-    .filter((link) => {
-      const target = new URL(link.href, location.href);
-      return target.pathname === location.pathname && target.hash && document.querySelector(target.hash);
-    });
-  if (chapterLinks.length && 'IntersectionObserver' in window) {
-    const chapterObserver = new IntersectionObserver((entries) => {
-      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (!visible) return;
-      const hash = `#${visible.target.id}`;
-      chapterLinks.forEach((link) => {
-        if (new URL(link.href, location.href).hash === hash) link.setAttribute('aria-current', 'location');
-        else link.removeAttribute('aria-current');
-      });
-    }, {rootMargin: '-24% 0px -62% 0px', threshold: [0, .15, .5]});
-    [...new Set(chapterLinks.map((link) => document.querySelector(new URL(link.href, location.href).hash)))].forEach((section) => chapterObserver.observe(section));
-  }
+  document.querySelectorAll('.reveal').forEach((element) => element.classList.add('is-visible'));
 
-  const setActivityState = (node, label, state) => {
-    if (!node) return;
-    node.textContent = label;
-    node.dataset.state = state;
-    node.hidden = false;
-  };
-
-  const clearActivityState = (node) => {
-    if (!node) return;
-    node.hidden = true;
-    node.textContent = '';
-    delete node.dataset.state;
-  };
-
-  const loadIdeaActivity = async () => {
-    if (!activityTargets.length && !activitySummary && !activityNav) return;
-    try {
-      const response = await fetch('/api/conversations/idea-activity', {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: {'Accept': 'application/json'}
-      });
-      const data = await response.json();
-      if (!response.ok || !Array.isArray(data.ideas)) throw new Error('activity unavailable');
-      const activityBySlug = new Map(data.ideas.map((item) => [item.slug, item]));
-      const activityScope = data.viewer?.activity_scope || 'anonymous';
-      let hasExisting = false;
-      let hasNewPublic = false;
-      let hasPrivateReply = false;
-
-      const stateFor = (item) => {
-        const seenPublic = readActivityMarker(item.slug, 'public');
-        const seenPrivate = readActivityMarker(item.slug, 'private', activityScope);
-        if (Number(item.latest_private_reply_id || 0) > seenPrivate) {
-          return {label: '有新回覆', state: 'reply'};
-        }
-        if (seenPublic > 0 && Number(item.latest_public_id || 0) > seenPublic) {
-          return {label: '新傳音', state: 'unread'};
-        }
-        if (Number(item.public_count || 0) > 0) {
-          return {label: '已有傳音', state: 'existing'};
-        }
-        return null;
-      };
-
-      data.ideas.forEach((item) => {
-        const activityState = stateFor(item);
-        if (activityState?.state === 'reply') hasPrivateReply = true;
-        else if (activityState?.state === 'unread') hasNewPublic = true;
-        else if (activityState?.state === 'existing') hasExisting = true;
-      });
-
-      activityTargets.forEach((target) => {
-        const item = activityBySlug.get(target.dataset.ideaSlug || '');
-        if (!item) {
-          clearActivityState(target);
-          return;
-        }
-        const activityState = stateFor(item);
-        if (activityState) {
-          setActivityState(target, activityState.label, activityState.state);
-        } else {
-          clearActivityState(target);
-        }
-      });
-
-      const aggregateLabel = hasPrivateReply
-        ? '六脈有新回覆'
-        : (hasNewPublic ? '六脈有新傳音' : (hasExisting ? '六脈已有傳音' : ''));
-      const aggregateState = hasPrivateReply ? 'reply' : (hasNewPublic ? 'unread' : 'existing');
-      if (aggregateLabel) {
-        if (activitySummary) {
-          activitySummary.querySelector('strong').textContent = aggregateLabel;
-          activitySummary.dataset.state = aggregateState;
-          activitySummary.hidden = false;
-        }
-        setActivityState(
-          activityNav,
-          hasPrivateReply ? '新回覆' : (hasNewPublic ? '新傳音' : '有傳音'),
-          aggregateState
-        );
-      } else {
-        if (activitySummary) {
-          activitySummary.hidden = true;
-          delete activitySummary.dataset.state;
-        }
-        clearActivityState(activityNav);
-      }
-    } catch (_error) {
-      activityTargets.forEach(clearActivityState);
-      if (activitySummary) activitySummary.hidden = true;
-      clearActivityState(activityNav);
-    }
-  };
-
-  loadIdeaActivity();
-  window.addEventListener('pageshow', (event) => {
-    if (event.persisted) loadIdeaActivity();
-  });
-  window.addEventListener('twyb:conversation-seen', loadIdeaActivity);
-
-  const trackEvent = async (eventName, {ideaSlug = '', eventValue = '', keepalive = false} = {}) => {
-    const response = await fetch('/api/events', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},
-      body: JSON.stringify({event_name: eventName, idea_slug: ideaSlug, event_value: eventValue}),
-      keepalive
-    });
+  const trackEvent = async (eventName, {ideaSlug='', eventValue='', keepalive=false}={}) => {
+    const response = await fetch('/api/events', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()}, body:JSON.stringify({event_name:eventName, idea_slug:ideaSlug, event_value:eventValue}), keepalive});
     if (!response.ok) throw new Error('analytics event rejected');
     return response.status === 204 ? {} : response.json();
   };
 
   const filterButtons = [...document.querySelectorAll('[data-filter]')];
-  const applyIdeaFilter = (requestedFilter, track = false) => {
+  const applyIdeaFilter = (requested, track=false) => {
     if (!filterButtons.length) return;
     const available = new Set(filterButtons.map((button) => button.dataset.filter || 'all'));
-    const filter = available.has(requestedFilter) ? requestedFilter : 'all';
-    filterButtons.forEach((item) => {
-      const active = (item.dataset.filter || 'all') === filter;
-      item.classList.toggle('is-active', active);
-      item.setAttribute('aria-pressed', String(active));
-    });
-    let visibleCount = 0;
+    const filter = available.has(requested) ? requested : 'all';
+    filterButtons.forEach((button) => { const active=(button.dataset.filter||'all')===filter; button.classList.toggle('is-active',active); button.setAttribute('aria-pressed',String(active)); });
+    let visibleCount=0;
     document.querySelectorAll('.idea-card').forEach((card) => {
-      const visible = filter === 'all' || (card.dataset.tags || '').split(',').includes(filter);
-      card.classList.toggle('is-hidden', !visible);
-      card.hidden = !visible;
-      card.setAttribute('aria-hidden', String(!visible));
-      card.querySelectorAll('a, button, input, select, textarea').forEach((control) => {
-        if (visible) control.removeAttribute('tabindex');
-        else control.setAttribute('tabindex', '-1');
-      });
-      if (visible) visibleCount += 1;
+      const visible=filter==='all'||(card.dataset.tags||'').split(',').includes(filter);
+      card.hidden=!visible; card.setAttribute('aria-hidden',String(!visible));
+      card.querySelectorAll('a,button,input,select,textarea').forEach((control)=>visible?control.removeAttribute('tabindex'):control.setAttribute('tabindex','-1'));
+      if(visible) visibleCount+=1;
     });
-    const result = document.querySelector('#idea-result-count');
-    if (result) result.textContent = filter === 'all' ? `目前顯示全部 ${visibleCount} 脈仙策` : `${filter}難題・找到 ${visibleCount} 脈仙策`;
-    const empty = document.querySelector('#idea-filter-empty');
-    if (empty) empty.hidden = visibleCount > 0;
-    const url = new URL(location.href);
-    if (filter === 'all') url.searchParams.delete('filter');
-    else url.searchParams.set('filter', filter);
-    history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
-    if (track) {
-      trackEvent('filter_used', {eventValue: filter}).catch(() => {});
-    }
+    const result=document.querySelector('#idea-result-count');
+    if(result) result.textContent=filter==='all'?`目前顯示全部 ${visibleCount} 卷`:`${filter}・找到 ${visibleCount} 卷`;
+    const empty=document.querySelector('#idea-filter-empty'); if(empty) empty.hidden=visibleCount>0;
+    const url=new URL(location.href); if(filter==='all') url.searchParams.delete('filter'); else url.searchParams.set('filter',filter); history.replaceState(null,'',`${url.pathname}${url.search}${url.hash}`);
+    if(track) trackEvent('filter_used',{eventValue:filter}).catch(()=>{});
   };
-  filterButtons.forEach((button) => button.addEventListener('click', () => applyIdeaFilter(button.dataset.filter || 'all', true)));
-  document.querySelector('[data-reset-idea-filter]')?.addEventListener('click', () => applyIdeaFilter('all', true));
-  if (filterButtons.length) applyIdeaFilter(new URL(location.href).searchParams.get('filter') || 'all');
+  filterButtons.forEach((button)=>button.addEventListener('click',()=>applyIdeaFilter(button.dataset.filter||'all',true)));
+  document.querySelector('[data-reset-idea-filter]')?.addEventListener('click',()=>applyIdeaFilter('all',true));
+  if(filterButtons.length) applyIdeaFilter(new URL(location.href).searchParams.get('filter')||'all');
 
-  document.querySelectorAll('[data-line-cta]').forEach((link) => {
-    link.addEventListener('click', () => {
-      trackEvent('line_cta_clicked', {keepalive: true}).catch(() => {});
-    });
-  });
-
-  const analyticsDetail = document.querySelector('[data-analytics-idea]');
-  if (analyticsDetail) {
-    const ideaSlug = analyticsDetail.dataset.analyticsIdea || '';
-    const sentDepth = new Set();
-    const trackReadingDepth = () => {
-      const rect = analyticsDetail.getBoundingClientRect();
-      const seen = Math.max(0, Math.min(rect.height, window.innerHeight - rect.top));
-      const ratio = rect.height > 0 ? seen / rect.height : 0;
-      [50, 90].forEach((threshold) => {
-        if (ratio >= threshold / 100 && !sentDepth.has(threshold)) {
-          sentDepth.add(threshold);
-          trackEvent('reading_depth', {ideaSlug, eventValue: String(threshold)}).catch(() => {});
-        }
-      });
-    };
-    trackReadingDepth();
-    window.addEventListener('scroll', trackReadingDepth, {passive: true});
-    window.addEventListener('resize', trackReadingDepth, {passive: true});
-
-    let engagedSeconds = 0;
-    const engagementTimer = window.setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      engagedSeconds += 1;
-      if (engagedSeconds >= 45) {
-        window.clearInterval(engagementTimer);
-        trackEvent('engaged_read', {ideaSlug, eventValue: '45'}).catch(() => {});
-      }
-    }, 1000);
-
-    const interestButton = document.querySelector('[data-interest-cta]');
-    const interestStatus = document.querySelector('[data-interest-status]');
-    const interestKey = `twyb:interest:${ideaSlug}`;
-    const markInterest = () => {
-      if (!interestButton) return;
-      interestButton.textContent = '已記下我的意願';
-      interestButton.disabled = true;
-      if (interestStatus) interestStatus.textContent = '已記錄匿名需求意願；沒有建立訂單，也沒有傳送個人資料。';
-    };
-    try { if (localStorage.getItem(interestKey) === '1') markInterest(); } catch (_error) {}
-    interestButton?.addEventListener('click', async () => {
-      interestButton.disabled = true;
-      if (interestStatus) interestStatus.textContent = '正在安全記錄…';
-      try {
-        await trackEvent('interest_registered', {ideaSlug});
-        try { localStorage.setItem(interestKey, '1'); } catch (_error) {}
-        markInterest();
-      } catch (_error) {
-        interestButton.disabled = false;
-        if (interestStatus) interestStatus.textContent = '目前無法記錄；你仍可用「傳音詢問此策」告訴我們。';
-      }
-    });
-    document.querySelector('[data-conversation-cta]')?.addEventListener('click', () => {
-      trackEvent('conversation_cta_clicked', {ideaSlug, keepalive: true}).catch(() => {});
-    });
+  document.querySelectorAll('[data-line-cta]').forEach((link)=>link.addEventListener('click',()=>trackEvent('line_cta_clicked',{keepalive:true}).catch(()=>{})));
+  const detail=document.querySelector('[data-analytics-idea]');
+  if(detail){
+    const ideaSlug=detail.dataset.analyticsIdea||''; const sent=new Set();
+    const depth=()=>{const rect=detail.getBoundingClientRect(); const ratio=rect.height?Math.max(0,Math.min(rect.height,innerHeight-rect.top))/rect.height:0; [50,90].forEach((threshold)=>{if(ratio>=threshold/100&&!sent.has(threshold)){sent.add(threshold);trackEvent('reading_depth',{ideaSlug,eventValue:String(threshold)}).catch(()=>{});}})};
+    depth(); addEventListener('scroll',depth,{passive:true});
+    const button=document.querySelector('[data-interest-cta]'); const status=document.querySelector('[data-interest-status]'); const key=`twyb:interest:${ideaSlug}`;
+    const marked=()=>{if(!button)return;button.textContent='已記下開放意願';button.disabled=true;if(status)status.textContent='已記錄匿名意願；沒有建立訂單，也沒有傳送個人資料。';};
+    try{if(localStorage.getItem(key)==='1')marked();}catch(_error){}
+    button?.addEventListener('click',async()=>{button.disabled=true;if(status)status.textContent='正在安全記錄…';try{await trackEvent('interest_registered',{ideaSlug});try{localStorage.setItem(key,'1');}catch(_error){}marked();}catch(_error){button.disabled=false;if(status)status.textContent='目前無法記錄，請稍後再試。';}});
   }
 
-  const copyLineId = document.querySelector('[data-copy-line-id]');
-  if (copyLineId) {
-    copyLineId.addEventListener('click', async () => {
-      const accountId = copyLineId.dataset.copyLineId || '@279plitu';
-      const status = document.querySelector('#copy-line-status');
-      try {
-        await navigator.clipboard.writeText(accountId);
-        status.textContent = `${accountId} 已抄錄，可到 LINE 搜尋仙策靈使。`;
-        copyLineId.textContent = '名號已抄錄';
-      } catch (_error) {
-        status.textContent = `請手動抄錄仙策靈使名號：${accountId}`;
-      }
-    });
+  const copyLineId=document.querySelector('[data-copy-line-id]');
+  copyLineId?.addEventListener('click',async()=>{const id=copyLineId.dataset.copyLineId||'@279plitu';const status=document.querySelector('#copy-line-status');try{await navigator.clipboard.writeText(id);status.textContent=`${id} 已抄錄。`;copyLineId.textContent='名號已抄錄';}catch(_error){status.textContent=`請手動抄錄：${id}`;}});
+
+  const orderForm=document.querySelector('#order-form');
+  if(orderForm){
+    const dialog=document.querySelector('#purchase-notice-dialog'); const error=document.querySelector('#purchase-notice-error'); const confirm=document.querySelector('[data-confirm-purchase]');
+    confirm?.addEventListener('click',()=>{const purchase=orderForm.querySelector('[name="purchase_notice_consent"]');const digital=orderForm.querySelector('[name="digital_content_consent"]');if(!purchase?.checked||!digital?.checked){error.textContent='請勾選兩項確認後再繼續付款。';return;}error.textContent='';orderForm.dataset.noticeApproved='true';dialog?.close();orderForm.requestSubmit();});
+    orderForm.addEventListener('submit',async(event)=>{event.preventDefault();const status=document.querySelector('#order-status');const submit=orderForm.querySelector('button[type="submit"]');const name=orderForm.querySelector('[name="customer_name"]');const email=orderForm.querySelector('[name="customer_email"]');if(!name.reportValidity()||!email.reportValidity())return;if(orderForm.dataset.noticeApproved!=='true'){if(typeof dialog?.showModal==='function')dialog.showModal();else dialog?.setAttribute('open','');return;}orderForm.dataset.noticeApproved='false';status.textContent='正在建立訂單…';submit.disabled=true;try{const form=new FormData(orderForm);const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},body:JSON.stringify({idea_slug:orderForm.dataset.ideaSlug,customer_name:form.get('customer_name'),customer_email:form.get('customer_email'),purchase_notice_consent:form.get('purchase_notice_consent')==='on',digital_content_consent:form.get('digital_content_consent')==='on'})});const data=await response.json();if(!response.ok)throw new Error(data.error||'建立訂單失敗');status.textContent='訂單已建立，正在前往付款…';location.assign(data.checkout_url);}catch(err){status.textContent=err.message||'建立訂單失敗，請稍後再試。';submit.disabled=false;}});
   }
+  document.querySelectorAll('[data-dialog-close]').forEach((button)=>button.addEventListener('click',()=>button.closest('dialog')?.close()));
+  document.querySelectorAll('dialog[data-auto-modal]').forEach((dialog)=>{if(typeof dialog.showModal!=='function')return;if(dialog.open)dialog.close();setTimeout(()=>dialog.showModal(),80);});
+  const paymentForm=document.querySelector('[data-auto-submit-payment]'); if(paymentForm)setTimeout(()=>paymentForm.requestSubmit(),350);
 
-  const orderForm = document.querySelector('#order-form');
-  if (orderForm) {
-    const noticeDialog = document.querySelector('#purchase-notice-dialog');
-    const noticeError = document.querySelector('#purchase-notice-error');
-    const confirmPurchase = document.querySelector('[data-confirm-purchase]');
-
-    confirmPurchase?.addEventListener('click', () => {
-      const purchaseConsent = orderForm.querySelector('[name="purchase_notice_consent"]');
-      const digitalConsent = orderForm.querySelector('[name="digital_content_consent"]');
-      if (!purchaseConsent?.checked || !digitalConsent?.checked) {
-        noticeError.textContent = '請勾選兩項確認後再繼續付款。';
-        return;
-      }
-      noticeError.textContent = '';
-      orderForm.dataset.noticeApproved = 'true';
-      noticeDialog?.close();
-      orderForm.requestSubmit();
-    });
-
-    orderForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const status = document.querySelector('#order-status');
-      const submit = orderForm.querySelector('button[type="submit"]');
-      const nameInput = orderForm.querySelector('[name="customer_name"]');
-      const emailInput = orderForm.querySelector('[name="customer_email"]');
-      if (!nameInput.reportValidity() || !emailInput.reportValidity()) return;
-      if (orderForm.dataset.noticeApproved !== 'true') {
-        if (typeof noticeDialog?.showModal === 'function') noticeDialog.showModal();
-        else noticeDialog?.setAttribute('open', '');
-        return;
-      }
-      orderForm.dataset.noticeApproved = 'false';
-      status.textContent = '正在建立訂單…';
-      submit.disabled = true;
-      try {
-        const form = new FormData(orderForm);
-        const response = await fetch('/api/orders', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},
-          body: JSON.stringify({
-            idea_slug: orderForm.dataset.ideaSlug,
-            customer_name: form.get('customer_name'),
-            customer_email: form.get('customer_email'),
-            purchase_notice_consent: form.get('purchase_notice_consent') === 'on',
-            digital_content_consent: form.get('digital_content_consent') === 'on'
-          })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || '建立訂單失敗');
-        status.textContent = `訂單 ${data.order_no} 已建立，正在前往付款…`;
-        window.location.assign(data.checkout_url);
-      } catch (error) {
-        status.textContent = error.message || '建立訂單失敗，請稍後再試。';
-        submit.disabled = false;
-      }
-    });
-  }
-
-  document.querySelectorAll('[data-dialog-close]').forEach((button) => {
-    button.addEventListener('click', () => button.closest('dialog')?.close());
-  });
-
-  document.querySelectorAll('dialog[data-auto-modal]').forEach((dialog) => {
-    if (typeof dialog.showModal !== 'function') return;
-    if (dialog.open) dialog.close();
-    window.setTimeout(() => dialog.showModal(), 80);
-  });
-
-  const paymentForm = document.querySelector('[data-auto-submit-payment]');
-  if (paymentForm) window.setTimeout(() => paymentForm.requestSubmit(), 350);
-
-  const simulator = document.querySelector('#line-simulator-form');
-  if (simulator) {
-    const sendSimulatorMessage = async (message) => {
-      const input = simulator.querySelector('input[name="message"]');
-      if (!message) return;
-      const log = document.querySelector('#chat-log');
-      const userBubble = document.createElement('div');
-      userBubble.className = 'bubble user';
-      userBubble.textContent = message;
-      log.appendChild(userBubble);
-      input.value = '';
-      try {
-        const response = await fetch('/dev/line/reply', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf()},
-          body: JSON.stringify({message})
-        });
-        const data = await response.json();
-        const botBubble = document.createElement('div');
-        botBubble.className = 'bubble bot';
-        const textMessages = (data.messages || []).filter((item) => item.type === 'text').map((item) => item.text);
-        botBubble.textContent = textMessages.join('\n\n') || data.reply || data.error || '仙策靈使暫時沒有回應。';
-        log.appendChild(botBubble);
-        if (Array.isArray(data.cards) && data.cards.length) {
-          const carousel = document.createElement('div');
-          carousel.className = 'line-card-carousel';
-          data.cards.forEach((card) => {
-            const article = document.createElement('article');
-            article.className = 'line-product-card';
-            article.style.setProperty('--line-accent', card.color || '#348F8A');
-            const eyebrow = document.createElement('span');
-            eyebrow.textContent = card.eyebrow || '仙策';
-            const role = document.createElement('strong');
-            role.textContent = card.role || '';
-            const title = document.createElement('h3');
-            title.textContent = card.title || '';
-            const summary = document.createElement('p');
-            summary.textContent = card.summary || '';
-            const footer = document.createElement('div');
-            const price = document.createElement('b');
-            price.textContent = card.price || '';
-            const link = document.createElement('a');
-            link.href = card.url || '#';
-            link.textContent = '翻閱摘要';
-            footer.append(price, link);
-            article.append(eyebrow, role, title, summary, footer);
-            carousel.appendChild(article);
-          });
-          log.appendChild(carousel);
-        }
-        log.scrollTop = log.scrollHeight;
-      } catch (_error) {
-        const botBubble = document.createElement('div');
-        botBubble.className = 'bubble bot';
-        botBubble.textContent = '本機連線中斷，請確認服務仍在運行。';
-        log.appendChild(botBubble);
-      }
-    };
-    simulator.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const input = simulator.querySelector('input[name="message"]');
-      await sendSimulatorMessage(input.value.trim());
-    });
-    document.querySelectorAll('[data-line-command]').forEach((button) => {
-      button.addEventListener('click', () => sendSimulatorMessage(button.dataset.lineCommand || ''));
-    });
-  }
+  const simulator=document.querySelector('#line-simulator-form');
+  if(simulator){const send=async(message)=>{const input=simulator.querySelector('input[name="message"]');if(!message)return;const log=document.querySelector('#chat-log');const user=document.createElement('div');user.className='bubble user';user.textContent=message;log.appendChild(user);input.value='';try{const response=await fetch('/dev/line/reply',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},body:JSON.stringify({message})});const data=await response.json();const bot=document.createElement('div');bot.className='bubble bot';bot.textContent=(data.messages||[]).filter((item)=>item.type==='text').map((item)=>item.text).join('\n\n')||data.reply||data.error||'暫時沒有回應。';log.appendChild(bot);log.scrollTop=log.scrollHeight;}catch(_error){const bot=document.createElement('div');bot.className='bubble bot';bot.textContent='本機連線中斷。';log.appendChild(bot);}};simulator.addEventListener('submit',(event)=>{event.preventDefault();send(simulator.querySelector('input[name="message"]').value.trim());});document.querySelectorAll('[data-line-command]').forEach((button)=>button.addEventListener('click',()=>send(button.dataset.lineCommand||'')));}
 })();

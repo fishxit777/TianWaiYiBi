@@ -14,14 +14,13 @@
   const confirmDialog = document.querySelector('#admin-confirm-dialog');
   const confirmForm = document.querySelector('#admin-confirm-form');
   const workspaceTitles = {
-    overview: '今日總覽', orders: '交易訂單', ideas: '仙策內容',
-    customers: '客戶開通', conversations: '傳音對話', integrations: '系統串接', security: '安全稽核'
+    overview: '今日總覽', orders: '交易訂單', ideas: '盲策製作',
+    customers: '客戶開通', integrations: '系統串接', security: '安全稽核'
   };
   const orderLabels = {pending: '待付款', paid: '已付款', cancelled: '已取消', refunded: '已退款'};
   const deliveryLabels = {sent: '已寄出', development: '測試交付', failed: '交付失敗', pending: '等待交付'};
   let dashboard = null;
   let orderFilter = 'all';
-  let conversationFilter = 'pending';
   let securityFilter = 'priority';
   let analyticsDays = 30;
   let lastSyncAt = null;
@@ -174,11 +173,9 @@
     const pendingAccess = data.customer_access?.summary?.pending_activation || 0;
     const riskEvents = [...(data.security_events || []), ...(data.access_events || [])].filter((item) => ['critical', 'high'].includes(item.severity)).length;
     const disconnected = integrationItems(data.integration_status || {}).filter((item) => !item.ready).length;
-    const pendingConversations = data.conversation_summary?.pending || 0;
     const items = [
       {count: data.metrics.pending_orders, title: '待付款訂單', detail: '確認付款進度與異常交易', view: 'orders', tone: 'gold'},
       {count: pendingAccess, title: '已付款、尚未開通', detail: '確認開通資料是否順利交付', view: 'customers', tone: 'jade'},
-      {count: pendingConversations, title: '公開傳音待審核', detail: '公開、隱藏或回覆訪客與客戶留言', view: 'conversations', tone: 'gold'},
       {count: disconnected, title: '串接尚未就緒', detail: '上線前完成必要服務設定', view: 'integrations', tone: 'violet'},
       {count: riskEvents, title: '高風險安全事件', detail: '檢查拒絕與封鎖紀錄', view: 'security', tone: 'red'}
     ].filter((item) => item.count > 0);
@@ -187,7 +184,6 @@
     setBadge('#nav-attention-count', total);
     setBadge('#nav-order-count', data.metrics.pending_orders);
     setBadge('#nav-customer-count', pendingAccess);
-    setBadge('#nav-conversation-count', pendingConversations);
     document.querySelector('#risk-event-count').textContent = String(riskEvents);
     if (!items.length) {
       const empty = node('div', 'attention-empty');
@@ -324,7 +320,7 @@
         ['仙策工作階段', item.funnel.visitors, null],
         ['讀至 50%', item.funnel.read_50, item.rates.read_50],
         ['有效閱讀', item.funnel.engaged, item.rates.engaged],
-        ['主動意願', item.funnel.interest + item.funnel.conversations, item.rates.interest]
+        ['主動意願', item.funnel.interest, item.rates.interest]
       ];
       if (radar.payment_ready) funnelSteps.push(
         ['進入結帳', item.funnel.checkout, item.rates.checkout],
@@ -472,10 +468,13 @@
 
   function openIdeaEditor(idea) {
     const fields = {
-      id: 'id', title: 'title', role: 'role', seal: 'seal', accent: 'accent',
+      id: 'id', 'public-title': 'public_title', title: 'title', role: 'role', seal: 'seal', accent: 'accent',
       'sort-order': 'sort_order', 'price-override': 'price_override', discipline: 'discipline',
+      'primary-vein': 'primary_vein', 'secondary-vein': 'secondary_vein', topic: 'topic',
+      maturity: 'maturity', 'workflow-status': 'workflow_status', 'raw-idea': 'raw_idea',
       summary: 'summary', teaser: 'teaser', 'paid-content': 'paid_content',
-      deliverables: 'deliverables', tags: 'tags'
+      deliverables: 'deliverables', tags: 'tags', 'hero-image': 'hero_image',
+      'diagram-image': 'diagram_image', 'scene-image': 'scene_image'
     };
     Object.entries(fields).forEach(([field, key]) => setEditorValue(`#idea-${field}`, idea[key]));
     document.querySelector('#idea-editor-slug').textContent = `內容識別：${idea.slug}`;
@@ -483,7 +482,7 @@
     editor.showModal();
     editorSnapshot = editorValues();
     updateEditorDirtyState();
-    document.querySelector('#idea-title').focus();
+    document.querySelector('#idea-public-title').focus();
   }
 
   function renderIdeas(ideas) {
@@ -494,7 +493,7 @@
       const row = node('article', `idea-admin-row accent-${idea.accent}`);
       const seal = node('span', 'idea-admin-seal', idea.seal);
       const copy = node('div', 'idea-admin-copy');
-      copy.append(node('strong', '', idea.title), node('small', '', `${idea.role}・${idea.discipline}`));
+      copy.append(node('strong', '', idea.public_title || idea.title), node('small', '', `${idea.primary_vein || '待歸脈'}${idea.secondary_vein ? ` × ${idea.secondary_vein}` : ''}・${idea.workflow_status}`));
       const price = node('div', 'idea-admin-price');
       price.append(node('strong', '', money(idea.price)), node('small', '', idea.price_override === null ? '套用預設價' : '單獨定價'));
       const toggle = node('button', `publish-toggle ${idea.published ? 'on' : ''}`, idea.published ? '已上架' : '已隱藏');
@@ -503,9 +502,9 @@
       toggle.addEventListener('click', async () => {
         const nextPublished = !idea.published;
         const accepted = await confirmAction({
-          title: nextPublished ? '確認公開這脈仙策？' : '確認暫停公開這脈仙策？',
-          message: `${idea.title}目前為${idea.published ? '公開' : '隱藏'}狀態。`,
-          impact: nextPublished ? '公開後所有訪客都能看到摘要與傳音入口。' : '隱藏後官網將不再顯示，但既有訂單與已購權限不會被刪除。',
+          title: nextPublished ? '確認公開這卷盲策？' : '確認暫停公開這卷盲策？',
+          message: `${idea.public_title || idea.title}目前為${idea.published ? '公開' : '隱藏'}狀態。`,
+          impact: nextPublished ? '公開後訪客只會看到封印線索；拆封內容仍受付款權限保護。' : '隱藏後官網將不再顯示，但既有訂單與已購權限不會被刪除。',
           confirmLabel: nextPublished ? '確認公開' : '確認隱藏',
           tone: nextPublished ? 'default' : 'danger'
         });
@@ -818,173 +817,6 @@
     });
   }
 
-  function conversationSectionValue(section) {
-    return `${section.key}::${section.idea_slug || ''}`;
-  }
-
-  function conversationSectionLabel(message) {
-    const match = (dashboard?.conversation_sections || []).find((section) => (
-      section.key === message.section_key && (section.idea_slug || '') === (message.idea_slug || '')
-    ));
-    return match?.label || message.section_key;
-  }
-
-  function resetConversationReply() {
-    const form = document.querySelector('#conversation-reply-form');
-    form.reset();
-    document.querySelector('#conversation-reply-to').value = '';
-    document.querySelector('#conversation-reply-title').textContent = '新指定傳音';
-    document.querySelector('#conversation-reply-reset').hidden = true;
-    document.querySelector('#conversation-reply-status').textContent = '';
-    updateConversationScopeNote();
-  }
-
-  function updateConversationScopeNote() {
-    const visibility = document.querySelector('#conversation-visibility').value;
-    const note = document.querySelector('#conversation-scope-note');
-    note.dataset.scope = visibility;
-    note.querySelector('strong').textContent = visibility === 'private' ? '私密傳音' : '公開回覆';
-    note.querySelector('span').textContent = visibility === 'private'
-      ? '只有指定客戶與守閣者可讀；必須選擇客戶。'
-      : '送出後所有訪客都能閱讀；請勿包含客戶資料或內部資訊。';
-  }
-
-  function openConversationReply(message) {
-    const section = (dashboard?.conversation_sections || []).find((item) => (
-      item.key === message.section_key && (item.idea_slug || '') === (message.idea_slug || '')
-    ));
-    if (section) document.querySelector('#conversation-section').value = conversationSectionValue(section);
-    document.querySelector('#conversation-visibility').value = message.visibility;
-    updateConversationScopeNote();
-    const customerSelect = document.querySelector('#conversation-customer');
-    if (message.customer_public_id && ![...customerSelect.options].some((option) => option.value === message.customer_public_id)) {
-      customerSelect.append(new Option(message.author?.label || message.customer_public_id, message.customer_public_id));
-    }
-    customerSelect.value = message.customer_public_id || '';
-    document.querySelector('#conversation-reply-to').value = message.id;
-    document.querySelector('#conversation-reply-title').textContent = `回覆 ${message.author?.label || '這則傳音'}`;
-    document.querySelector('#conversation-reply-reset').hidden = false;
-    document.querySelector('#conversation-reply-status').textContent = `${conversationSectionLabel(message)}・${message.visibility === 'private' ? '私密' : '公開'}回覆`;
-    document.querySelector('#conversation-reply-body').focus();
-  }
-
-  async function moderateConversation(message, nextStatus) {
-    const publishing = nextStatus === 'published';
-    const accepted = await confirmAction({
-      title: publishing ? '確認公開這則傳音？' : '確認隱藏這則傳音？',
-      message: publishing ? '公開後所有訪客都能閱讀此內容。' : '隱藏後官網不再顯示此內容。',
-      impact: publishing ? '請確認內容不含個人資料、付款資訊、網址或不當文字。' : '訊息不會被刪除，仍保留於後台與稽核紀錄。',
-      confirmLabel: publishing ? '確認公開' : '確認隱藏',
-      tone: publishing ? 'default' : 'danger'
-    });
-    if (!accepted) return;
-    try {
-      await api(`/admin/api/conversations/${message.id}/moderate`, {
-        method: 'POST', body: JSON.stringify({status: nextStatus})
-      });
-      await loadDashboard(nextStatus === 'published' ? '傳音已公開。' : '傳音已隱藏並保留稽核紀錄。');
-    } catch (error) { showError(error); }
-  }
-
-  function visibleConversations() {
-    const messages = dashboard?.conversation_messages || [];
-    if (conversationFilter === 'pending') return messages.filter((message) => message.visibility === 'public' && message.status === 'pending');
-    if (conversationFilter === 'private') return messages.filter((message) => message.visibility === 'private' && message.status === 'published');
-    if (conversationFilter === 'public') return messages.filter((message) => message.visibility === 'public' && message.status === 'published');
-    return messages;
-  }
-
-  function renderConversationOptions() {
-    const sectionSelect = document.querySelector('#conversation-section');
-    const customerSelect = document.querySelector('#conversation-customer');
-    const previousSection = sectionSelect.value;
-    const previousCustomer = customerSelect.value;
-    clear(sectionSelect);
-    (dashboard?.conversation_sections || []).forEach((section) => {
-      sectionSelect.append(new Option(section.label, conversationSectionValue(section)));
-    });
-    clear(customerSelect);
-    customerSelect.append(new Option('不指定客戶', ''));
-    (dashboard?.conversation_customers || []).forEach((customer) => {
-      const option = new Option(`${customer.alias}・${customer.public_id}`, customer.public_id);
-      option.dataset.identityColor = customer.color;
-      customerSelect.append(option);
-    });
-    if ([...sectionSelect.options].some((option) => option.value === previousSection)) sectionSelect.value = previousSection;
-    if ([...customerSelect.options].some((option) => option.value === previousCustomer)) customerSelect.value = previousCustomer;
-  }
-
-  function renderConversations(data) {
-    renderConversationOptions();
-    const summary = data.conversation_summary || {};
-    const metrics = document.querySelector('#conversation-metrics');
-    clear(metrics);
-    [
-      ['待審核', summary.pending || 0, '尚未出現在官網', 'pending'],
-      ['私密傳音', summary.private || 0, '只對指定客戶可見', 'private'],
-      ['已公開', summary.public || 0, '所有訪客可閱讀', 'public']
-    ].forEach(([label, value, detail, tone]) => {
-      const card = node('article', `conversation-admin-metric tone-${tone}`);
-      card.append(node('span', '', label), node('strong', '', value), node('small', '', detail));
-      metrics.append(card);
-    });
-    const messages = data.conversation_messages || [];
-    const counts = {
-      pending: messages.filter((message) => message.visibility === 'public' && message.status === 'pending').length,
-      private: messages.filter((message) => message.visibility === 'private' && message.status === 'published').length,
-      public: messages.filter((message) => message.visibility === 'public' && message.status === 'published').length,
-      all: messages.length
-    };
-    Object.entries(counts).forEach(([key, value]) => {
-      document.querySelector(`#conversation-count-${key}`).textContent = String(value);
-    });
-    const filtered = visibleConversations();
-    document.querySelector('#conversation-result-count').textContent = String(filtered.length);
-    const target = document.querySelector('#conversation-admin-list');
-    clear(target);
-    if (!filtered.length) {
-      target.append(node('div', 'event-empty', conversationFilter === 'pending' ? '目前沒有等待審核的公開傳音' : '這個篩選目前沒有傳音'));
-      return;
-    }
-    filtered.forEach((message) => {
-      const card = node('article', `conversation-admin-item status-${message.status}`);
-      card.dataset.identityColor = message.author?.color || 'silver';
-      const head = node('header');
-      const identity = node('div', 'conversation-admin-identity');
-      identity.append(node('i', '', message.author?.label === '守閣者' ? '守' : (message.author?.label || '同').slice(-2)));
-      const identityCopy = node('span');
-      const identityKind = message.customer_public_id
-        || (message.author_type === 'visitor' ? '匿名訪客' : '守閣者');
-      identityCopy.append(node('strong', '', message.author?.label || '同道'), node('small', '', identityKind));
-      identity.append(identityCopy);
-      const scope = node('span', `conversation-scope ${message.visibility}`, message.visibility === 'private' ? '私密' : (message.status === 'pending' ? '待審核' : (message.status === 'hidden' ? '已隱藏' : '公開')));
-      head.append(identity, scope);
-      const context = node('p', 'conversation-admin-context', `${conversationSectionLabel(message)}・${dateText(message.created_at)}`);
-      const body = node('p', 'conversation-admin-body', message.body);
-      const actions = node('footer');
-      if (message.visibility === 'public' && message.status === 'pending') {
-        const publish = node('button', 'conversation-publish', '公開');
-        publish.type = 'button';
-        publish.addEventListener('click', () => moderateConversation(message, 'published'));
-        actions.append(publish);
-      }
-      if (message.status !== 'hidden') {
-        const hide = node('button', 'conversation-hide', '隱藏');
-        hide.type = 'button';
-        hide.addEventListener('click', () => moderateConversation(message, 'hidden'));
-        actions.append(hide);
-      }
-      if (['customer', 'visitor'].includes(message.author_type) && message.status !== 'hidden') {
-        const reply = node('button', 'conversation-reply', message.visibility === 'private' ? '私密回覆' : '公開回覆');
-        reply.type = 'button';
-        reply.addEventListener('click', () => openConversationReply(message));
-        actions.append(reply);
-      }
-      card.append(head, context, body, actions);
-      target.append(card);
-    });
-  }
-
   function render(data) {
     dashboard = data;
     renderMetrics(data.metrics);
@@ -999,7 +831,6 @@
     renderOrders();
     renderCustomerAccess(data.customer_access || {});
     renderCustomerDevices(data.customer_devices || []);
-    renderConversations(data);
     renderSecurityEvents(data.security_events || []);
     renderEvents(data.access_events || [], '#access-events');
     renderNotifications(data.notification_queue || []);
@@ -1078,17 +909,6 @@
       renderOrders();
     });
   });
-  document.querySelectorAll('[data-conversation-filter]').forEach((button) => {
-    button.addEventListener('click', () => {
-      conversationFilter = button.dataset.conversationFilter;
-      document.querySelectorAll('[data-conversation-filter]').forEach((item) => {
-        const active = item === button;
-        item.classList.toggle('is-active', active);
-        item.setAttribute('aria-pressed', String(active));
-      });
-      renderConversations(dashboard);
-    });
-  });
   document.querySelectorAll('[data-security-filter]').forEach((button) => {
     button.addEventListener('click', () => {
       securityFilter = button.dataset.securityFilter;
@@ -1100,32 +920,19 @@
       renderSecurityEvents(dashboard?.security_events || []);
     });
   });
-  document.querySelector('#conversation-reply-reset').addEventListener('click', resetConversationReply);
-  document.querySelector('#conversation-visibility').addEventListener('change', updateConversationScopeNote);
-  document.querySelector('#conversation-reply-form').addEventListener('submit', async (event) => {
+  document.querySelector('#idea-draft-form').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const formStatus = document.querySelector('#conversation-reply-status');
-    const visibility = document.querySelector('#conversation-visibility').value;
-    const customerPublicId = document.querySelector('#conversation-customer').value;
-    if (visibility === 'private' && !customerPublicId) {
-      formStatus.textContent = '私密傳音必須指定一位客戶。';
-      return;
-    }
-    const [sectionKey, ideaSlug] = document.querySelector('#conversation-section').value.split('::');
-    const payload = {
-      section_key: sectionKey, idea_slug: ideaSlug || '', visibility,
-      customer_public_id: customerPublicId,
-      reply_to_id: document.querySelector('#conversation-reply-to').value || null,
-      body: document.querySelector('#conversation-reply-body').value
-    };
+    if (!event.currentTarget.reportValidity()) return;
+    const rawIdea = document.querySelector('#idea-draft-raw').value.trim();
     const submit = event.currentTarget.querySelector('button[type="submit"]');
     submit.disabled = true;
-    formStatus.textContent = '正在送出守閣者傳音…';
     try {
-      await api('/admin/api/conversations/reply', {method: 'POST', body: JSON.stringify(payload)});
-      resetConversationReply();
-      await loadDashboard(visibility === 'private' ? '私密指定傳音已送達。' : '公開回覆已送達。');
-    } catch (error) { formStatus.textContent = error.message || '傳音未能送出。'; }
+      const result = await api('/admin/api/ideas', {method: 'POST', body: JSON.stringify({raw_idea: rawIdea})});
+      document.querySelector('#idea-draft-raw').value = '';
+      await loadDashboard(`草稿已建立；系統建議 ${result.classification.primary_vein}${result.classification.secondary_vein ? ` × ${result.classification.secondary_vein}` : ''}。`);
+      const draft = dashboard?.ideas?.find((idea) => idea.id === result.idea_id);
+      if (draft) openIdeaEditor(draft);
+    } catch (error) { showError(error); }
     finally { submit.disabled = false; }
   });
   document.querySelector('#price-form').addEventListener('submit', async (event) => {
@@ -1259,12 +1066,18 @@
     const editorStatus = document.querySelector('#idea-editor-status');
     const saveButton = editorForm.querySelector('.save-idea');
     const payload = {
+      public_title: document.querySelector('#idea-public-title').value,
       title: document.querySelector('#idea-title').value, role: document.querySelector('#idea-role').value,
       seal: document.querySelector('#idea-seal').value, accent: document.querySelector('#idea-accent').value,
       sort_order: Number(document.querySelector('#idea-sort-order').value), price_override: document.querySelector('#idea-price-override').value || null,
+      primary_vein: document.querySelector('#idea-primary-vein').value, secondary_vein: document.querySelector('#idea-secondary-vein').value,
+      workflow_status: document.querySelector('#idea-workflow-status').value, maturity: document.querySelector('#idea-maturity').value,
+      raw_idea: document.querySelector('#idea-raw-idea').value, topic: document.querySelector('#idea-topic').value,
       discipline: document.querySelector('#idea-discipline').value, summary: document.querySelector('#idea-summary').value,
       teaser: document.querySelector('#idea-teaser').value, paid_content: document.querySelector('#idea-paid-content').value,
-      deliverables: document.querySelector('#idea-deliverables').value, tags: document.querySelector('#idea-tags').value
+      deliverables: document.querySelector('#idea-deliverables').value, tags: document.querySelector('#idea-tags').value,
+      hero_image: document.querySelector('#idea-hero-image').value, diagram_image: document.querySelector('#idea-diagram-image').value,
+      scene_image: document.querySelector('#idea-scene-image').value
     };
     editorStatus.textContent = '正在儲存…';
     saveButton.disabled = true;
@@ -1278,7 +1091,6 @@
   });
 
   renderDate();
-  updateConversationScopeNote();
   setWorkspace(location.hash.slice(1) || 'overview', false);
   loadDashboard();
   window.setInterval(updateSyncFreshness, 15000);

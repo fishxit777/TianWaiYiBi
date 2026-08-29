@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}解鎖 {{ idea['title'] }}｜仙策閣{% endblock %}
+{% block title %}拆封 {{ idea['public_title'] }}｜天外盲策{% endblock %}
 {% block body_class %}checkout-page accent-{{ idea['accent'] }}{% endblock %}
 {% block content %}
 <section class="checkout-shell section-shell">
   <div class="checkout-summary reveal">
-    <a class="back-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}">← 返回心法介紹</a>
-    <p class="section-index">締結仙契</p>
+    <a class="back-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}">← 返回封印線索</a>
+    <p class="section-index">拆封確認</p>
     <span class="checkout-seal">{{ idea['seal'] }}</span>
-    <p class="idea-role">{{ idea['role'] }}</p>
-    <h1>{{ idea['title'] }}</h1>
+    <p class="idea-role">{{ idea['primary_vein'] }}</p>
+    <h1>{{ idea['public_title'] }}</h1>
     <p>{{ idea['summary'] }}</p>
     <dl>
       <div><dt>內容</dt><dd>{{ idea['deliverables'] }}</dd></div>
-      <div><dt>授權</dt><dd>個人使用・一次買斷</dd></div>
+      <div><dt>授權</dt><dd>非專屬閱讀權・永久取回</dd></div>
       <div><dt>付款方式</dt><dd>{{ payment_status['label'] }}</dd></div>
     </dl>
   </div>

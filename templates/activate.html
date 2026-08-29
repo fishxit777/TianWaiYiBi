@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}專屬開通｜{{ order['title'] }}{% endblock %}
+{% block title %}專屬開通｜{{ order['public_title'] }}{% endblock %}
 {% block body_class %}payment-page{% endblock %}
 {% block content %}
 <section class="payment-shell section-shell">
   <div class="payment-card activation-card reveal">
     <p class="plain-kicker">專屬開通頁</p>
-    <h1>{{ order['title'] }}</h1>
+    <h1>{{ order['public_title'] }}</h1>
     <dl><div><dt>訂單編號</dt><dd>{{ order['order_no'] }}</dd></div><div><dt>付款狀態</dt><dd>{% if order['status'] == 'paid' %}已確認{% else %}等待確認{% endif %}</dd></div></dl>
     {% if order['status'] != 'paid' %}
       <p class="plain-alert">尚未收到付款成功通知，因此不會提供或開通內容。請勿重複付款。</p>

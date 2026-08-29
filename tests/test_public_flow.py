@@ -3,10 +3,10 @@ from pathlib import Path
 
 from conftest import set_public_csrf
 from scripts.build_webfonts import collect_codepoints
-from tianwai.db import IDEA_SEEDS
+from tianwai.db import BLINDBOX_SEEDS, IDEA_SEEDS
 
 
-def create_order(client, slug="brand-world-forge"):
+def create_order(client, slug="sealed-twin-tire-safety"):
     csrf = set_public_csrf(client)
     response = client.post(
         "/api/orders",
@@ -23,30 +23,23 @@ def create_order(client, slug="brand-world-forge"):
     return response.get_json()
 
 
-def test_home_lists_six_distinct_cultivators(client):
+def test_home_presents_the_sealed_blind_strategy_catalog(client):
     response = client.get("/")
+    body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "仙策閣" in response.get_data(as_text=True)
-    assert "brand/home-title-xianxia-v14.webp" in response.get_data(as_text=True)
-    assert "brand/wordmark-xianxia-v14.webp" in response.get_data(as_text=True)
-    assert "brand/website-hero-v15.webp" in response.get_data(as_text=True)
-    assert "static/v15.css" in response.get_data(as_text=True)
-    assert "static/v16.css" in response.get_data(as_text=True)
-    assert "static/v17.css" in response.get_data(as_text=True)
-    assert 'class="mobile-chapter-nav"' in response.get_data(as_text=True)
-    assert "已購取回" in response.get_data(as_text=True)
-    assert "world-chapter-mark" in response.get_data(as_text=True)
-    assert "續入下一卷" in response.get_data(as_text=True)
-    assert "一筆開天，靈感成案｜天外一筆原創想法交易所" in response.get_data(as_text=True)
-    assert 'id="idea-result-count"' in response.get_data(as_text=True)
-    assert 'aria-pressed="true">全部' in response.get_data(as_text=True)
-    assert "適合解決" in response.get_data(as_text=True)
-    assert "付款後開通" in response.get_data(as_text=True)
-    assert response.get_data(as_text=True).count('fetchpriority="high"') >= 5
-    assert response.get_data(as_text=True).count("idea-card") >= 6
-    for role in ("破局劍修", "造境符師", "增長丹師", "機關偃師", "回聲樂修", "觀星策士"):
-        assert role in response.get_data(as_text=True)
+    assert "天外盲策" in body
+    assert "只在拆封後現世的" in body
+    assert "static/v18.css" in body
+    assert "blindbox-twin-tire-hero-v1.webp" in body
+    assert 'id="idea-result-count"' in body
+    assert 'aria-pressed="true">全部' in body
+    assert body.count('class="idea-card sealed-card') == 1
+    for vein in ("守護脈", "造物脈", "靈機脈", "破局脈", "人間脈", "傳音脈"):
+        assert vein in body
+    assert "封印盲策・第壹卷" in body
+    assert "雙生續行輪" not in body
+    assert "不設公開留言區" in body
 
 
 def test_home_hides_internal_tools_and_offers_human_transmission(client):
@@ -59,8 +52,7 @@ def test_home_hides_internal_tools_and_offers_human_transmission(client):
     assert "/logo-review" not in body
     assert "/dev/line" not in body
     assert "/admin" not in body
-    assert "傳音給守閣者" in body
-    assert "由守閣者本人親自接續" in body
+    assert "私人訂單協助" in body
     assert 'href="/transmission"' in body
     assert "line.me/R/ti/p" not in body
 
@@ -70,13 +62,13 @@ def test_transmission_landing_keeps_line_white_page_behind_branded_experience(cl
     body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "一印傳音" in body
+    assert "私人協助・只處理交易問題" in body
     assert "一筆啟月門" in body
     assert "brand/transmission-title-xianxia-v14.webp" in body
     assert "brand/wordmark-xianxia-v14.webp" in body
     assert body.count('fetchpriority="high"') >= 4
     assert "守閣之誓" in body
-    assert "守閣者本人親自接續" in body
+    assert "不設公開留言或買家討論" in body
     assert "不索取密碼與驗證碼" in body
     assert "brand/line-add-qr.svg" in body
     assert "https://line.me/R/ti/p/%40279plitu" in body
@@ -92,8 +84,8 @@ def test_all_customer_pages_share_the_sitewide_brush_shell(client):
     for path in (
         "/",
         "/transmission",
-        "/ideas/brand-world-forge",
-        "/checkout/brand-world-forge",
+        "/ideas/sealed-twin-tire-safety",
+        "/checkout/sealed-twin-tire-safety",
         "/orders/not-a-real-token",
     ):
         body = client.get(path).get_data(as_text=True)
@@ -146,8 +138,8 @@ def test_public_site_self_hosts_vector_brush_fonts():
 def test_webfont_subset_includes_all_dynamic_idea_card_copy():
     codepoints = collect_codepoints()
 
-    for idea in IDEA_SEEDS:
-        visible_card_copy = f"{idea['role']}{idea['title']}{idea['discipline']}"
+    for idea in (*IDEA_SEEDS, *BLINDBOX_SEEDS):
+        visible_card_copy = f"{idea['role']}{idea['title']}{idea['discipline']}{idea.get('public_title', '')}{idea.get('primary_vein', '')}"
         missing_characters = {
             character for character in visible_card_copy if ord(character) not in codepoints
         }
@@ -207,13 +199,15 @@ def test_logo_review_is_not_a_public_route(client):
 
 
 def test_idea_detail_uses_global_price(client):
-    response = client.get("/ideas/brand-world-forge")
+    response = client.get("/ideas/sealed-twin-tire-safety")
 
     assert response.status_code == 200
     body = response.get_data(as_text=True)
-    assert "造境符師" in body
+    assert "守護脈" in body
     assert "NT$199" in body
-    assert "完整心法需解鎖" in body
+    assert "完整視覺已封印" in body
+    assert "購買取得非專屬閱讀權" in body
+    assert "雙生續行輪" not in body
 
 
 def test_unavailable_payment_state_never_pushes_visitors_into_checkout(client, monkeypatch):
@@ -223,36 +217,36 @@ def test_unavailable_payment_state_never_pushes_visitors_into_checkout(client, m
     )
 
     home = client.get("/").get_data(as_text=True)
-    detail = client.get("/ideas/brand-world-forge").get_data(as_text=True)
+    detail = client.get("/ideas/sealed-twin-tire-safety").get_data(as_text=True)
 
-    assert "正式收款目前未開放，不會建立扣款" in home
-    assert home.count("先看摘要") >= 6
-    assert "正式收款未開放" in detail
-    assert "傳音詢問此策" in detail
-    assert 'href="/checkout/brand-world-forge"' not in detail
+    assert "公開收款仍關閉，不會建立扣款" in home
+    assert home.count("查看封印線索") >= 1
+    assert "公開收款未開放" in detail
+    assert "開放時通知我" in detail
+    assert 'href="/checkout/sealed-twin-tire-safety"' not in detail
 
 
-def test_v17_public_layer_contains_navigation_filter_and_motion_guards():
+def test_v18_public_layer_contains_sealed_catalog_and_motion_guards():
     stylesheet = (
-        Path(__file__).resolve().parents[1] / "static" / "v17.css"
+        Path(__file__).resolve().parents[1] / "static" / "v18.css"
     ).read_text(encoding="utf-8")
     script = (
         Path(__file__).resolve().parents[1] / "static" / "app.js"
     ).read_text(encoding="utf-8")
 
-    for selector in (".reading-progress", ".mobile-chapter-nav", ".availability-ribbon", ".fit-band"):
+    for selector in (".blind-hero", ".sealed-card", ".maturity-chip", ".blind-preview"):
         assert selector in stylesheet
     assert "@media (prefers-reduced-motion: reduce)" in stylesheet
-    assert "IntersectionObserver" in script
+    assert "applyIdeaFilter" in script
     assert "searchParams.set('filter'" in script
-    assert "control.setAttribute('tabindex', '-1')" in script
+    assert "data-interest-cta" in script
 
 
 def test_order_rejects_invalid_email(client):
     csrf = set_public_csrf(client)
     response = client.post(
         "/api/orders",
-        json={"idea_slug": "brand-world-forge", "customer_name": "A", "customer_email": "bad"},
+        json={"idea_slug": "sealed-twin-tire-safety", "customer_name": "A", "customer_email": "bad"},
         headers={"X-CSRF-Token": csrf},
     )
 
@@ -265,7 +259,7 @@ def test_order_requires_explicit_payment_and_digital_content_consents(client):
     response = client.post(
         "/api/orders",
         json={
-            "idea_slug": "brand-world-forge",
+            "idea_slug": "sealed-twin-tire-safety",
             "customer_name": "測試旅人",
             "customer_email": "traveler@example.com",
         },
@@ -295,7 +289,7 @@ def test_mock_payment_requires_one_time_activation_before_paid_content(client):
     assert paid.status_code == 200
     body = paid.get_data(as_text=True)
     assert "付款已確認" in body
-    assert "七日品牌世界觀鍛造表" not in body
+    assert "雙生續行輪" not in body
     code_match = re.search(r"本機測試開通碼.*?<strong>([^<]+)</strong>", body, re.S)
     link_match = re.search(r'href="(/activate/[^\"]+)"', body)
     assert code_match and link_match
@@ -310,7 +304,10 @@ def test_mock_payment_requires_one_time_activation_before_paid_content(client):
     )
 
     assert activated.status_code == 200
-    assert "七日品牌世界觀鍛造表" in activated.get_data(as_text=True)
+    activated_body = activated.get_data(as_text=True)
+    assert "雙生續行輪" in activated_body
+    assert "blindbox-twin-tire-cutaway-v1.webp" in activated_body
+    assert "概念視覺・不代表已完成工程驗證" in activated_body
 
     reused = client.post(
         link_match.group(1),
@@ -330,7 +327,7 @@ def test_analytics_endpoint_accepts_allowlisted_event(client):
     csrf = set_public_csrf(client)
     response = client.post(
         "/api/events",
-        json={"event_name": "view_idea", "idea_slug": "brand-world-forge", "source": "web"},
+        json={"event_name": "view_idea", "idea_slug": "sealed-twin-tire-safety", "source": "web"},
         headers={"X-CSRF-Token": csrf},
     )
 

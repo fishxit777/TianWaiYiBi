@@ -336,7 +336,7 @@ def process_payment_event(payload, raw_body, provider="mock"):
 def mock_payment_page(payment_token):
     order = get_db().execute(
         """
-        SELECT orders.*, ideas.title, ideas.role
+        SELECT orders.*, ideas.public_title AS title, ideas.role
         FROM orders JOIN ideas ON ideas.id = orders.idea_id
         WHERE orders.payment_token_hash = ?
         """,
@@ -405,7 +405,7 @@ def mock_payment_complete():
 def ecpay_payment_page(payment_token):
     order = get_db().execute(
         """
-        SELECT orders.*, ideas.title FROM orders JOIN ideas ON ideas.id = orders.idea_id
+        SELECT orders.*, ideas.public_title AS title FROM orders JOIN ideas ON ideas.id = orders.idea_id
         WHERE orders.payment_token_hash = ?
         """,
         (hash_token(payment_token),),
@@ -515,7 +515,7 @@ def ecpay_payment_result():
 def payment_status_page(activation_token):
     order = get_db().execute(
         """
-        SELECT orders.*, ideas.title, ideas.role,
+        SELECT orders.*, ideas.public_title AS title, ideas.role,
                COALESCE((
                    SELECT activation_codes.delivery_status
                    FROM activation_codes

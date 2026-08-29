@@ -109,8 +109,10 @@ def _device_label(user_agent):
 def _order_for_activation_token(activation_token):
     return get_db().execute(
         """
-        SELECT orders.*, ideas.title, ideas.role, ideas.discipline, ideas.paid_content,
-               ideas.deliverables, ideas.accent
+        SELECT orders.*, ideas.title, ideas.public_title, ideas.role, ideas.discipline, ideas.primary_vein,
+               ideas.secondary_vein, ideas.maturity, ideas.paid_content,
+               ideas.deliverables, ideas.tags, ideas.accent, ideas.hero_image,
+               ideas.diagram_image, ideas.scene_image
         FROM orders JOIN ideas ON ideas.id = orders.idea_id
         WHERE orders.activation_token_hash = ?
         """,
@@ -134,7 +136,7 @@ def issue_activation_delivery(order_id):
     connection = get_db()
     order = connection.execute(
         """
-        SELECT orders.*, ideas.title FROM orders
+        SELECT orders.*, ideas.public_title AS title FROM orders
         JOIN ideas ON ideas.id = orders.idea_id
         WHERE orders.id = ?
         """,
@@ -806,8 +808,10 @@ def order_content(order_no):
     email = customer_session["customer_email"] if customer_session else ""
     order = get_db().execute(
         """
-        SELECT orders.*, ideas.title, ideas.role, ideas.discipline, ideas.paid_content,
-               ideas.deliverables, ideas.accent
+        SELECT orders.*, ideas.title, ideas.role, ideas.discipline, ideas.primary_vein,
+               ideas.secondary_vein, ideas.maturity, ideas.paid_content,
+               ideas.deliverables, ideas.accent, ideas.hero_image,
+               ideas.diagram_image, ideas.scene_image
         FROM orders JOIN ideas ON ideas.id = orders.idea_id
         WHERE orders.order_no = ? AND orders.customer_email = ? AND orders.status = 'paid'
         """,

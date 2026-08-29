@@ -7,7 +7,7 @@ from tianwai.analytics import build_demand_radar
 from tianwai.db import get_db, migrate_database
 
 
-def _idea_id(connection, slug="brand-world-forge"):
+def _idea_id(connection, slug="sealed-twin-tire-safety"):
     return connection.execute("SELECT id FROM ideas WHERE slug = ?", (slug,)).fetchone()["id"]
 
 
@@ -115,13 +115,13 @@ def test_base_schemas_defer_migration_dependent_indexes():
 
 def test_public_interest_is_anonymous_validated_and_deduplicated(app, client):
     csrf = set_public_csrf(client)
-    payload = {"event_name": "interest_registered", "idea_slug": "brand-world-forge"}
+    payload = {"event_name": "interest_registered", "idea_slug": "sealed-twin-tire-safety"}
 
     first = client.post("/api/events", json=payload, headers={"X-CSRF-Token": csrf})
     second = client.post("/api/events", json=payload, headers={"X-CSRF-Token": csrf})
     invalid = client.post(
         "/api/events",
-        json={"event_name": "reading_depth", "idea_slug": "brand-world-forge", "event_value": "99"},
+        json={"event_name": "reading_depth", "idea_slug": "sealed-twin-tire-safety", "event_value": "99"},
         headers={"X-CSRF-Token": csrf},
     )
 
@@ -159,7 +159,7 @@ def test_demand_radar_gates_small_samples_and_excludes_automated_traffic(app):
         connection.commit()
 
         first = build_demand_radar(connection, days=30, payment_ready=False)
-        item = next(entry for entry in first["items"] if entry["slug"] == "brand-world-forge")
+        item = next(entry for entry in first["items"] if entry["slug"] == "sealed-twin-tire-safety")
         assert item["funnel"]["visitors"] == 9
         assert item["evidence_index"] is None
         assert item["confidence"]["level"] == "insufficient"
@@ -175,7 +175,7 @@ def test_demand_radar_gates_small_samples_and_excludes_automated_traffic(app):
         connection.commit()
 
         qualified = build_demand_radar(connection, days="invalid", payment_ready=False)
-        item = next(entry for entry in qualified["items"] if entry["slug"] == "brand-world-forge")
+        item = next(entry for entry in qualified["items"] if entry["slug"] == "sealed-twin-tire-safety")
 
     assert qualified["window_days"] == 30
     assert item["confidence"]["level"] == "exploratory"
@@ -238,7 +238,7 @@ def test_demand_radar_excludes_legacy_baseline_and_classifies_sessions(app):
             now=datetime(2026, 8, 30, 12, tzinfo=timezone.utc),
             payment_ready=False,
         )
-        item = next(entry for entry in radar["items"] if entry["slug"] == "brand-world-forge")
+        item = next(entry for entry in radar["items"] if entry["slug"] == "sealed-twin-tire-safety")
 
     assert item["funnel"]["visitors"] == 2
     assert radar["data_quality"]["public_sessions"] == 2

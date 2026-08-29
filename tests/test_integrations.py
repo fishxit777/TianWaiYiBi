@@ -247,10 +247,11 @@ def test_line_simulator_shows_product_navigation(client):
     )
 
     assert response.status_code == 200
-    assert "六脈仙策" in response.get_json()["reply"]
+    assert "天外盲策封印目錄" in response.get_json()["reply"]
+    assert "雙生續行輪" not in response.get_json()["reply"]
 
 
-def test_line_simulator_catalog_uses_six_flex_cards(client):
+def test_line_simulator_catalog_uses_only_published_sealed_cards(client):
     csrf = set_public_csrf(client)
     response = client.post(
         "/dev/line/reply",
@@ -262,8 +263,9 @@ def test_line_simulator_catalog_uses_six_flex_cards(client):
     payload = response.get_json()
     assert [message["type"] for message in payload["messages"]] == ["text", "flex"]
     assert payload["messages"][1]["contents"]["type"] == "carousel"
-    assert len(payload["messages"][1]["contents"]["contents"]) == 6
-    assert len(payload["cards"]) == 6
+    assert len(payload["messages"][1]["contents"]["contents"]) == 1
+    assert len(payload["cards"]) == 1
+    assert payload["cards"][0]["title"] == "封印盲策・第壹卷"
     assert all(card["url"].endswith("?source=line") for card in payload["cards"])
 
 

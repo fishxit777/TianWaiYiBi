@@ -104,13 +104,15 @@ def test_admin_api_requires_authentication(client):
     assert response.status_code == 401
 
 
-def test_admin_dashboard_uses_seven_separate_operational_workspaces(client):
+def test_admin_dashboard_uses_six_separate_operational_workspaces(client):
     login_admin(client)
     body = client.get("/admin").get_data(as_text=True)
 
-    for workspace in ("overview", "orders", "ideas", "customers", "conversations", "integrations", "security"):
+    for workspace in ("overview", "orders", "ideas", "customers", "integrations", "security"):
         assert f'data-admin-view="{workspace}"' in body
         assert f'data-admin-panel="{workspace}"' in body
+    assert 'data-admin-view="conversations"' not in body
+    assert 'id="idea-draft-form"' in body
     assert "今日需要處理" in body
     assert "開通碼、登入碼與私密連結不會在後台曝光" in body
     assert 'data-admin-panel="orders" hidden' in body
@@ -139,7 +141,7 @@ def test_admin_preview_requires_login_and_marks_followup_public_events(app, clie
     assert "no-store" in preview.headers.get("Cache-Control", "")
 
     assert client.get("/").status_code == 200
-    assert client.get("/ideas/brand-world-forge").status_code == 200
+    assert client.get("/ideas/sealed-twin-tire-safety").status_code == 200
     with client.session_transaction() as public_session:
         assert public_session["analytics_preview_until"]
     with app.app_context():
@@ -291,16 +293,26 @@ def test_repeated_bad_logins_trigger_temporary_block(client):
 
 def _editable_idea_payload(idea):
     return {
+        "public_title": idea["public_title"],
         "title": idea["title"],
         "role": idea["role"],
         "seal": idea["seal"],
         "discipline": idea["discipline"],
+        "primary_vein": idea["primary_vein"],
+        "secondary_vein": idea["secondary_vein"],
+        "topic": idea["topic"],
+        "maturity": idea["maturity"],
+        "workflow_status": idea["workflow_status"],
+        "raw_idea": idea["raw_idea"],
         "summary": idea["summary"],
         "teaser": idea["teaser"],
         "paid_content": idea["paid_content"],
         "deliverables": idea["deliverables"],
         "tags": idea["tags"],
         "accent": idea["accent"],
+        "hero_image": idea["hero_image"],
+        "diagram_image": idea["diagram_image"],
+        "scene_image": idea["scene_image"],
         "sort_order": idea["sort_order"],
         "price_override": idea["price_override"],
     }

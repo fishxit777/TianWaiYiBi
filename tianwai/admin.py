@@ -2,6 +2,7 @@ import base64
 import ipaddress
 import json
 import os
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -50,14 +51,7 @@ from .recovery import (
     revoke_all_passkeys,
 )
 from .turnstile import turnstile_configured, turnstile_site_key, verify_turnstile
-from .conversations import (
-    IDEA_SECTION,
-    customer_identity,
-    message_query,
-    normalize_message_body,
-    resolve_section_context,
-    serialize_message,
-)
+from .ideas import VEINS, classify_idea, publication_gaps
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -65,6 +59,7 @@ PAYMENT_VERIFICATION_AMOUNT = 6
 
 IDEA_ACCENTS = {"cinnabar", "jade", "gold", "azure", "violet", "silver"}
 IDEA_TEXT_RULES = {
+    "public_title": (2, 80),
     "title": (2, 80),
     "role": (2, 60),
     "seal": (1, 4),
@@ -74,6 +69,8 @@ IDEA_TEXT_RULES = {
     "paid_content": (20, 6000),
     "deliverables": (2, 500),
     "tags": (1, 200),
+    "maturity": (2, 80),
+    "raw_idea": (2, 3000),
 }
 
 
@@ -95,38 +92,6 @@ def _mask_ip(value):
         return f"{parts[0]}.{parts[1]}.*.*"
     parts = address.exploded.split(":")
     return f"{parts[0]}:{parts[1]}::*"
-
-
-def _notify_customer_conversation_reply(connection, customer, visibility):
-    """Send only a neutral login notice; never copy the conversation body to email."""
-    if customer is None:
-        return "not_targeted"
-    order = connection.execute(
-        """
-        SELECT id FROM orders
-        WHERE customer_id = ? AND status = 'paid' AND purpose = 'sale'
-        ORDER BY paid_at DESC, id DESC LIMIT 1
-        """,
-        (customer["id"],),
-    ).fetchone()
-    if order is None:
-        return "no_entitlement"
-    from .mailer import send_email
-
-    base_url = os.environ.get("BASE_URL", "").strip().rstrip("/")
-    login_url = f"{base_url}/customer/login" if base_url else "天外一筆客戶登入頁"
-    scope = "私密傳音" if visibility == "private" else "公開傳音"
-    return send_email(
-        customer["normalized_email"],
-        f"天外一筆｜你的{scope}有新回覆",
-        (
-            f"守閣者已回覆你的{scope}。\n\n"
-            f"請由官網登入後查看：{login_url}\n\n"
-            "為保護隱私，本通知不包含對話正文。天外一筆不會在信件中索取密碼、驗證碼或付款資料。\n"
-        ),
-        "conversation_reply",
-        order["id"],
-    )
 
 
 @admin_bp.get("/login")
@@ -531,7 +496,11 @@ def dashboard_data():
         payment_ready=checkout_status["ready"],
     )
     ideas = connection.execute(
-        "SELECT * FROM ideas ORDER BY sort_order, id"
+        """
+        SELECT * FROM ideas
+        WHERE workflow_status <> 'archived'
+        ORDER BY sort_order, id
+        """
     ).fetchall()
     orders = connection.execute(
         """
@@ -677,38 +646,6 @@ def dashboard_data():
         (trusted_analytics_start(datetime.now(timezone.utc) - timedelta(days=29)),),
     ).fetchall()
     line_event_count = connection.execute("SELECT COUNT(*) AS count FROM line_events").fetchone()["count"]
-    conversation_counts = connection.execute(
-        """
-        SELECT
-            SUM(CASE WHEN visibility = 'public' AND status = 'pending' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN visibility = 'public' AND status = 'published' THEN 1 ELSE 0 END) AS public_count,
-            SUM(CASE WHEN visibility = 'private' AND status = 'published' THEN 1 ELSE 0 END) AS private_count
-        FROM section_messages
-        WHERE section_key = 'idea-detail' AND idea_id IS NOT NULL
-        """
-    ).fetchone()
-    conversation_rows = connection.execute(
-        f"{message_query()} WHERE section_messages.section_key = 'idea-detail' "
-        "AND section_messages.idea_id IS NOT NULL "
-        "ORDER BY section_messages.id DESC LIMIT 100"
-    ).fetchall()
-    conversation_customers = connection.execute(
-        """
-        SELECT customers.public_id
-        FROM customers
-        WHERE customers.status = 'active'
-          AND EXISTS (
-              SELECT 1 FROM orders
-              WHERE orders.customer_id = customers.id
-                AND orders.status = 'paid' AND orders.purpose = 'sale'
-          )
-        ORDER BY customers.created_at DESC, customers.id DESC
-        LIMIT 200
-        """
-    ).fetchall()
-    conversation_ideas = connection.execute(
-        "SELECT slug, title FROM ideas WHERE published = 1 ORDER BY sort_order, id"
-    ).fetchall()
     global_price = get_setting_int("idea_price", 199)
     base_url = os.environ.get("BASE_URL", "http://127.0.0.1:5088").strip()
     verification_order = connection.execute(
@@ -763,16 +700,27 @@ def dashboard_data():
                 {
                     "id": row["id"],
                     "slug": row["slug"],
+                    "public_title": row["public_title"],
                     "title": row["title"],
                     "role": row["role"],
                     "seal": row["seal"],
                     "discipline": row["discipline"],
+                    "primary_vein": row["primary_vein"],
+                    "secondary_vein": row["secondary_vein"],
+                    "topic": row["topic"],
+                    "maturity": row["maturity"],
+                    "workflow_status": row["workflow_status"],
+                    "raw_idea": row["raw_idea"],
                     "summary": row["summary"],
                     "teaser": row["teaser"],
                     "paid_content": row["paid_content"],
                     "deliverables": row["deliverables"],
                     "tags": row["tags"],
                     "accent": row["accent"],
+                    "hero_image": row["hero_image"],
+                    "diagram_image": row["diagram_image"],
+                    "scene_image": row["scene_image"],
+                    "classification_confidence": row["classification_confidence"],
                     "sort_order": row["sort_order"],
                     "published": bool(row["published"]),
                     "price_override": row["price_override"],
@@ -848,29 +796,6 @@ def dashboard_data():
             "audit_logs": [dict(row) for row in audits],
             "revenue_days": [dict(row) for row in revenue_days],
             "traffic_sources": [dict(row) for row in traffic_sources],
-            "conversation_summary": {
-                "pending": int(conversation_counts["pending"] or 0),
-                "public": int(conversation_counts["public_count"] or 0),
-                "private": int(conversation_counts["private_count"] or 0),
-            },
-            "conversation_messages": [
-                serialize_message(row, admin_view=True) for row in conversation_rows
-            ],
-            "conversation_customers": [
-                {
-                    "public_id": row["public_id"],
-                    **customer_identity(row["public_id"]),
-                }
-                for row in conversation_customers
-            ],
-            "conversation_sections": [
-                {
-                    "key": IDEA_SECTION,
-                    "label": f"仙策・{row['title']}",
-                    "idea_slug": row["slug"],
-                }
-                for row in conversation_ideas
-            ],
             "integration_status": {
                 "mode": checkout_status["mode"],
                 "base_url": base_url,
@@ -1164,163 +1089,6 @@ def confirm_payment_verification_refund(order_no):
     )
 
 
-@admin_bp.post("/api/conversations/<int:message_id>/moderate")
-@admin_required
-def moderate_conversation_message(message_id):
-    guard = admin_mutation_guard()
-    if guard:
-        return guard
-    data = request.get_json(silent=True) or {}
-    status = str(data.get("status", "")).strip().lower()
-    if status not in {"published", "hidden"}:
-        return jsonify({"error": "不支援的審核狀態"}), 400
-    connection = get_db()
-    message = connection.execute(
-        "SELECT * FROM section_messages WHERE id = ?", (message_id,)
-    ).fetchone()
-    if message is None:
-        return jsonify({"error": "找不到傳音"}), 404
-    if status == "published" and message["visibility"] != "public":
-        return jsonify({"error": "私密傳音不需要公開審核"}), 400
-    now = utc_now()
-    connection.execute(
-        """
-        UPDATE section_messages
-        SET status = ?, moderated_at = ?, updated_at = ?
-        WHERE id = ?
-        """,
-        (status, now, now, message_id),
-    )
-    connection.commit()
-    log_audit(
-        "conversation_moderated",
-        message["public_id"],
-        f"visibility={message['visibility']};status={status}",
-    )
-    return jsonify({"ok": True, "status": status})
-
-
-@admin_bp.post("/api/conversations/reply")
-@admin_required
-def reply_to_conversation():
-    guard = admin_mutation_guard()
-    if guard:
-        return guard
-    data = request.get_json(silent=True) or {}
-    visibility = str(data.get("visibility", "")).strip().lower()
-    if visibility not in {"public", "private"}:
-        return jsonify({"error": "不支援的傳音範圍"}), 400
-    body, error = normalize_message_body(data.get("body", ""), visibility)
-    if error:
-        return jsonify({"error": error}), 400
-
-    connection = get_db()
-    reply_to = None
-    reply_to_id = data.get("reply_to_id")
-    if reply_to_id not in {None, ""}:
-        try:
-            reply_to_id = int(reply_to_id)
-        except (TypeError, ValueError):
-            return jsonify({"error": "回覆目標無效"}), 400
-        reply_to = connection.execute(
-            "SELECT * FROM section_messages WHERE id = ?", (reply_to_id,)
-        ).fetchone()
-        if reply_to is None:
-            return jsonify({"error": "找不到原始傳音"}), 404
-        if reply_to["visibility"] != visibility:
-            return jsonify({"error": "公開與私密回覆不可混用"}), 400
-
-    customer_public_id = str(data.get("customer_public_id", "")).strip()[:80]
-    customer = None
-    if customer_public_id:
-        customer = connection.execute(
-            "SELECT * FROM customers WHERE public_id = ? AND status = 'active'",
-            (customer_public_id,),
-        ).fetchone()
-        if customer is None:
-            return jsonify({"error": "找不到可用客戶"}), 404
-    elif reply_to is not None and reply_to["customer_id"] is not None:
-        customer = connection.execute(
-            "SELECT * FROM customers WHERE id = ? AND status = 'active'",
-            (reply_to["customer_id"],),
-        ).fetchone()
-    if visibility == "private" and customer is None:
-        return jsonify({"error": "私密傳音必須指定客戶"}), 400
-    if (
-        reply_to is not None
-        and customer is not None
-        and reply_to["customer_id"] is not None
-        and reply_to["customer_id"] != customer["id"]
-    ):
-        return jsonify({"error": "指定客戶與原始傳音不一致"}), 400
-    if (
-        reply_to is not None
-        and reply_to["author_type"] == "visitor"
-        and customer is not None
-    ):
-        return jsonify({"error": "訪客傳音不可改指定給客戶"}), 400
-
-    if reply_to is not None:
-        if reply_to["section_key"] != IDEA_SECTION or reply_to["idea_id"] is None:
-            return jsonify({"error": "只支援六脈仙策傳音"}), 404
-        section_key = reply_to["section_key"]
-        idea_id = reply_to["idea_id"]
-    else:
-        context = resolve_section_context(
-            data.get("section_key", ""), data.get("idea_slug", "")
-        )
-        if context is None:
-            return jsonify({"error": "找不到傳音區塊"}), 404
-        section_key = context["key"]
-        idea_id = context["idea"]["id"] if context["idea"] else None
-
-    now = utc_now()
-    cursor = connection.execute(
-        """
-        INSERT INTO section_messages
-            (public_id, section_key, idea_id, author_type, customer_id,
-             visitor_token_hash, reply_to_id, visibility, status, body,
-             moderated_at, created_at, updated_at)
-        VALUES (?, ?, ?, 'admin', ?, ?, ?, ?, 'published', ?, ?, ?, ?)
-        """,
-        (
-            f"MSG-{secrets.token_hex(8).upper()}",
-            section_key,
-            idea_id,
-            customer["id"] if customer else None,
-            (
-                reply_to["visitor_token_hash"]
-                if reply_to is not None and reply_to["customer_id"] is None
-                else None
-            ),
-            reply_to_id,
-            visibility,
-            body,
-            now,
-            now,
-            now,
-        ),
-    )
-    message_id = cursor.lastrowid
-    connection.commit()
-    row = connection.execute(
-        f"{message_query()} WHERE section_messages.id = ?", (message_id,)
-    ).fetchone()
-    delivery_status = _notify_customer_conversation_reply(
-        connection, customer, visibility
-    )
-    log_audit(
-        "conversation_replied",
-        row["public_id"],
-        f"visibility={visibility};section={section_key};target={'yes' if customer else 'no'};notice={delivery_status}",
-    )
-    response = jsonify(
-        {"ok": True, "message": serialize_message(row, admin_view=True)}
-    )
-    response.status_code = 201
-    return response
-
-
 @admin_bp.post("/api/settings/price")
 @admin_required
 def update_price():
@@ -1358,15 +1126,74 @@ def update_publish(idea_id):
     if not isinstance(published, bool):
         return jsonify({"error": "published 必須是布林值"}), 400
     connection = get_db()
+    idea = connection.execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
+    if idea is None:
+        return jsonify({"error": "找不到想法"}), 404
+    if published:
+        if idea["workflow_status"] not in {"ready", "published"}:
+            return jsonify({"error": "請先將工作狀態設為 ready 並完成內容檢查"}), 409
+        gaps = publication_gaps(dict(idea))
+        if gaps:
+            return jsonify({"error": "發布前仍缺少：" + "、".join(gaps)}), 409
     cursor = connection.execute(
-        "UPDATE ideas SET published = ?, updated_at = ? WHERE id = ?",
-        (1 if published else 0, utc_now(), idea_id),
+        "UPDATE ideas SET published = ?, workflow_status = ?, updated_at = ? WHERE id = ?",
+        (1 if published else 0, "published" if published else "ready", utc_now(), idea_id),
     )
     connection.commit()
     if cursor.rowcount == 0:
         return jsonify({"error": "找不到想法"}), 404
     log_audit("update_idea_publish", str(idea_id), f"published={published}")
     return jsonify({"ok": True, "published": published})
+
+
+@admin_bp.post("/api/ideas")
+@admin_required
+def create_idea_draft():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    data = request.get_json(silent=True) or {}
+    raw_idea = str(data.get("raw_idea", "")).strip()
+    if len(raw_idea) < 10 or len(raw_idea) > 3000:
+        return jsonify({"error": "原始想法需介於 10 與 3000 個字元"}), 400
+    classified = classify_idea(raw_idea)
+    primary = classified["primary_vein"]
+    secondary = classified["secondary_vein"]
+    connection = get_db()
+    draft_count = connection.execute("SELECT COUNT(*) AS count FROM ideas").fetchone()["count"]
+    now = utc_now()
+    cursor = connection.execute(
+        """
+        INSERT INTO ideas
+            (slug, public_title, title, role, seal, discipline, primary_vein,
+             secondary_vein, topic, maturity, workflow_status, raw_idea, summary,
+             teaser, paid_content, deliverables, tags, accent, hero_image,
+             diagram_image, scene_image, classification_confidence, sort_order,
+             published, created_at, updated_at)
+        VALUES (?, ?, '待命名概念', ?, ?, '待補公開領域線索', ?, ?, '',
+                '概念提案・未經工程驗證', 'draft', ?, '此卷仍在編輯，尚未公開。',
+                '此卷仍在編輯，發布前會補齊不洩漏解法的購買線索。',
+                '尚未完成拆封後內容；此草稿不可發布。', '待補完整內容清單', ?,
+                'jade', '', '', '', ?, ?, 0, ?, ?)
+        """,
+        (
+            f"sealed-{secrets.token_hex(6)}",
+            f"封印盲策・草稿 {int(draft_count) + 1:02d}",
+            primary,
+            VEINS[primary]["seal"],
+            primary,
+            secondary,
+            raw_idea,
+            ",".join(classified["tags"] + ["未驗證"]),
+            classified["confidence"],
+            int(draft_count) + 1,
+            now,
+            now,
+        ),
+    )
+    connection.commit()
+    log_audit("create_idea_draft", str(cursor.lastrowid), f"primary={primary};confidence={classified['confidence']}")
+    return jsonify({"ok": True, "idea_id": cursor.lastrowid, "classification": classified}), 201
 
 
 @admin_bp.post("/api/ideas/<int:idea_id>")
@@ -1396,6 +1223,25 @@ def update_idea(idea_id):
     if sort_order < 1 or sort_order > 999:
         return jsonify({"error": "排序需介於 1 與 999"}), 400
 
+    primary_vein = str(data.get("primary_vein", "")).strip()
+    secondary_vein = str(data.get("secondary_vein", "")).strip()
+    if primary_vein not in VEINS:
+        return jsonify({"error": "主脈不在六脈清單"}), 400
+    if secondary_vein and (secondary_vein not in VEINS or secondary_vein == primary_vein):
+        return jsonify({"error": "副脈必須是不同於主脈的六脈，或留空"}), 400
+    workflow_status = str(data.get("workflow_status", "draft")).strip().lower()
+    if workflow_status not in {"draft", "review", "ready", "published", "archived"}:
+        return jsonify({"error": "工作狀態不正確"}), 400
+    topic = str(data.get("topic", "")).strip()[:120]
+    image_paths = {}
+    for field in ("hero_image", "diagram_image", "scene_image"):
+        value = str(data.get(field, "")).strip()
+        if value and not re.fullmatch(r"brand/[a-zA-Z0-9._/-]+\.(?:webp|png|jpe?g)", value):
+            return jsonify({"error": f"{field} 必須是 static/brand 內的圖片路徑"}), 400
+        if ".." in value:
+            return jsonify({"error": f"{field} 路徑不安全"}), 400
+        image_paths[field] = value
+
     raw_override = data.get("price_override")
     if raw_override in (None, ""):
         price_override = None
@@ -1411,15 +1257,20 @@ def update_idea(idea_id):
     cursor = connection.execute(
         """
         UPDATE ideas SET
-            title = ?, role = ?, seal = ?, discipline = ?, summary = ?, teaser = ?,
+            public_title = ?, title = ?, role = ?, seal = ?, discipline = ?,
+            primary_vein = ?, secondary_vein = ?, topic = ?, maturity = ?,
+            workflow_status = ?, raw_idea = ?, summary = ?, teaser = ?,
             paid_content = ?, deliverables = ?, tags = ?, accent = ?, sort_order = ?,
+            hero_image = ?, diagram_image = ?, scene_image = ?,
             price_override = ?, updated_at = ?
         WHERE id = ?
         """,
         (
-            values["title"], values["role"], values["seal"], values["discipline"],
-            values["summary"], values["teaser"], values["paid_content"],
+            values["public_title"], values["title"], values["role"], values["seal"], values["discipline"],
+            primary_vein, secondary_vein, topic, values["maturity"], workflow_status,
+            values["raw_idea"], values["summary"], values["teaser"], values["paid_content"],
             values["deliverables"], values["tags"], accent, sort_order,
+            image_paths["hero_image"], image_paths["diagram_image"], image_paths["scene_image"],
             price_override, utc_now(), idea_id,
         ),
     )

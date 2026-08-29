@@ -1,159 +1,55 @@
 {% extends "base.html" %}
-{% block title %}天外一筆・仙策閣｜想法販售・創意支援{% endblock %}
-{% block hero_image_preload %}
-  <link rel="preload" href="{{ url_for('static', filename='brand/home-title-xianxia-v14.webp') }}" as="image" type="image/webp" fetchpriority="high">
-  <link rel="preload" href="{{ url_for('static', filename='brand/website-hero-v15.webp') }}" as="image" type="image/webp" fetchpriority="high">
-{% endblock %}
-{% block body_class %}home-page{% endblock %}
+{% block title %}天外盲策｜只在拆封後現世的原創概念卷{% endblock %}
+{% block body_class %}home-page blindbox-home{% endblock %}
 {% block content %}
-<section class="hero">
-  <div class="hero-v15-sky" aria-hidden="true"></div>
-  <div class="hero-copy reveal">
-    <p class="eyebrow"><span>天外一筆工作室</span><i aria-hidden="true"></i>原創想法交易所</p>
-    <h1 class="hero-title-image-heading">
-      <span class="sr-only">一筆開天，靈感成案｜天外一筆原創想法交易所</span>
-      <img class="home-title-art" src="{{ url_for('static', filename='brand/home-title-xianxia-v14.webp') }}" alt="" width="782" height="503" fetchpriority="high">
-    </h1>
-    <p class="hero-lead">這裡不賣空泛的靈光。我們把每個想法煉成一位擁有獨門技能的修士，讓你依眼前的難題，找到真正能落地的一脈心法。</p>
+<section class="blind-hero section-shell">
+  <div class="blind-hero-copy reveal">
+    <p class="eyebrow"><span>天外一筆工作室</span><i aria-hidden="true"></i>原創概念封存所</p>
+    <p class="blind-volume">TIANWAI SEALED CONCEPTS</p>
+    <h1>天外盲策</h1>
+    <p class="blind-hero-line">只在拆封後現世的<br>原創概念卷。</p>
+    <p class="blind-hero-lead">你會先看見問題、價值與成熟度；真正的概念名稱、機制與完整圖文，只有購買後才會揭曉。</p>
     <div class="hero-actions">
-      <a class="button button-primary" href="#ideas"><span>進入仙策閣</span><small>翻閱六脈</small></a>
-      <a class="text-link" href="{{ url_for('public.transmission') }}">向守閣者傳音 <span aria-hidden="true">↘</span></a>
+      <a class="button button-primary" href="#ideas"><span>查看封印卷</span><small>先讀線索</small></a>
+      <a class="text-link" href="#how">先懂拆封規則 <span aria-hidden="true">↓</span></a>
     </div>
-    <p class="availability-ribbon {{ 'is-open' if payment_status.ready else 'is-preview' }}">
-      <span aria-hidden="true"></span>
-      {% if payment_status.ready %}<strong>正式開放</strong> 可安全付款並由 Email 開通{% else %}<strong>摘要開放</strong> 正式收款目前未開放，不會建立扣款{% endif %}
-    </p>
-    <dl class="hero-art-facts" aria-label="仙策閣概要">
-      <div><dt>現有心法</dt><dd><b>六脈</b><span>依難題擇法</span></dd></div>
-      <div><dt>公開資訊</dt><dd><b>完整摘要</b><span>先判斷適不適合</span></dd></div>
-      <div><dt>取得方式</dt><dd><b>{{ '一次解鎖' if payment_status.ready else '尚未收款' }}</b><span>{{ '付款後開通' if payment_status.ready else '開放時再通知' }}</span></dd></div>
-    </dl>
+    <p class="availability-ribbon {{ 'is-open' if payment_status.ready else 'is-preview' }}"><span aria-hidden="true"></span>{% if payment_status.ready %}<strong>正式開放</strong> 付款後立即揭示完整圖文{% else %}<strong>展示中</strong> 公開收款仍關閉，不會建立扣款{% endif %}</p>
   </div>
-  <aside class="hero-art reveal delay-1" aria-label="朱砂神筆穿越月金法陣，青玉靈氣環繞於靛紫九霄的修仙主景">
-    <img src="{{ url_for('static', filename='brand/website-hero-v15.webp') }}" alt="朱砂神筆如飛劍般穿越月金法陣，遠方仙門與浮峰立於靛紫雲海">
-    <span class="hero-art-halo" aria-hidden="true"></span>
+  <aside class="sealed-scroll-visual reveal delay-1" aria-label="一卷尚未拆封的原創概念卷">
+    <div class="sealed-scroll-orbit" aria-hidden="true"></div>
+    <div class="sealed-scroll"><span class="sealed-scroll-mark">盲</span><p>內容未揭</p><b>ORIGINAL CONCEPT</b></div>
+    <dl><div><dt>購買前</dt><dd>問題線索</dd></div><div><dt>拆封後</dt><dd>完整圖文</dd></div><div><dt>授權</dt><dd>非專屬閱讀</dd></div></dl>
   </aside>
-  <a class="hero-scroll-cue" href="#world-note">
-    <b aria-hidden="true">卷</b>
-    <span><strong>續入下一卷</strong><small>SCROLL TO READ</small></span>
-    <i aria-hidden="true"></i>
-  </a>
-  <div class="cloud cloud-a" aria-hidden="true"></div>
-  <div class="cloud cloud-b" aria-hidden="true"></div>
 </section>
-<section id="world-note" class="world-note section-shell reveal">
-  <div class="world-chapter-mark" aria-label="卷一・擇法">
-    <span>卷一</span>
-    <strong>擇法</strong>
-    <small>CHOOSE THE PATH</small>
-  </div>
-  <div class="world-title-lockup">
-    <h2><span>不是每個問題，</span><span>都該用同一把劍。</span></h2>
-    <i aria-hidden="true"></i>
-  </div>
-  <div class="world-note-copy">
-    <p>像一支各有所長的冒險隊伍，但擁有完全原創的修仙世界觀：有人斬斷複雜、有人構築品牌、有人煉轉換、有人造機關。你付費的不是角色造型，而是角色背後那套可執行的方法。</p>
-    <span class="ink-line" aria-hidden="true"></span>
-  </div>
-</section>
-<aside class="fit-band section-shell reveal" aria-label="適用對象快速判斷">
-  <div><span aria-hidden="true">✓</span><p><strong>適合你</strong>已知眼前卡點，願意照步驟驗證與執行。</p></div>
-  <div><span aria-hidden="true">×</span><p><strong>不適合你</strong>只想找保證成功、代操到底或一夜翻身的答案。</p></div>
-</aside>
-<section id="ideas" class="ideas-section section-shell">
-  <header class="section-heading reveal">
-    <div>
-      <p class="section-index">卷二・六脈仙策</p>
-      <p class="ideas-activity-summary" data-ideas-activity-summary role="status" aria-live="polite" hidden>
-        <span aria-hidden="true"></span><strong>六脈已有傳音</strong><small>查看下方標記仙策</small>
-      </p>
-      <h2>依難題，選你的<br class="mobile-title-break">同道。</h2>
-      <p class="section-deck">先選你想解決的局，再看哪位修士的專長最接近。每脈都有清楚用途、交付內容與統一試行價。</p>
-    </div>
-    <div class="filter-console">
-      <p id="idea-result-count" class="filter-result" role="status" aria-live="polite">目前顯示全部 6 脈仙策</p>
-      <div class="filters" role="group" aria-label="依難題篩選仙策">
-        <button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">全部</button>
-        <button class="filter-button" type="button" data-filter="品牌" aria-pressed="false">品牌</button>
-        <button class="filter-button" type="button" data-filter="成長" aria-pressed="false">成長</button>
-        <button class="filter-button" type="button" data-filter="自動化" aria-pressed="false">自動化</button>
-        <button class="filter-button" type="button" data-filter="策略" aria-pressed="false">策略</button>
-      </div>
-    </div>
-  </header>
 
-  <div class="idea-grid">
+<section id="veins" class="vein-index section-shell reveal">
+  <header><p class="section-index">六脈索引</p><h2>不按產業硬分，<br>按它替誰解決什麼。</h2></header>
+  <div class="vein-grid">
+    <article><i>守</i><strong>守護脈</strong><span>安全・防災・健康・風險</span></article><article><i>造</i><strong>造物脈</strong><span>產品・機構・材料・空間</span></article><article><i>機</i><strong>靈機脈</strong><span>軟體・資料・AI・自動化</span></article><article><i>局</i><strong>破局脈</strong><span>商業・服務・營運・交易</span></article><article><i>人</i><strong>人間脈</strong><span>日常・家庭・公共・環境</span></article><article><i>音</i><strong>傳音脈</strong><span>內容・品牌・教育・文化</span></article>
+  </div>
+</section>
+
+<section id="ideas" class="ideas-section blindbox-catalog section-shell">
+  <header class="section-heading reveal">
+    <div><p class="section-index">封印目錄</p><h2>只給足夠判斷的線索，<br>不提前拆封。</h2><p class="section-deck">每卷會公開主脈、問題情境、成熟度與拆封後取得內容。真正概念與完整視覺只交付給買家。</p></div>
+    <div class="filter-console"><p id="idea-result-count" class="filter-result" role="status" aria-live="polite">目前顯示全部 {{ ideas|length }} 卷</p><div class="filters" role="group" aria-label="依六脈篩選盲策"><button class="filter-button is-active" type="button" data-filter="all" aria-pressed="true">全部</button>{% for vein in ('守護脈','造物脈','靈機脈','破局脈','人間脈','傳音脈') %}<button class="filter-button" type="button" data-filter="{{ vein }}" aria-pressed="false">{{ vein }}</button>{% endfor %}</div></div>
+  </header>
+  <div class="idea-grid blindbox-grid">
     {% for idea in ideas %}
-    <article class="idea-card accent-{{ idea['accent'] }} reveal" data-tags="{{ idea['tags'] }}" data-idea-slug="{{ idea['slug'] }}">
-      <a class="idea-card-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}" aria-label="查看{{ idea['role'] }}：{{ idea['title'] }}">
-        <div class="idea-card-top">
-          <span class="idea-number">0{{ loop.index }}</span>
-          <span class="idea-seal" aria-hidden="true">{{ idea['seal'] }}</span>
-        </div>
-        <p class="idea-role">{{ idea['role'] }}</p>
-        <h3>{{ idea['title'] }}</h3>
-        <p class="idea-discipline">{{ idea['discipline'] }}</p>
-        <p class="idea-summary">{{ idea['summary'] }}</p>
-        <div class="idea-tags" aria-label="適合解決的難題">
-          <b>適合解決</b>
-          {% for tag in idea['tags'].split(',') %}<span>{{ tag }}</span>{% endfor %}
-        </div>
-        <p class="idea-delivery-cue">含公開摘要・交付清單・專屬傳音</p>
-        <footer>
-          <span>{% if payment_status.ready %}NT${{ idea['price_override'] if idea['price_override'] is not none else global_price }}{% else %}先看摘要{% endif %}</span>
-          <span class="idea-card-actions">
-            <em class="idea-activity-badge" data-idea-activity data-idea-slug="{{ idea['slug'] }}" role="status" aria-live="polite" hidden></em>
-            <strong>翻閱心法 <span aria-hidden="true">↗</span></strong>
-          </span>
-        </footer>
+    <article class="idea-card sealed-card accent-{{ idea['accent'] }} reveal" data-tags="{{ idea['primary_vein'] }},{{ idea['secondary_vein'] }},{{ idea['tags'] }}">
+      <a class="idea-card-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}" aria-label="查看{{ idea['public_title'] }}的封印線索">
+        <div class="sealed-card-art"{% if idea['hero_image'] %} style="--sealed-art:url('{{ url_for('static', filename=idea['hero_image']) }}')"{% endif %}><span>{{ idea['seal'] }}</span><em>SEALED</em></div>
+        <div class="idea-card-top"><span class="idea-number">VOL. {{ '%02d'|format(idea['sort_order']) }}</span><span class="maturity-chip">{{ idea['maturity'] }}</span></div><p class="idea-role">{{ idea['primary_vein'] }}</p><h3>{{ idea['public_title'] }}</h3><p class="idea-discipline">{{ idea['discipline'] }}</p><p class="idea-summary">{{ idea['summary'] }}</p><div class="idea-tags" aria-label="公開線索">{% for tag in idea['tags'].split(',')[:3] %}<span>{{ tag }}</span>{% endfor %}</div><footer><span>{% if payment_status.ready %}NT${{ idea['price_override'] if idea['price_override'] is not none else global_price }}{% else %}尚未收款{% endif %}</span><strong>查看封印線索 <span aria-hidden="true">↗</span></strong></footer>
       </a>
     </article>
     {% endfor %}
   </div>
-  <div id="idea-filter-empty" class="idea-filter-empty" hidden>
-    <strong>這個條件暫時沒有對應仙策</strong>
-    <p>重設篩選後查看完整六脈，或直接傳音說明你的難題。</p>
-    <button type="button" data-reset-idea-filter>顯示全部仙策</button>
-  </div>
+  <div id="idea-filter-empty" class="idea-filter-empty" hidden><strong>這一脈還沒有公開封印卷</strong><p>可先查看全部；新想法會依主要價值自動歸脈。</p><button type="button" data-reset-idea-filter>顯示全部</button></div>
 </section>
 
-<section id="how" class="how-section section-shell">
-  <div class="how-intro reveal">
-    <p class="section-index">卷三・入世之法</p>
-    <h2>三步，讓靈感<br>落地。</h2>
-    <p>不繞路、不賣關子。先看懂摘要與適用情境；正式收款開放後，再完成付款、開通並依完整內容逐步執行。</p>
-  </div>
-  <ol class="steps">
-    <li class="reveal"><span>壹</span><div><h3>辨識眼前難題</h3><p>先選限制，不被功能清單牽著走。</p></div></li>
-    <li class="reveal delay-1"><span>貳</span><div><h3>確認是否正式開放</h3><p>未開放時不建立扣款；開放後再一次解鎖。</p></div></li>
-    <li class="reveal delay-2"><span>參</span><div><h3>照表執行驗證</h3><p>用行動與數字判斷，不用感覺自我說服。</p></div></li>
-  </ol>
-</section>
-
-<section id="creed" class="creed-section section-shell">
-  <header class="creed-heading reveal">
-    <p class="section-index">卷四・仙閣心訣</p>
-    <h2>天馬行空，也要落在人間。</h2>
-    <p>靈感不是妄念，只是尚未被煉成的仙策。天外一筆不販賣空話；我們先辨真問、再找限制，最後把一念寫成能驗證、能執行、能留下成果的路。</p>
-  </header>
-  <div class="creed-grid">
-    <article class="reveal"><span>一念</span><h3>先辨真問</h3><p>不急著堆砌招式，先看清真正卡住你的那一道關。</p></article>
-    <article class="reveal delay-1"><span>一策</span><h3>以行證道</h3><p>每一脈心法都要化成下一步；用行動與結果回答，不靠想像自我說服。</p></article>
-    <article class="reveal delay-2"><span>一筆</span><h3>因人擇法</h3><p>六脈各有專長。依你的難題召來對的同道，不讓一把劍硬解天下事。</p></article>
-    <article class="reveal"><span>一程</span><h3>長路共修</h3><p>不求一夜飛昇，只求每次選擇都更接近可持續、可複用、能累積的成果。</p></article>
-  </div>
-</section>
-
-<section id="transmission" class="line-portal section-shell reveal">
-  <img class="line-glyph" src="{{ url_for('static', filename='brand/line-avatar-1254.png') }}" alt="天外一筆仙策靈使傳音法印">
-  <div>
-    <p class="section-index">卷五・傳音閣</p>
-    <h2>心有疑問，便傳音入閣。</h2>
-    <p>不知該選哪一脈、想先說說你的難題，或需要詢問仙策內容，都可召喚「天外一筆｜仙策靈使」。留下你的來意，需要時會由守閣者本人親自接續，替你引路。</p>
-    <p class="keeper-note"><strong>傳音暗號</strong>　回覆「靈感」看六脈、「價格」看試行價，也可直接寫下你真正想解的問題。</p>
-    <span class="transmission-id">仙策靈使・@279plitu</span>
-  </div>
-  <a class="button button-ghost" href="{{ url_for('public.transmission') }}"><span>傳音給守閣者</span><small>開啟 LINE 接引</small></a>
-  <p class="transmission-assurance"><span>由本人接續</span><span>不索取密碼</span><span>付款問題可詢問</span></p>
+<section id="how" class="unseal-rules section-shell">
+  <header class="reveal"><p class="section-index">拆封規則</p><h2>買的是完整概念閱讀權，<br>不是成功保證。</h2></header>
+  <ol><li class="reveal"><span>壹</span><div><h3>購買前看線索</h3><p>先確認問題、主脈、成熟度與內容形式，不公開真正解法。</p></div></li><li class="reveal delay-1"><span>貳</span><div><h3>付款後完整揭示</h3><p>取得概念原點、機制、使用情境、原創視覺、限制與未知。</p></div></li><li class="reveal delay-2"><span>參</span><div><h3>後續由買家判斷</h3><p>內容不含工程驗證、代執行、專利、獲利、法規或安全承諾。</p></div></li></ol>
+  <aside><strong>不設公開留言區</strong><p>避免買家內容、概念細節或爭議被公開。付款與開通問題改由私人訂單協助處理。</p></aside>
 </section>
 {% endblock %}

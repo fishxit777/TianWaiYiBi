@@ -120,14 +120,14 @@ def test_verification_order_uses_ecpay_minimum_credit_amount_without_opening_pub
     assert b"verification-hash-key" not in first_redirect.data
     assert b"verification-hash-iv" not in first_redirect.data
 
-    public_checkout = client.get("/checkout/brand-world-forge")
+    public_checkout = client.get("/checkout/sealed-twin-tire-safety")
     assert "正式付款尚未開放" in public_checkout.get_data(as_text=True)
 
     public_csrf = set_public_csrf(client, "public-sales-stay-closed")
     public_order = client.post(
         "/api/orders",
         json={
-            "idea_slug": "brand-world-forge",
+            "idea_slug": "sealed-twin-tire-safety",
             "customer_name": "一般訪客",
             "customer_email": "visitor@example.com",
             "purchase_notice_consent": True,
@@ -206,7 +206,7 @@ def test_live_minimum_amount_callback_delivers_activates_then_refund_confirmatio
         follow_redirects=True,
     )
     assert activated.status_code == 200
-    assert "七日破局劍譜" in activated.get_data(as_text=True)
+    assert "雙生續行輪" in activated.get_data(as_text=True)
 
     rejected_confirmation = client.post(
         f"/admin/api/payment-verification/orders/{order['order_no']}/refund-confirmation",
@@ -235,7 +235,7 @@ def test_live_minimum_amount_callback_delivers_activates_then_refund_confirmatio
     assert inaccessible.status_code in {302, 404}
     if inaccessible.status_code == 302:
         inaccessible = client.get(f"/library/orders/{order['order_no']}", follow_redirects=True)
-    assert "七日破局劍譜" not in inaccessible.get_data(as_text=True)
+    assert "雙生續行輪" not in inaccessible.get_data(as_text=True)
 
     with app.app_context():
         connection = get_db()

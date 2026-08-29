@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}九霄傳音詔｜天外一筆・仙策靈使{% endblock %}
+{% block title %}私人訂單協助｜天外一筆{% endblock %}
 {% block hero_image_preload %}<link rel="preload" href="{{ url_for('static', filename='brand/transmission-title-xianxia-v14.webp') }}" as="image" type="image/webp" fetchpriority="high">{% endblock %}
 {% block body_class %}transmission-page transmission-v2-page{% endblock %}
 {% block main_navigation %}
-  <a href="{{ url_for('public.home') }}#ideas">翻閱六脈</a>
-  <a class="nav-seal" href="{{ url_for('public.home') }}">歸返仙策閣</a>
+  <a href="{{ url_for('public.home') }}#ideas">查看封印卷</a>
+  <a class="nav-seal" href="{{ url_for('public.home') }}">返回天外盲策</a>
 {% endblock %}
 
 {% block content %}
@@ -25,18 +25,18 @@
       <h1 id="transmission-title" class="hero-title-image-heading transmission-title-image-heading">
         <img class="transmission-title-art" src="{{ url_for('static', filename='brand/transmission-title-xianxia-v14.webp') }}" alt="一筆啟月門，一念渡靈音" width="838" height="469" fetchpriority="high">
       </h1>
-      <p class="transmission-legacy">一印傳音・仙策相迎</p>
-      <p class="transmission-v2-lead">你不必先想好答案，也不必把故事說得完美。只需寫下眼前最難跨過的那一道關，仙策靈使便循著此念接引；需要深談時，由守閣者本人親自接續。</p>
+      <p class="transmission-legacy">私人協助・只處理交易問題</p>
+      <p class="transmission-v2-lead">這裡不是公開留言區，也不討論或揭露盲策內容。只有付款、收信、開通、登入與退款異常需要人工協助時，才由守閣者接續處理。</p>
 
       <blockquote class="ink-scroll">
         <span aria-hidden="true">問</span>
-        <p>迷霧未散，先尋一線；萬念紛飛，先落一筆。</p>
+        <p>不公開買家問題，不在訊息中索取密碼、驗證碼或卡片資料。</p>
       </blockquote>
 
       <div class="jade-vows" aria-label="傳音服務特色">
-        <span><b>壹</b>六脈擇法</span>
-        <span><b>貳</b>仙策問答</span>
-        <span><b>參</b>真人承接</span>
+        <span><b>壹</b>付款異常</span>
+        <span><b>貳</b>開通取回</span>
+        <span><b>參</b>退款協助</span>
       </div>
 
       <div class="transmission-v2-actions">
@@ -81,7 +81,7 @@
     <header class="three-breaths-heading reveal">
       <p>三息入閣</p>
       <h2 id="three-breaths-title">月印一照，<br class="mobile-title-break">靈念便有歸處</h2>
-      <span>不繞遠路，不問俗名，只問你真正想破的局。</span>
+      <span>只需說明問題類型與發生時間；不要傳送密碼、驗證碼、完整卡號或開通碼。</span>
     </header>
     <ol class="transmission-path-v2" aria-label="傳音入閣三步">
       <li class="reveal">
@@ -94,7 +94,7 @@
       </li>
       <li class="reveal delay-2">
         <span class="step-seal">參</span>
-        <div><small>第三息</small><strong>落筆問策</strong><p>可回覆「靈感」翻閱六脈，也可直接寫下最想跨過的關。</p></div>
+        <div><small>第三息</small><strong>說明交易問題</strong><p>請選付款、收信、開通、登入或退款，並描述畫面顯示的非敏感錯誤。</p></div>
       </li>
     </ol>
   </section>
@@ -103,17 +103,17 @@
     <div class="oath-seal" aria-hidden="true"><span>守</span><i>誠</i></div>
     <div class="oath-copy">
       <p>守閣之誓</p>
-      <h2 id="keeper-oath-title">先聽懂你的迷霧，再替你指一條可走的路。</h2>
-      <p>靈使負責接引，守閣者負責承接。你傳來的不是冷冰冰的工單，而是一道值得被好好看見的難題。</p>
+      <h2 id="keeper-oath-title">只解決取用問題，不要求你交出秘密。</h2>
+      <p>守閣者只核對必要的訂單狀態與系統紀錄。盲策概念不在 LINE 公開討論，也不接受以訊息代替正式付款開通。</p>
     </div>
     <ul class="oath-rules" aria-label="安全傳音守則">
-      <li><span>真人</span>需要時由守閣者接續</li>
+      <li><span>私人</span>不設公開留言或買家討論</li>
       <li><span>安心</span>不索取密碼與驗證碼</li>
-      <li><span>清楚</span>先釐清方向，再談後續</li>
+      <li><span>邊界</span>只處理付款與內容取回</li>
     </ul>
   </section>
 </section>
 {% endblock %}
 
-{% block footer_tagline %}月印為憑・一念傳音・有問必照{% endblock %}
+{% block footer_tagline %}私人訂單協助・不公開買家內容{% endblock %}
 {% block footer_note %}請認明唯一名號 @279plitu；本閣不會索取密碼、簡訊驗證碼或要求遠端操控。{% endblock %}

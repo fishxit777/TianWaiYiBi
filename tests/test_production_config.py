@@ -38,7 +38,7 @@ def test_ecpay_production_mode_requires_explicit_live_confirmation(client, monke
     monkeypatch.setenv("ECPAY_HASH_IV", "hash-iv")
     monkeypatch.delenv("ECPAY_LIVE_CONFIRMED", raising=False)
 
-    response = client.get("/checkout/brand-world-forge")
+    response = client.get("/checkout/sealed-twin-tire-safety")
 
     assert response.status_code == 200
     assert "正式付款尚未開放" in response.get_data(as_text=True)
