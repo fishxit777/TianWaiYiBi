@@ -40,3 +40,12 @@
 
 - 沒有變更盲策內容、公開收款狀態、訂單、退款、客戶權限、資料庫 schema、通知、Passkey、復原碼、備份或任何雲端憑證。
 - 沒有登入或修改正式後台資料；視覺驗收使用隔離本機資料庫與本機測試管理身分。
+
+## 正式部署
+
+- 實作提交：`85377d6`（`feat: restore readable typography sitewide`）。
+- 正式 `/healthz`：HTTP 200、`status=ok`、`release=readable-typography-v19`。
+- 正式首頁、管理登入與 `static/v19.css`：HTTP 200。
+- 正式首頁已載入 V19、保留 Logo，且不再預載書法字型。
+- 管理登入仍為 `Cache-Control: no-store`、`X-Frame-Options: DENY`。
+- 部署驗收為純讀檢查，未登入後台或改動正式資料。

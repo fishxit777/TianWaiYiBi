@@ -99,6 +99,7 @@
 ## 驗證結果
 
 - 2026-08-30 V19 清晰字體本機完整驗證：`python -m pytest -q` 為 162 passed、1 skipped；Python compileall、四支 JavaScript syntax、`pip check` 與 `git diff --check` 通過。Browser 實看 1440×900 與 390×844 的首頁、封印詳情、結帳、客戶登入、訂單協助、管理登入及後台六個工作區；全部 computed font 為正黑體系、可見文字下限 12px、0 根頁面水平溢位、0 破圖、0 console error，Logo 題字圖像仍為原檔。
+- V19 清晰字體已由實作提交 `85377d6` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=readable-typography-v19`。正式首頁、管理登入與 `static/v19.css` 均回 200；首頁載入 V19、保留 Logo 且不再預載書法字型，管理登入維持 `no-store`／`DENY`。正式驗收只讀取公開端點，未登入後台、未建立訂單、未寄通知，也未修改客戶、付款、Passkey、復原碼、備份或正式資料。
 - 2026-08-30 天外盲策本機完整驗證：`python -m pytest -q` 為 162 passed、1 skipped；Python compileall、兩支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的新增檔案機密掃描通過。1440px 桌機及 390×844 手機均為 0 破圖、0 根頁面水平溢位；首頁、封印詳情、付款前頁面與開通前頁面均不顯示首卷真名，成功開通後才顯示完整文字與三張圖。
 - 天外盲策由提交 `77b16b1` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=sealed-blind-strategy-v1`。正式首頁、首卷封印詳情與結帳頁均回 200，公開真名洩漏 0、結帳連結 0、正式付款維持關閉；留言資產與元件均不存在，舊公開留言 API 回 404。管理登入維持 `no-store`／`DENY`。正式驗收只讀取公開端點，未建立訂單、未付款、未寄通知、未登入後台，也未操作客戶資料、Passkey、復原碼、備份或金流憑證。
 - 2026-08-28 管理推播 LINE Bot 化本機驗證：通知、風險與健康專項 24 passed；全套 `python -m pytest -q` 為 167 passed、1 skipped。Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check`、固定三時段排程檢查與新增行機密掃描均通過。測試覆蓋每次摘要只建立一筆 LINE、防重送、即時高風險告警、舊 Gmail 永不重試、交易 Email 保留及後台 LINE-only 文案。
