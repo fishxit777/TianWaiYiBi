@@ -32,6 +32,8 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "static/v20.css" in body
     assert "static/v21.css" in body
     assert "static/v22.css" in body
+    assert "static/v23.css" in body
+    assert "static/companions.js" in body
     assert "brand/sealed-scroll-casket-v20.webp" in body
     assert "封印未解" in body
     assert 'class="sealed-scroll"' not in body
@@ -43,6 +45,9 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
         assert vein in body
     assert body.count('class="vein-sigil"') == 6
     assert body.count('class="vein-card ') == 6
+    assert body.count("data-companion-button") == 8
+    for companion in ("guardian", "crafter", "oracle", "strategist", "healer", "musician"):
+        assert f"brand/companions/chibi-{companion}-v23.webp" in body
     assert 'class="sealed-talisman"' in body
     assert "封印盲策・第壹卷" in body
     assert "雙生續行輪" not in body
@@ -102,6 +107,7 @@ def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
         assert "static/v20.css" in body
         assert "static/v21.css" in body
         assert "static/v22.css" in body
+        assert "static/v23.css" in body
         assert "fonts/tianwai-masa-regular.woff2" not in body
         assert "fonts/tianwai-masa-bold.woff2" not in body
 
@@ -188,6 +194,41 @@ def test_v22_moves_public_storefront_into_a_sunlit_celestial_palette(client):
     ):
         assert selector in stylesheet
     assert ".public-site:not(.transmission-v2-page)" in stylesheet
+
+
+def test_v23_adds_optimized_interactive_chibi_immortal_companions(client):
+    project_root = Path(__file__).resolve().parents[1]
+    stylesheet = (project_root / "static" / "v23.css").read_text(encoding="utf-8")
+    script = (project_root / "static" / "companions.js").read_text(encoding="utf-8")
+    home = client.get("/").get_data(as_text=True)
+    companion_root = project_root / "static" / "brand" / "companions"
+
+    assert "chibi-immortal-companions-v23" in home
+    assert home.count("data-companion-button") == 8
+    assert home.count('class="companion-card"') == 0
+    assert home.count("companion-card") == 6
+    assert "不設公開留言區" in home
+    assert 'href="/checkout/sealed-twin-tire-safety"' not in home
+
+    for name in ("guardian", "crafter", "oracle", "strategist", "healer", "musician"):
+        asset = companion_root / f"chibi-{name}-v23.webp"
+        data = asset.read_bytes()
+        assert data[:4] == b"RIFF"
+        assert data[8:12] == b"WEBP"
+        assert len(data) < 180_000
+
+    for selector in (
+        ".immortal-companion",
+        ".companion-hero",
+        ".companion-card",
+        ".companion-cameo",
+        ".rule-companion",
+        ".companion-footer",
+    ):
+        assert selector in stylesheet
+    assert "@media (prefers-reduced-motion: reduce)" in stylesheet
+    assert "data-companion-button" in script
+    assert "fetch(" not in script
 
 
 def test_all_management_templates_load_the_readable_typography_layer():

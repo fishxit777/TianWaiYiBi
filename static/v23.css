@@ -1,0 +1,547 @@
+/* V23 — six recurring chibi immortal companions bring life to the sunlit realm. */
+:root {
+  --companion-ink: #294843;
+  --companion-paper: rgba(255, 253, 241, .96);
+  --companion-gold: #b78431;
+  --companion-red: #a84d3f;
+  --companion-shadow: 0 18px 34px rgba(45, 79, 73, .18);
+}
+
+.home-page main {
+  position: relative;
+  overflow: clip;
+}
+
+.immortal-companion {
+  margin: 0;
+  padding: 0;
+  color: var(--companion-ink);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.immortal-companion img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 20px 19px rgba(44, 70, 66, .2));
+  transform-origin: 50% 86%;
+  transition: transform .32s cubic-bezier(.2, .75, .2, 1), filter .32s ease;
+}
+
+.immortal-companion:hover img,
+.immortal-companion:focus-visible img,
+.vein-card:hover .companion-card img {
+  filter: drop-shadow(0 24px 22px rgba(42, 77, 71, .27));
+  transform: translateY(-7px) scale(1.035);
+}
+
+.immortal-companion:focus-visible {
+  outline: 3px solid rgba(54, 126, 115, .62);
+  outline-offset: 5px;
+}
+
+.companion-speech {
+  position: absolute;
+  z-index: 8;
+  width: max-content;
+  max-width: 210px;
+  padding: 10px 13px;
+  color: #35504c;
+  border: 1px solid rgba(161, 119, 48, .33);
+  border-radius: 14px 14px 14px 4px;
+  background: var(--companion-paper);
+  box-shadow: var(--companion-shadow);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(7px) scale(.96);
+  transition: opacity .2s ease, transform .24s ease;
+}
+
+.companion-speech::after {
+  position: absolute;
+  right: 18px;
+  bottom: -7px;
+  width: 13px;
+  height: 13px;
+  content: "";
+  border-right: 1px solid rgba(161, 119, 48, .28);
+  border-bottom: 1px solid rgba(161, 119, 48, .28);
+  background: var(--companion-paper);
+  transform: rotate(45deg);
+}
+
+.immortal-companion:hover .companion-speech,
+.immortal-companion:focus-visible .companion-speech,
+.immortal-companion.is-reacting .companion-speech,
+.vein-card:hover .companion-speech {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.companion-name {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  min-width: 88px;
+  padding: 7px 10px;
+  border: 1px solid rgba(168, 121, 45, .33);
+  border-radius: 999px;
+  background: linear-gradient(110deg, rgba(255, 251, 230, .96), rgba(220, 241, 233, .94));
+  box-shadow: 0 9px 22px rgba(46, 81, 75, .13);
+  text-align: center;
+}
+
+.companion-name b {
+  color: #6e4d1d;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.companion-name small {
+  margin-top: 2px;
+  color: #60756f;
+  font-size: 9px;
+  line-height: 1.2;
+  letter-spacing: .08em;
+}
+
+/* Hero guardian: a living guide beside the sealed artifact. */
+.celestial-casket {
+  overflow: visible;
+}
+
+.companion-hero {
+  position: absolute;
+  z-index: 7;
+  left: clamp(-92px, -7vw, -34px);
+  bottom: 66px;
+  width: clamp(205px, 16vw, 265px);
+  animation: companion-idle 4.8s ease-in-out infinite;
+}
+
+.home-page .casket-status {
+  right: 25%;
+  left: auto;
+}
+
+.companion-hero .companion-speech {
+  top: 7%;
+  left: -7%;
+}
+
+.companion-hero .companion-name {
+  right: 4%;
+  bottom: 2%;
+}
+
+/* Daylight scenery gains layered cloud-scroll texture instead of empty fields. */
+.vein-index::after,
+.blindbox-catalog::before,
+.unseal-rules::before {
+  position: absolute;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.vein-index::after {
+  right: -11%;
+  bottom: -70px;
+  width: min(620px, 62vw);
+  height: 240px;
+  background:
+    radial-gradient(ellipse at 24% 60%, rgba(255, 255, 255, .8), transparent 45%),
+    radial-gradient(ellipse at 63% 42%, rgba(195, 230, 221, .67), transparent 48%),
+    radial-gradient(ellipse at 91% 69%, rgba(255, 244, 208, .72), transparent 42%);
+  filter: blur(4px);
+}
+
+.blindbox-catalog::before {
+  inset: 5% -9% 4% 48%;
+  background:
+    repeating-radial-gradient(circle at 65% 35%, transparent 0 58px, rgba(167, 124, 47, .11) 59px 60px, transparent 61px 82px),
+    radial-gradient(circle at 76% 24%, rgba(255, 222, 126, .24), transparent 28%),
+    radial-gradient(ellipse at 65% 70%, rgba(94, 178, 161, .15), transparent 45%);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 20%, #000 82%, transparent);
+}
+
+.unseal-rules::before {
+  left: -8%;
+  bottom: 2%;
+  width: 54%;
+  height: 250px;
+  background:
+    radial-gradient(ellipse at 18% 62%, rgba(255, 255, 255, .76), transparent 42%),
+    radial-gradient(ellipse at 56% 68%, rgba(178, 220, 212, .53), transparent 48%),
+    radial-gradient(circle at 73% 30%, rgba(231, 188, 92, .14), transparent 35%);
+  filter: blur(7px);
+}
+
+.vein-index > *,
+.blindbox-catalog > *,
+.unseal-rules > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Each vein owns one named companion, with enough room to gesture. */
+.vein-grid .vein-card {
+  min-height: 320px;
+  overflow: hidden;
+  padding: 25px 46% 25px 22px;
+}
+
+.vein-grid .vein-card > strong {
+  position: relative;
+  z-index: 3;
+  margin-top: 20px;
+}
+
+.vein-grid .vein-card > span:not(.vein-sigil) {
+  position: relative;
+  z-index: 3;
+  color: #5e706f;
+  font-size: 14px !important;
+  line-height: 1.7;
+}
+
+.companion-card {
+  position: absolute;
+  z-index: 2;
+  right: -2%;
+  bottom: -2%;
+  width: 50%;
+  min-width: 150px;
+  height: 98%;
+}
+
+.companion-card img {
+  position: absolute;
+  right: -2%;
+  bottom: -7%;
+  width: 100%;
+  max-height: 98%;
+  object-fit: contain;
+  object-position: right bottom;
+}
+
+.companion-card .companion-speech {
+  top: 10%;
+  right: 63%;
+  max-width: 175px;
+}
+
+.companion-card .companion-name {
+  right: 8%;
+  bottom: 6%;
+}
+
+/* Catalog cameos turn sealed cards into illustrated encounters without becoming a second link. */
+.home-page .idea-card-link {
+  position: relative;
+}
+
+.companion-cameo {
+  position: absolute;
+  z-index: 4;
+  top: 98px;
+  right: -12px;
+  width: 150px;
+  height: 190px;
+  pointer-events: none;
+}
+
+.companion-cameo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right bottom;
+  filter: drop-shadow(0 17px 15px rgba(38, 70, 64, .26));
+  transform: translateY(11px) rotate(2deg);
+  transition: transform .34s cubic-bezier(.2, .75, .2, 1);
+}
+
+.companion-cameo b {
+  position: absolute;
+  right: 15px;
+  bottom: 2px;
+  padding: 6px 9px;
+  color: #705020;
+  border: 1px solid rgba(165, 119, 42, .32);
+  border-radius: 999px;
+  background: rgba(255, 252, 235, .94);
+  box-shadow: 0 7px 18px rgba(41, 72, 66, .16);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.idea-card:hover .companion-cameo img,
+.idea-card:focus-within .companion-cameo img {
+  transform: translateY(0) rotate(-2deg) scale(1.045);
+}
+
+/* Three rules become small illustrated scenes. */
+.unseal-rules li {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+  padding-right: 122px;
+}
+
+.unseal-rules li > .rule-companion {
+  position: absolute;
+  z-index: 0;
+  right: -3px;
+  bottom: -42px;
+  display: block;
+  width: 128px;
+  height: 205px;
+  color: inherit;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: none;
+  pointer-events: none;
+}
+
+.rule-companion img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 14px 13px rgba(43, 77, 71, .2));
+  transform-origin: 50% 90%;
+  transition: transform .3s ease;
+}
+
+.unseal-rules li:hover .rule-companion img {
+  transform: translateY(-7px) rotate(-2deg);
+}
+
+/* A final musician turns the footer into a friendly send-off. */
+.home-page .site-footer {
+  position: relative;
+  min-height: 285px;
+  overflow: clip;
+  padding-right: clamp(210px, 20vw, 300px);
+}
+
+.companion-footer {
+  position: absolute;
+  z-index: 4;
+  right: clamp(22px, 5vw, 82px);
+  bottom: -92px;
+  width: clamp(175px, 17vw, 245px);
+  animation: companion-idle 5.4s .7s ease-in-out infinite;
+}
+
+.companion-footer .companion-speech {
+  top: 3%;
+  right: 76%;
+}
+
+.companion-footer .companion-name {
+  right: 3%;
+  bottom: 24%;
+}
+
+@keyframes companion-idle {
+  0%, 100% { transform: translateY(0) rotate(-.6deg); }
+  50% { transform: translateY(-9px) rotate(.7deg); }
+}
+
+@keyframes companion-wave {
+  0%, 100% { transform: translateY(-4px) rotate(0); }
+  32% { transform: translateY(-11px) rotate(-4deg) scale(1.05); }
+  66% { transform: translateY(-7px) rotate(3deg) scale(1.035); }
+}
+
+@keyframes companion-hammer {
+  0%, 100% { transform: translateY(-4px) rotate(0); }
+  42% { transform: translateY(-10px) rotate(-5deg) scale(1.045); }
+  58% { transform: translateY(1px) rotate(2deg) scale(1.02); }
+}
+
+@keyframes companion-think {
+  0%, 100% { transform: translateY(-4px) rotate(0); }
+  40% { transform: translateY(-10px) rotate(2deg) scale(1.04); }
+  62% { transform: translateY(-9px) rotate(-2deg) scale(1.04); }
+}
+
+@keyframes companion-fan {
+  0%, 100% { transform: translateY(-4px) rotate(0); }
+  48% { transform: translateY(-10px) rotate(4deg) scale(1.045); }
+}
+
+@keyframes companion-bloom {
+  0%, 100% { transform: translateY(-4px) scale(1); }
+  52% { transform: translateY(-12px) scale(1.06); }
+}
+
+@keyframes companion-music {
+  0%, 100% { transform: translateY(-4px) rotate(0); }
+  30% { transform: translateY(-11px) rotate(-3deg) scale(1.035); }
+  70% { transform: translateY(-8px) rotate(3deg) scale(1.035); }
+}
+
+.immortal-companion.is-reacting[data-motion="wave"] img { animation: companion-wave .72s ease-in-out 2; }
+.immortal-companion.is-reacting[data-motion="hammer"] img { animation: companion-hammer .64s ease-in-out 2; }
+.immortal-companion.is-reacting[data-motion="think"] img { animation: companion-think .76s ease-in-out 2; }
+.immortal-companion.is-reacting[data-motion="fan"] img { animation: companion-fan .7s ease-in-out 2; }
+.immortal-companion.is-reacting[data-motion="bloom"] img { animation: companion-bloom .78s ease-in-out 2; }
+.immortal-companion.is-reacting[data-motion="music"] img { animation: companion-music .74s ease-in-out 2; }
+
+@media (max-width: 1100px) {
+  .companion-hero {
+    left: 2%;
+    bottom: 62px;
+  }
+
+  .home-page .site-footer {
+    padding-right: 240px;
+  }
+
+  .home-page .casket-status {
+    right: 13%;
+  }
+}
+
+@media (max-width: 1000px) {
+  .home-page .casket-status {
+    right: 4%;
+  }
+}
+
+@media (max-width: 900px) {
+  .vein-grid .vein-card {
+    min-height: 300px;
+  }
+
+  .companion-card .companion-speech {
+    right: 55%;
+  }
+
+  .unseal-rules li {
+    min-height: 190px;
+  }
+}
+
+@media (max-width: 640px) {
+  .companion-hero {
+    left: -5%;
+    bottom: 118px;
+    width: 152px;
+  }
+
+  .companion-hero .companion-speech {
+    top: -8%;
+    left: 2%;
+    max-width: 170px;
+  }
+
+  .companion-hero .companion-name {
+    right: 2%;
+  }
+
+  .vein-grid .vein-card {
+    min-height: 236px;
+    display: block;
+    padding: 20px 43% 20px 20px;
+  }
+
+  .vein-grid .vein-card > strong {
+    display: block;
+    margin: 12px 0 5px;
+  }
+
+  .companion-card {
+    width: 47%;
+    min-width: 132px;
+  }
+
+  .companion-card .companion-speech {
+    top: 4%;
+    right: 48%;
+    max-width: 142px;
+    font-size: 11px;
+  }
+
+  .companion-card .companion-name {
+    right: 1%;
+    bottom: 4%;
+  }
+
+  .companion-cameo {
+    top: 76px;
+    right: -2px;
+    width: 134px;
+    height: 176px;
+  }
+
+  .companion-cameo b {
+    right: 7px;
+  }
+
+  .home-page .casket-status {
+    right: 0;
+    left: auto;
+  }
+
+  .unseal-rules li {
+    min-height: 205px;
+    padding-right: 105px;
+  }
+
+  .unseal-rules li > .rule-companion {
+    right: -9px;
+    width: 112px;
+    height: 184px;
+  }
+
+  .home-page .site-footer {
+    min-height: 380px;
+    padding-right: 22px;
+    padding-bottom: 178px;
+  }
+
+  .companion-footer {
+    right: -5px;
+    bottom: -98px;
+    width: 176px;
+  }
+
+  .companion-footer .companion-speech {
+    top: 13%;
+    right: 70%;
+    max-width: 165px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .immortal-companion,
+  .immortal-companion img,
+  .companion-cameo img,
+  .rule-companion img {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .immortal-companion:hover img,
+  .immortal-companion:focus-visible img,
+  .vein-card:hover .companion-card img,
+  .idea-card:hover .companion-cameo img,
+  .idea-card:focus-within .companion-cameo img,
+  .unseal-rules li:hover .rule-companion img {
+    transform: none;
+  }
+}

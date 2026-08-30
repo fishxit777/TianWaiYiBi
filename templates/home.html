@@ -1,8 +1,20 @@
 {% extends "base.html" %}
 {% block title %}天外盲策｜只在拆封後現世的原創概念卷{% endblock %}
-{% block hero_image_preload %}<link rel="preload" href="{{ url_for('static', filename='brand/sealed-scroll-casket-v20.webp') }}" as="image" type="image/webp" fetchpriority="high">{% endblock %}
+{% block hero_image_preload %}
+<link rel="preload" href="{{ url_for('static', filename='brand/sealed-scroll-casket-v20.webp') }}" as="image" type="image/webp" fetchpriority="high">
+<link rel="preload" href="{{ url_for('static', filename='brand/companions/chibi-guardian-v23.webp') }}" as="image" type="image/webp" fetchpriority="high">
+{% endblock %}
+{% block page_scripts_head %}<script src="{{ url_for('static', filename='companions.js', v='chibi-immortal-companions-v23') }}" defer></script>{% endblock %}
 {% block body_class %}home-page blindbox-home{% endblock %}
 {% block content %}
+{% set companion_by_vein = {
+  '守護脈': ('guardian', '守雲'),
+  '造物脈': ('crafter', '鑄星'),
+  '靈機脈': ('oracle', '玄算'),
+  '破局脈': ('strategist', '弈川'),
+  '人間脈': ('healer', '桃夭'),
+  '傳音脈': ('musician', '清商')
+} %}
 <section class="blind-hero section-shell">
   <div class="blind-hero-copy reveal">
     <p class="eyebrow"><span>天外一筆工作室</span><i aria-hidden="true"></i>原創概念封存所</p>
@@ -26,6 +38,11 @@
       <img class="casket-artifact" src="{{ url_for('static', filename='brand/sealed-scroll-casket-v20.webp') }}" alt="" width="1122" height="1402" fetchpriority="high">
       <span class="casket-status"><i>壹</i><span><strong>封印未解</strong><small>禁制完整・內容未揭</small></span></span>
     </div>
+    <button class="immortal-companion companion-hero companion-guardian" type="button" data-companion-button data-motion="wave" data-lines="先讀線索，我替你守住封印。|想拆卷？先看看它替誰解難。|收款尚未開，我也不會催你。" aria-label="讓守雲仙伴回應" aria-pressed="false">
+      <span class="companion-speech">先讀線索，我替你守住封印。</span>
+      <img src="{{ url_for('static', filename='brand/companions/chibi-guardian-v23.webp') }}" alt="守雲仙伴揮手守護封印卷匣" width="480" height="720" fetchpriority="high">
+      <span class="companion-name"><b>守雲</b><small>守護脈仙伴</small></span>
+    </button>
     <dl><div><dt>購買前</dt><dd>問題線索</dd></div><div><dt>拆封後</dt><dd>完整圖文</dd></div><div><dt>授權</dt><dd>非專屬閱讀</dd></div></dl>
   </aside>
 </section>
@@ -33,12 +50,12 @@
 <section id="veins" class="vein-index section-shell reveal">
   <header><p class="section-index">六脈索引</p><h2>不按產業硬分，<br>按它替誰解決什麼。</h2></header>
   <div class="vein-grid">
-    <article class="vein-card vein-guardian" data-mark="守"><span class="vein-sigil" aria-hidden="true"><em>守</em><b>鎮</b></span><strong>守護脈</strong><span>安全・防災・健康・風險</span></article>
-    <article class="vein-card vein-forge" data-mark="造"><span class="vein-sigil" aria-hidden="true"><em>造</em><b>鑄</b></span><strong>造物脈</strong><span>產品・機構・材料・空間</span></article>
-    <article class="vein-card vein-arcane" data-mark="機"><span class="vein-sigil" aria-hidden="true"><em>機</em><b>演</b></span><strong>靈機脈</strong><span>軟體・資料・AI・自動化</span></article>
-    <article class="vein-card vein-breaker" data-mark="局"><span class="vein-sigil" aria-hidden="true"><em>局</em><b>破</b></span><strong>破局脈</strong><span>商業・服務・營運・交易</span></article>
-    <article class="vein-card vein-mortal" data-mark="人"><span class="vein-sigil" aria-hidden="true"><em>人</em><b>生</b></span><strong>人間脈</strong><span>日常・家庭・公共・環境</span></article>
-    <article class="vein-card vein-echo" data-mark="音"><span class="vein-sigil" aria-hidden="true"><em>音</em><b>鳴</b></span><strong>傳音脈</strong><span>內容・品牌・教育・文化</span></article>
+    <article class="vein-card vein-guardian" data-mark="守"><span class="vein-sigil" aria-hidden="true"><em>守</em><b>鎮</b></span><strong>守護脈</strong><span>安全・防災・健康・風險</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="wave" data-lines="先辨風險，再談勇往直前。|這一脈，由我守雲鎮守。" aria-label="讓守雲仙伴回應" aria-pressed="false"><span class="companion-speech">先辨風險，再談勇往直前。</span><img src="{{ url_for('static', filename='brand/companions/chibi-guardian-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>守雲</b><small>向你揮手</small></span></button></article>
+    <article class="vein-card vein-forge" data-mark="造"><span class="vein-sigil" aria-hidden="true"><em>造</em><b>鑄</b></span><strong>造物脈</strong><span>產品・機構・材料・空間</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="hammer" data-lines="好點子，也要鑄得出來。|敲一下，看看結構穩不穩。" aria-label="讓鑄星仙伴回應" aria-pressed="false"><span class="companion-speech">好點子，也要鑄得出來。</span><img src="{{ url_for('static', filename='brand/companions/chibi-crafter-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>鑄星</b><small>舉槌試作</small></span></button></article>
+    <article class="vein-card vein-arcane" data-mark="機"><span class="vein-sigil" aria-hidden="true"><em>機</em><b>演</b></span><strong>靈機脈</strong><span>軟體・資料・AI・自動化</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="think" data-lines="讓我算算，哪裡能少繞一圈。|靈光不是魔法，是把複雜理清。" aria-label="讓玄算仙伴回應" aria-pressed="false"><span class="companion-speech">讓我算算，哪裡能少繞一圈。</span><img src="{{ url_for('static', filename='brand/companions/chibi-oracle-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>玄算</b><small>掐指推演</small></span></button></article>
+    <article class="vein-card vein-breaker" data-mark="局"><span class="vein-sigil" aria-hidden="true"><em>局</em><b>破</b></span><strong>破局脈</strong><span>商業・服務・營運・交易</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="fan" data-lines="局不是硬闖，是換一個落子處。|先找瓶頸，再出這一手。" aria-label="讓弈川仙伴回應" aria-pressed="false"><span class="companion-speech">局不是硬闖，是換一個落子處。</span><img src="{{ url_for('static', filename='brand/companions/chibi-strategist-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>弈川</b><small>展扇落子</small></span></button></article>
+    <article class="vein-card vein-mortal" data-mark="人"><span class="vein-sigil" aria-hidden="true"><em>人</em><b>生</b></span><strong>人間脈</strong><span>日常・家庭・公共・環境</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="bloom" data-lines="真正有用，才是人間好仙術。|這朵靈花，給願意把日子變好的人。" aria-label="讓桃夭仙伴回應" aria-pressed="false"><span class="companion-speech">真正有用，才是人間好仙術。</span><img src="{{ url_for('static', filename='brand/companions/chibi-healer-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>桃夭</b><small>送上靈花</small></span></button></article>
+    <article class="vein-card vein-echo" data-mark="音"><span class="vein-sigil" aria-hidden="true"><em>音</em><b>鳴</b></span><strong>傳音脈</strong><span>內容・品牌・教育・文化</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="music" data-lines="讓好內容，被對的人聽見。|噓——這段仙音只替價值傳聲。" aria-label="讓清商仙伴回應" aria-pressed="false"><span class="companion-speech">讓好內容，被對的人聽見。</span><img src="{{ url_for('static', filename='brand/companions/chibi-musician-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>清商</b><small>吹笛傳音</small></span></button></article>
   </div>
 </section>
 
@@ -49,9 +66,11 @@
   </header>
   <div class="idea-grid blindbox-grid">
     {% for idea in ideas %}
+    {% set card_companion = companion_by_vein.get(idea['primary_vein'], companion_by_vein['守護脈']) %}
     <article class="idea-card sealed-card accent-{{ idea['accent'] }} reveal" data-tags="{{ idea['primary_vein'] }},{{ idea['secondary_vein'] }},{{ idea['tags'] }}">
       <a class="idea-card-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}" aria-label="查看{{ idea['public_title'] }}的封印線索">
         <div class="sealed-card-art"{% if idea['hero_image'] %} style="--sealed-art:url('{{ url_for('static', filename=idea['hero_image']) }}')"{% endif %}><span class="sealed-talisman">{{ idea['seal'] }}</span><em>SEALED</em></div>
+        <span class="companion-cameo" aria-hidden="true"><img src="{{ url_for('static', filename='brand/companions/chibi-' ~ card_companion[0] ~ '-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><b>{{ card_companion[1] }}正在看守此卷</b></span>
         <div class="idea-card-top"><span class="idea-number">VOL. {{ '%02d'|format(idea['sort_order']) }}</span><span class="maturity-chip">{{ idea['maturity'] }}</span></div><p class="idea-role">{{ idea['primary_vein'] }}</p><h3>{{ idea['public_title'] }}</h3><p class="idea-discipline">{{ idea['discipline'] }}</p><p class="idea-summary">{{ idea['summary'] }}</p><div class="idea-tags" aria-label="公開線索">{% for tag in idea['tags'].split(',')[:3] %}<span>{{ tag }}</span>{% endfor %}</div><footer><span>{% if payment_status.ready %}NT${{ idea['price_override'] if idea['price_override'] is not none else global_price }}{% else %}尚未收款{% endif %}</span><strong>查看封印線索 <span aria-hidden="true">↗</span></strong></footer>
       </a>
     </article>
@@ -62,7 +81,10 @@
 
 <section id="how" class="unseal-rules section-shell">
   <header class="reveal"><p class="section-index">拆封規則</p><h2>買的是完整概念閱讀權，<br>不是成功保證。</h2></header>
-  <ol><li class="reveal"><span>壹</span><div><h3>購買前看線索</h3><p>先確認問題、主脈、成熟度與內容形式，不公開真正解法。</p></div></li><li class="reveal delay-1"><span>貳</span><div><h3>付款後完整揭示</h3><p>取得概念原點、機制、使用情境、原創視覺、限制與未知。</p></div></li><li class="reveal delay-2"><span>參</span><div><h3>後續由買家判斷</h3><p>內容不含工程驗證、代執行、專利、獲利、法規或安全承諾。</p></div></li></ol>
+  <ol><li class="reveal"><span>壹</span><div><h3>購買前看線索</h3><p>先確認問題、主脈、成熟度與內容形式，不公開真正解法。</p></div><span class="rule-companion" aria-hidden="true"><img src="{{ url_for('static', filename='brand/companions/chibi-guardian-v23.webp') }}" alt="" width="480" height="720" loading="lazy"></span></li><li class="reveal delay-1"><span>貳</span><div><h3>付款後完整揭示</h3><p>取得概念原點、機制、使用情境、原創視覺、限制與未知。</p></div><span class="rule-companion" aria-hidden="true"><img src="{{ url_for('static', filename='brand/companions/chibi-oracle-v23.webp') }}" alt="" width="480" height="720" loading="lazy"></span></li><li class="reveal delay-2"><span>參</span><div><h3>後續由買家判斷</h3><p>內容不含工程驗證、代執行、專利、獲利、法規或安全承諾。</p></div><span class="rule-companion" aria-hidden="true"><img src="{{ url_for('static', filename='brand/companions/chibi-strategist-v23.webp') }}" alt="" width="480" height="720" loading="lazy"></span></li></ol>
   <aside><strong>不設公開留言區</strong><p>避免買家內容、概念細節或爭議被公開。付款與開通問題改由私人訂單協助處理。</p></aside>
 </section>
+{% endblock %}
+{% block footer_companion %}
+<button class="immortal-companion companion-footer" type="button" data-companion-button data-motion="music" data-lines="逛完了？仙音替你留一盞回程燈。|有交易問題，走私人訂單協助就好。" aria-label="讓清商仙伴回應" aria-pressed="false"><span class="companion-speech">逛完了？仙音替你留一盞回程燈。</span><img src="{{ url_for('static', filename='brand/companions/chibi-musician-v23.webp') }}" alt="清商仙伴吹笛送客" width="480" height="720" loading="lazy"><span class="companion-name"><b>清商</b><small>送你下山</small></span></button>
 {% endblock %}

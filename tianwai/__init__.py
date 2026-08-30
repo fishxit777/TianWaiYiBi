@@ -88,7 +88,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "sunlit-celestial-realm-v22",
+                "release": "chibi-immortal-companions-v23",
             }
         )
 
