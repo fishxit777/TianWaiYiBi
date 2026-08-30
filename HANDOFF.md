@@ -116,6 +116,7 @@
 ## 驗證結果
 
 - 2026-08-30 V25 仙境展卷與對話前景本機完整驗證：`python -m pytest -q` 為 169 passed、1 skipped；Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的新增行機密掃描通過。Browser 1440×960 與 390×844 已完成三輪驗收；六張卡與三張規則卡的指定前景配對皆為 0 重疊、0 根頁面水平溢位、0 可見破圖、0 console issue，點擊台詞與動作正常。公開付款維持關閉，QA 未送出匿名意願、建立訂單或操作正式資料。
+- V25 已由實作提交 `37a94fc` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=celestial-scroll-scenes-v25`。正式首頁、V25 CSS 與仙境 WebP 均回 200；六脈卷 6、拆封規則卷 3，桌機 1440×960 與手機 390×844 的指定前景配對全部 0 重疊、0 根頁面水平溢位、0 可見破圖、0 console issue。正式點擊換台詞與角色動作正常；結帳連結 0、公開留言元件 0。正式驗收沒有送出意願、建立訂單或操作正式資料，也不得作為市場需求證據。
 - 2026-08-30 V24 圖像仙卷與明亮 Logo 本機完整驗證：`python -m pytest -q` 為 168 passed、1 skipped；Python compileall、5 支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的新增行機密掃描通過。Browser 1440×960 與 390×844 已實看 Logo、首屏、六脈、首卷商品卡、拆封三步、詳情與結帳；根頁面無水平溢位，舊幾何徽章渲染 0，三張拆封卷 computed `clip-path=none`，console 0 error／warning。公開付款維持關閉，QA 未送出匿名意願、建立訂單或操作正式資料。
 - V24 已由實作提交 `76a8428` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=illustrated-celestial-scrolls-v24`。正式首頁、詳情、結帳與 V24 CSS 均回 200；六脈仙卷 6、拆封圖卷 3、首卷封卷 3 處、舊幾何徽章 0。正式 1440×960 與 390×844 實看無根頁面水平溢位、console 0 issue；Logo 明亮版清楚可辨，公開收款維持關閉、首頁結帳連結 0、公開留言元件 0。正式驗收只讀公開頁，未建立需求、訂單或正式資料寫入。
 - 2026-08-30 V23 雲上仙伴本機完整驗證：`python -m pytest -q` 為 166 passed、1 skipped；Python compileall、三支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的機密掃描通過。Browser 1440×900 與 390×844 已實看首屏、六脈、封印卡、拆封規則及頁尾；文件寬等於頁面寬、0 根頁面水平溢位、0 破圖、0 console issue，點擊台詞與六種動作正常。六張透明 WebP 均為 480×720、`yuva420p` 且低於 116 KB；本機互動沒有送出 API、匿名意願或訂單，不作市場需求證據。

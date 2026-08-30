@@ -46,4 +46,8 @@
 
 ## 正式部署
 
-待 V25 實作提交推送與正式健康版本驗證後補記。
+- V25 實作提交 `37a94fc` 已推送至 `main` 並由 Render 正式部署。
+- `/healthz` 回 200、`status=ok`、`release=celestial-scroll-scenes-v25`；正式首頁、`static/v25.css` 與 Q 版仙境 WebP 均回 200。
+- 正式首頁載入六張 `vein-scroll-figure`、三張 `rule-scroll-figure` 與一份 V25 樣式；正式結帳連結 0、公開留言元件 0。
+- 正式 Browser 1440×960 與 390×844：六張卡的卷軸、標題、分類文字、角色與泡泡，以及三張規則卡的卷軸、內文與仙伴，全部量測 0 重疊；根頁面水平溢位 0、可見破圖 0、console error／warning 0。
+- 正式手機點擊守雲仙伴後，台詞切換、`is-reacting` 與 `aria-pressed=true` 均正常。驗收只讀公開頁並操作本地前端動畫，沒有送出匿名意願、建立訂單、登入後台或操作正式私密資料；瀏覽工作階段不得當作真人或需求證據。
