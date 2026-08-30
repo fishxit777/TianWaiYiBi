@@ -33,6 +33,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "static/v21.css" in body
     assert "static/v22.css" in body
     assert "static/v23.css" in body
+    assert "static/v29.css" in body
     assert "static/v24.css" in body
     assert "static/v25.css" in body
     assert "static/companions.js" in body
@@ -93,15 +94,25 @@ def test_public_policy_center_and_faq_are_linked_without_reviving_messaging(clie
     faq = client.get("/faq")
     faq_body = faq.get_data(as_text=True)
     assert faq.status_code == 200
-    assert faq_body.count('class="policy-disclosure faq-item"') == 9
+    assert 'class="faq-list faq-single-column' in faq_body
+    assert faq_body.count('class="policy-disclosure faq-item"') == 8
     for question in (
-        "購買前可以看到哪些線索",
-        "拆封後實際會取得什麼",
-        "能將概念實作或商用嗎",
-        "什麼情況可以取消或退款",
-        "付款後如何開通及日後取回",
+        "這一卷適合我嗎",
+        "付款前能看見什麼",
+        "拆封後會拿到什麼",
+        "可以拿去實作或商用嗎",
+        "這是成功保證嗎",
+        "買過之後怎麼取回",
     ):
         assert question in faq_body
+    for formal_policy_phrase in (
+        "通訊交易七日解除權",
+        "當事人權利",
+        "受託服務處理",
+        "不溯及既往",
+    ):
+        assert formal_policy_phrase not in faq_body
+    assert 'href="/policies#disclaimer"' in faq_body
 
     policies = client.get("/policies")
     policies_body = policies.get_data(as_text=True)
@@ -110,11 +121,16 @@ def test_public_policy_center_and_faq_are_linked_without_reviving_messaging(clie
         ("terms", "購買與服務條款"),
         ("privacy", "隱私聲明"),
         ("refunds", "數位內容與退款規則"),
+        ("disclaimer", "重要風險與責任邊界"),
     ):
         assert f'id="{section_id}"' in policies_body
         assert heading in policies_body
     assert "非專屬實作使用" in policies_body
     assert "首次成功揭示完整內容" in policies_body
+    assert "概念本身不具獨占性" in policies_body
+    assert "生成式 AI 輔助製作" in policies_body
+    assert "依法不得排除或限制的權利" in policies_body
+    assert 'href="#disclaimer"' in policies_body
     assert "客服小幫手" not in policies_body
     assert "客戶 LINE" not in policies_body
 
@@ -168,6 +184,7 @@ def test_checkout_links_the_versioned_policy_center(client, app):
     assert 'href="/policies#terms"' in body
     assert 'href="/policies#privacy"' in body
     assert 'href="/policies#refunds"' in body
+    assert 'href="/policies#disclaimer"' in body
 
     create_order(client)
     from tianwai.db import get_db
@@ -177,9 +194,17 @@ def test_checkout_links_the_versioned_policy_center(client, app):
             "SELECT terms_version, purchase_notice_consent, digital_content_consent "
             "FROM order_consents ORDER BY id DESC LIMIT 1"
         ).fetchone()
-    assert consent["terms_version"] == "2026-08-30-v28-policy-center"
+    assert consent["terms_version"] == "2026-08-30-v29-risk-boundary"
     assert consent["purchase_notice_consent"] == 1
     assert consent["digital_content_consent"] == 1
+
+
+def test_v29_faq_layout_is_single_column_without_grid_row_stretching():
+    stylesheet = (Path(__file__).parents[1] / "static" / "v29.css").read_text(encoding="utf-8")
+
+    assert ".faq-single-column" in stylesheet
+    assert "grid-template-columns: minmax(0, 1fr)" in stylesheet
+    assert "align-items: start" in stylesheet
 
 
 def test_customer_messaging_routes_are_retired(client):

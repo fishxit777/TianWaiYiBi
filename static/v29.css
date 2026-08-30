@@ -1,0 +1,70 @@
+/* V29: concise single-column FAQ and an explicit, non-evasive risk boundary. */
+.faq-page .policy-section-heading,
+.faq-single-column {
+  width: min(100%, 1080px);
+  margin-inline: auto;
+}
+
+.faq-single-column {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+
+.faq-single-column .faq-item {
+  width: 100%;
+  align-self: start;
+}
+
+.faq-single-column .policy-disclosure summary {
+  min-height: 86px;
+}
+
+.faq-single-column .policy-disclosure > div {
+  max-width: 900px;
+}
+
+.faq-single-column .policy-disclosure > div a {
+  color: #2d6862;
+  font-weight: 800;
+  text-underline-offset: 4px;
+}
+
+.policy-risk-document {
+  border-color: rgba(160, 104, 45, .32);
+  box-shadow: 0 26px 76px rgba(118, 78, 35, .1);
+}
+
+.policy-risk-document > header {
+  background:
+    linear-gradient(90deg, rgba(251, 230, 177, .66), rgba(224, 242, 231, .56)),
+    #fffdf6;
+}
+
+.risk-opening {
+  margin: 0;
+  padding: clamp(24px, 3.5vw, 42px);
+  border-bottom: 1px solid rgba(160, 104, 45, .2);
+  background: rgba(255, 250, 233, .84);
+  color: #5f634e;
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.9;
+}
+
+.risk-opening strong {
+  color: #7d4b2d;
+}
+
+.policy-risk-document .policy-prose h3 {
+  color: #745239;
+}
+
+@media (max-width: 560px) {
+  .faq-single-column .policy-disclosure summary {
+    min-height: 80px;
+  }
+
+  .risk-opening {
+    padding: 24px 20px;
+  }
+}

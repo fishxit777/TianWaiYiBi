@@ -20,6 +20,7 @@
       <a href="{{ url_for('public.policies') }}#terms">購買與使用條款</a>
       <a href="{{ url_for('public.policies') }}#privacy">隱私告知</a>
       <a href="{{ url_for('public.policies') }}#refunds">取消與退款</a>
+      <a href="{{ url_for('public.policies') }}#disclaimer">風險與責任邊界</a>
     </nav>
   </div>
   <div class="checkout-card reveal delay-1">
@@ -47,7 +48,7 @@
             <li>開通連結與驗證碼請勿轉傳；官網任何頁面都不會要求你公開或轉交完整驗證碼。</li>
             <li>買家可依條款自行評估、改寫概念並作非專屬實作或商用；不得複製、公開散布或轉售交付的原文、圖像與版面。</li>
           </ul>
-          <label class="consent-row plain-consent"><input name="purchase_notice_consent" type="checkbox"><span>我已確認商品、金額、收件 Email、付款後的開通方式，並閱讀<a href="{{ url_for('public.policies') }}#terms" target="_blank" rel="noopener noreferrer">購買與使用條款</a>及<a href="{{ url_for('public.policies') }}#privacy" target="_blank" rel="noopener noreferrer">隱私告知</a>。</span></label>
+          <label class="consent-row plain-consent"><input name="purchase_notice_consent" type="checkbox"><span>我已確認商品、金額、收件 Email、付款後的開通方式，並閱讀<a href="{{ url_for('public.policies') }}#terms" target="_blank" rel="noopener noreferrer">購買與服務條款</a>、<a href="{{ url_for('public.policies') }}#privacy" target="_blank" rel="noopener noreferrer">隱私聲明</a>及<a href="{{ url_for('public.policies') }}#disclaimer" target="_blank" rel="noopener noreferrer">重要風險與責任邊界</a>。</span></label>
           <label class="consent-row plain-consent"><input name="digital_content_consent" type="checkbox"><span>我同意付款完成後立即提供非有形媒介數位內容，並知悉首次成功揭示完整內容後，在法律允許範圍內不適用通訊交易七日解除權；重複扣款、未交付、持續無法讀取或內容重大不符等權利不受影響。詳見<a href="{{ url_for('public.policies') }}#refunds" target="_blank" rel="noopener noreferrer">取消與退款規則</a>。</span></label>
           <p class="dialog-error" id="purchase-notice-error" role="alert"></p>
           <div class="dialog-actions">

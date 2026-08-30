@@ -939,7 +939,7 @@ def create_payment_verification_order():
         INSERT INTO order_consents
             (order_id, terms_version, purchase_notice_consent, digital_content_consent,
              ip, user_agent, accepted_at)
-        VALUES (?, '2026-08-30-v28-payment-verification', 1, 1, ?, ?, ?)
+        VALUES (?, '2026-08-30-v29-payment-verification', 1, 1, ?, ?, ?)
         """,
         (cursor.lastrowid, get_client_ip(), safe_user_agent(), now),
     )

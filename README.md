@@ -18,7 +18,7 @@
 - 存取風險依低／中／高／重大四級記錄；正常換機不直接視為惡意，重複使用已撤銷工作階段或第 5 次錯碼才會升高。事件使用 HMAC 串鏈，可由後台檢查完整性。
 - 每日台北時間 08:00、12:00、20:00 各送一次管理員營運摘要；高／重大存取、付款、登入與系統異常則不等排程，立即推送至天外一筆自己的管理員 LINE。
 - 管理通知含訂單營收、開通存取、安全風險、串接狀態、需處理與正常但值得知道等內容；完整客戶 Email、完整 IP、驗證碼、Token 與密鑰不會出現在外部通知。客戶付款、開通與登入交易 Email 是另一條獨立流程。
-- 公開留言、匿名留言、買家討論、客服小幫手、客戶 LINE webhook／指令、私人 LINE 接手與後台留言審核均已在 V26 退役；V28 只提供不留站內訊息的 FAQ、政策中心與外部私人客服入口，不恢復聊天功能。
+- 公開留言、匿名留言、買家討論、客服小幫手、客戶 LINE webhook／指令、私人 LINE 接手與後台留言審核均已在 V26 退役；V29 提供不留站內訊息的 FAQ、政策中心、重要風險與責任邊界及外部私人客服入口，不恢復聊天功能。
 - 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項盲策內容、單品價格、排序與上下架。
 - 分析數據以瀏覽器「工作階段」呈現，不把它宣稱為真人或陌生客戶；2026-08-29 00:00（台北）起採可信基準，另列可歸因、未歸因、管理預覽、機器與舊基準資料。管理員必須從登入後台的「官網預覽」進站，後續八小時測試事件才會安全排除於需求判讀。
 - 正式資料層已具備 PostgreSQL 相容 schema、SQLite 完整性遷移／核對工具與 PostgreSQL 17 CI；未設定 `DATABASE_URL` 時才退回本機 SQLite。
@@ -175,7 +175,7 @@ py -3 scripts\admin_credential_handoff.py
 
 - 綠界正式小額閉環已完成付款、Brevo 交付、內容開通、全額退刷與本地撤權驗收；公開 NT$199 收款仍刻意關閉。
 - 管理摘要已改為每日 08:00／12:00／20:00 由 LINE Bot 推播；舊管理 Gmail 紀錄只留作稽核且不再重試。Brevo 只保留客戶交易 Email。
-- V28 已完成 FAQ、購買與服務條款、隱私聲明、非專屬實作使用及數位內容退款邊界；合法營運主體、依法應揭露資訊、天外專用信箱／私人表單、電子發票、正式公開銷售條件與付款失敗自助處理仍需在公開收款前完成。
+- V29 已把八題購買旅程 FAQ 與正式政策分流，並補上重要風險與責任邊界、非專屬實作使用及數位內容退款界線；合法營運主體、依法應揭露資訊、天外專用信箱／私人表單、電子發票、正式公開銷售條件與付款失敗自助處理仍需在公開收款前完成。
 - Neon PostgreSQL、Turnstile、兩把 Passkey、10 組復原碼、Passkey-only、GitHub 加密備份與隔離還原均已正式驗收；不得重做或以破壞性方式消耗復原碼。後續只需監控每日排程並每季做一次非正式庫還原演練。
 - Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET` 與每日三次排程已完成；管理通知只使用天外一筆專屬 `LINE_ADMIN_USER_ID`。
 
@@ -212,6 +212,7 @@ py -3 scripts\admin_credential_handoff.py
 - `docs/updates/2026-08-30-customer-messaging-retirement-v26.md`
 - `docs/updates/2026-08-30-musician-companion-lingfeng-v27.md`
 - `docs/updates/2026-08-30-policy-faq-private-support-v28.md`
+- `docs/updates/2026-08-30-distinct-faq-risk-boundary-v29.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`
