@@ -1,0 +1,52 @@
+{% macro vein_scroll(kind, glyph, action) -%}
+<span class="celestial-scroll-mark vein-scroll-mark vein-scroll-{{ kind }}" aria-hidden="true">
+  <span class="scroll-art">
+    <svg class="scroll-motif" viewBox="0 0 64 64" focusable="false">
+      {% if kind == 'guardian' %}
+      <path d="M32 8 48 14v14c0 12-6.7 21.7-16 27-9.3-5.3-16-15-16-27V14L32 8Z"/><path d="m23 31 6 6 12-14"/><circle cx="32" cy="31" r="20" class="motif-orbit"/>
+      {% elif kind == 'forge' %}
+      <path d="M17 15h22v10H17zM37 20l13 13-7 7-13-13M12 47h40M19 47l-4 8h34l-4-8"/><path d="m48 11 1 6m-9-9 4 5m9 6 5 1" class="motif-spark"/>
+      {% elif kind == 'oracle' %}
+      <circle cx="32" cy="32" r="9"/><ellipse cx="32" cy="32" rx="25" ry="12" class="motif-orbit"/><ellipse cx="32" cy="32" rx="12" ry="25" class="motif-orbit"/><path d="m32 5 2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Zm20 33 1.5 3.5L57 43l-3.5 1.5L52 48l-1.5-3.5L47 43l3.5-1.5L52 38Z"/>
+      {% elif kind == 'strategist' %}
+      <path d="M10 45c5-18 17-29 34-34 3 13 6 25 10 36-16-3-30-4-44-2Z"/><path d="M12 44 44 12M18 44l27-26M27 45l20-18M38 46l11-9"/><circle cx="47" cy="49" r="6"/><path d="M43 49h8M47 45v8" class="motif-stone"/>
+      {% elif kind == 'healer' %}
+      <circle cx="27" cy="24" r="5"/><path d="M27 19c-8-13-17 1-5 6-12 7 2 16 7 5 7 12 16-2 5-7 12-7 1-17-7-7Z"/><path d="M38 30c1 8-3 10-3 15 0 6 5 10 11 10s11-4 11-10c0-5-4-7-3-15-5 3-11 3-16 0Z"/><path d="M42 25h8v6h-8z"/>
+      {% else %}
+      <path d="m13 43 36-24 4 6-36 24-4-6Z"/><path d="m23 36 4 6m5-12 4 6m5-12 4 6M47 12v9M53 9v8"/><path d="M47 45c6-5 9-11 8-18M51 51c9-7 13-16 12-27" class="motif-sound"/>
+      {% endif %}
+    </svg>
+  </span>
+  <span class="scroll-copy"><b>{{ glyph }}</b><small>{{ action }}</small></span>
+</span>
+{%- endmacro %}
+
+{% macro concept_scroll(glyph, placement) -%}
+<span class="celestial-scroll-mark concept-scroll-mark concept-scroll-{{ placement }}" aria-hidden="true">
+  <span class="scroll-art">
+    <svg class="scroll-motif" viewBox="0 0 72 64" focusable="false">
+      <circle cx="25" cy="34" r="12"/><circle cx="47" cy="34" r="12"/><circle cx="25" cy="34" r="5"/><circle cx="47" cy="34" r="5"/>
+      <path d="M36 8 57 15v13c0 13-8.4 23.3-21 29-12.6-5.7-21-16-21-29V15L36 8Z" class="motif-ward"/><path d="M14 29c6-9 14-14 22-14s16 5 22 14" class="motif-aura"/>
+    </svg>
+  </span>
+  <span class="scroll-copy"><b>{{ glyph }}</b><small>雙輪護陣</small></span>
+  <span class="scroll-wax">封</span>
+</span>
+{%- endmacro %}
+
+{% macro rule_scroll(step, kind, label) -%}
+<span class="celestial-scroll-mark rule-scroll-mark rule-scroll-{{ kind }}" aria-hidden="true">
+  <span class="scroll-art">
+    <svg class="scroll-motif" viewBox="0 0 64 64" focusable="false">
+      {% if kind == 'observe' %}
+      <path d="M9 14h35v36H9zM44 20h8v37H17v-7"/><path d="M14 33s7-10 16-10 16 10 16 10-7 10-16 10-16-10-16-10Z"/><circle cx="30" cy="33" r="4"/>
+      {% elif kind == 'reveal' %}
+      <path d="M8 18h18c4 0 7 3 7 7v31c0-4-3-7-7-7H8V18Zm48 0H38c-3 0-5 2-5 5v33c0-4 3-7 7-7h16V18Z"/><circle cx="33" cy="31" r="8" class="motif-seal"/><path d="m28 25 10 12m0-12L28 37"/>
+      {% else %}
+      <circle cx="32" cy="32" r="22"/><path d="m32 14 6 15 13 3-13 4-6 15-6-15-13-4 13-3 6-15Z"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8" class="motif-compass"/>
+      {% endif %}
+    </svg>
+  </span>
+  <span class="scroll-copy"><b>{{ step }}</b><small>{{ label }}</small></span>
+</span>
+{%- endmacro %}

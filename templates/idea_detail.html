@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% from "_celestial_scrolls.html" import concept_scroll %}
 {% block title %}{{ idea['public_title'] }}｜天外盲策{% endblock %}
 {% block body_class %}detail-page blind-detail accent-{{ idea['accent'] }}{% endblock %}
 {% block content %}
 <section class="detail-hero section-shell">
   <nav class="detail-breadcrumb" aria-label="麵包屑"><a href="{{ url_for('public.home') }}">首頁</a><span>/</span><a href="{{ url_for('public.home') }}#ideas">封印目錄</a><span>/</span><strong>{{ idea['public_title'] }}</strong></nav>
   <div class="blind-detail-grid">
-    <div class="blind-preview reveal"{% if idea['hero_image'] %} style="--sealed-art:url('{{ url_for('static', filename=idea['hero_image']) }}')"{% endif %}><div class="blind-preview-image" aria-hidden="true"></div><span class="blind-preview-seal sealed-talisman">{{ idea['seal'] }}</span><p>完整視覺已封印</p></div>
+    <div class="blind-preview reveal"{% if idea['hero_image'] %} style="--sealed-art:url('{{ url_for('static', filename=idea['hero_image']) }}')"{% endif %}><div class="blind-preview-image" aria-hidden="true"></div>{{ concept_scroll(idea['seal'], 'preview') }}<p>完整視覺已封印</p></div>
     <div class="detail-copy reveal delay-1" data-analytics-idea="{{ idea['slug'] }}"><p class="eyebrow">{{ idea['primary_vein'] }}・VOL. {{ '%02d'|format(idea['sort_order']) }}</p><h1>{{ idea['public_title'] }}</h1><p class="detail-lead">{{ idea['summary'] }}</p><div class="maturity-panel"><span>成熟度</span><strong>{{ idea['maturity'] }}</strong><p>這是原創概念內容，不是已量產、已認證或已通過法規驗證的產品。</p></div><div class="teaser-box"><span>封印線索</span><p>{{ idea['teaser'] }}</p></div><div class="deliverable-list"><p>拆封後取得</p><ul>{% for item in idea['deliverables'].split('｜') %}<li>{{ item }}</li>{% endfor %}</ul></div><div class="purchase-rune"><div><span>{{ '本卷價格' if payment_status.ready else '目前狀態' }}</span><strong>{{ 'NT$' ~ price if payment_status.ready else '公開收款未開放' }}</strong></div>{% if payment_status.ready %}<a class="button button-primary" href="{{ url_for('public.checkout', slug=idea['slug']) }}">拆封完整概念</a>{% else %}<button class="button button-primary" type="button" data-interest-cta>開放時通知我</button>{% endif %}</div>{% if not payment_status.ready %}<p class="interest-note" data-interest-status aria-live="polite">只記錄匿名需求意願，不建立訂單、不要求 Email。</p>{% endif %}<p class="license-note"><strong>購買取得非專屬閱讀權</strong>同一概念可能重複販售；不包含獨家買斷、專利讓與、工程設計、代執行或成果保證。</p></div>
   </div>
 </section>

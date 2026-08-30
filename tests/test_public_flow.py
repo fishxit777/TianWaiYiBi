@@ -33,6 +33,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "static/v21.css" in body
     assert "static/v22.css" in body
     assert "static/v23.css" in body
+    assert "static/v24.css" in body
     assert "static/companions.js" in body
     assert "brand/sealed-scroll-casket-v20.webp" in body
     assert "封印未解" in body
@@ -43,12 +44,12 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert body.count('class="idea-card sealed-card') == 1
     for vein in ("守護脈", "造物脈", "靈機脈", "破局脈", "人間脈", "傳音脈"):
         assert vein in body
-    assert body.count('class="vein-sigil"') == 6
+    assert body.count("vein-scroll-mark") == 6
     assert body.count('class="vein-card ') == 6
     assert body.count("data-companion-button") == 8
     for companion in ("guardian", "crafter", "oracle", "strategist", "healer", "musician"):
         assert f"brand/companions/chibi-{companion}-v23.webp" in body
-    assert 'class="sealed-talisman"' in body
+    assert "concept-scroll-card" in body
     assert "封印盲策・第壹卷" in body
     assert "雙生續行輪" not in body
     assert "不設公開留言區" in body
@@ -108,6 +109,7 @@ def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
         assert "static/v21.css" in body
         assert "static/v22.css" in body
         assert "static/v23.css" in body
+        assert "static/v24.css" in body
         assert "fonts/tianwai-masa-regular.woff2" not in body
         assert "fonts/tianwai-masa-bold.woff2" not in body
 
@@ -147,11 +149,9 @@ def test_v20_hero_uses_an_optimized_xianxia_casket_asset():
     assert "@media (prefers-reduced-motion: reduce)" in stylesheet
 
 
-def test_v21_replaces_plain_round_glyphs_with_a_shared_talisman_system(client):
+def test_v21_talisman_layer_remains_available_as_historical_css():
     project_root = Path(__file__).resolve().parents[1]
     stylesheet = (project_root / "static" / "v21.css").read_text(encoding="utf-8")
-    detail = client.get("/ideas/sealed-twin-tire-safety").get_data(as_text=True)
-    checkout = client.get("/checkout/sealed-twin-tire-safety").get_data(as_text=True)
 
     for selector in (
         ".vein-sigil",
@@ -163,8 +163,6 @@ def test_v21_replaces_plain_round_glyphs_with_a_shared_talisman_system(client):
     ):
         assert selector in stylesheet
     assert "clip-path: polygon" in stylesheet
-    assert 'class="blind-preview-seal sealed-talisman"' in detail
-    assert 'class="checkout-seal sealed-talisman"' in checkout
 
 
 def test_v22_moves_public_storefront_into_a_sunlit_celestial_palette(client):
@@ -229,6 +227,55 @@ def test_v23_adds_optimized_interactive_chibi_immortal_companions(client):
     assert "@media (prefers-reduced-motion: reduce)" in stylesheet
     assert "data-companion-button" in script
     assert "fetch(" not in script
+
+
+def test_v24_replaces_rendered_polygons_with_content_specific_scroll_illustrations(client):
+    project_root = Path(__file__).resolve().parents[1]
+    stylesheet = (project_root / "static" / "v24.css").read_text(encoding="utf-8")
+    macros = (project_root / "templates" / "_celestial_scrolls.html").read_text(encoding="utf-8")
+    home = client.get("/").get_data(as_text=True)
+    detail = client.get("/ideas/sealed-twin-tire-safety").get_data(as_text=True)
+    checkout = client.get("/checkout/sealed-twin-tire-safety").get_data(as_text=True)
+
+    assert "illustrated-celestial-scrolls-v24" in home
+    assert home.count("vein-scroll-mark") == 6
+    for kind in ("guardian", "forge", "oracle", "strategist", "healer", "musician"):
+        assert f"vein-scroll-{kind}" in home
+    for label in ("鎮守結界", "仙工鑄器", "星盤推演", "展扇落子", "桃花濟世", "玉笛傳聲"):
+        assert label in home
+    for kind, label in (("observe", "觀卷"), ("reveal", "解印"), ("decide", "自決")):
+        assert f"rule-scroll-{kind}" in home
+        assert label in home
+
+    assert "concept-scroll-card" in home
+    assert "concept-scroll-preview" in detail
+    assert "concept-scroll-checkout" in checkout
+    assert "雙輪護陣" in home and "雙輪護陣" in detail and "雙輪護陣" in checkout
+    assert "casket-volume-scroll" in home
+
+    for rendered in (home, detail, checkout):
+        for old_class in ("vein-sigil", "sealed-talisman", "blind-preview-seal", "checkout-seal"):
+            assert re.search(rf'class="[^"]*\b{re.escape(old_class)}\b', rendered) is None
+    assert home.count("rule-scroll-mark") == 3
+    assert "clip-path: polygon" not in stylesheet
+    for selector in (".celestial-scroll-mark", ".vein-scroll-mark", ".concept-scroll-mark", ".rule-scroll-mark"):
+        assert selector in stylesheet
+    for phrase in ("kind == 'guardian'", "kind == 'forge'", "kind == 'oracle'", "kind == 'strategist'", "kind == 'healer'"):
+        assert phrase in macros
+    assert "@media (prefers-reduced-motion: reduce)" in stylesheet
+
+
+def test_v24_strengthens_the_existing_logo_on_daylight_headers(client):
+    project_root = Path(__file__).resolve().parents[1]
+    stylesheet = (project_root / "static" / "v24.css").read_text(encoding="utf-8")
+    home = client.get("/").get_data(as_text=True)
+
+    assert "website-nav-logo-256.png" in home
+    assert "wordmark-xianxia-v14.webp" in home
+    assert ".public-site:not(.transmission-v2-page) .brand-mark" in stylesheet
+    assert ".public-site:not(.transmission-v2-page) .brand-wordmark" in stylesheet
+    assert "contrast(1.22)" in stylesheet
+    assert "font-weight: 800" in stylesheet
 
 
 def test_all_management_templates_load_the_readable_typography_layer():
