@@ -1,7 +1,8 @@
 {% macro vein_scroll(kind, glyph, action) -%}
-<span class="celestial-scroll-mark vein-scroll-mark vein-scroll-{{ kind }}" aria-hidden="true">
-  <span class="scroll-art">
-    <svg class="scroll-motif" viewBox="0 0 64 64" focusable="false">
+<figure class="celestial-scroll-figure vein-scroll-figure">
+  <span class="celestial-scroll-mark vein-scroll-mark vein-scroll-{{ kind }}" aria-hidden="true">
+    <span class="scroll-art">
+      <svg class="scroll-motif" viewBox="0 0 64 64" focusable="false">
       {% if kind == 'guardian' %}
       <path d="M32 8 48 14v14c0 12-6.7 21.7-16 27-9.3-5.3-16-15-16-27V14L32 8Z"/><path d="m23 31 6 6 12-14"/><circle cx="32" cy="31" r="20" class="motif-orbit"/>
       {% elif kind == 'forge' %}
@@ -15,10 +16,13 @@
       {% else %}
       <path d="m13 43 36-24 4 6-36 24-4-6Z"/><path d="m23 36 4 6m5-12 4 6m5-12 4 6M47 12v9M53 9v8"/><path d="M47 45c6-5 9-11 8-18M51 51c9-7 13-16 12-27" class="motif-sound"/>
       {% endif %}
-    </svg>
+      </svg>
+    </span>
+    <span class="scroll-copy"><b>{{ glyph }}</b></span>
+    <span class="scroll-wax"><i></i></span>
   </span>
-  <span class="scroll-copy"><b>{{ glyph }}</b><small>{{ action }}</small></span>
-</span>
+  <figcaption>{{ action }}</figcaption>
+</figure>
 {%- endmacro %}
 
 {% macro concept_scroll(glyph, placement) -%}
@@ -35,9 +39,10 @@
 {%- endmacro %}
 
 {% macro rule_scroll(step, kind, label) -%}
-<span class="celestial-scroll-mark rule-scroll-mark rule-scroll-{{ kind }}" aria-hidden="true">
-  <span class="scroll-art">
-    <svg class="scroll-motif" viewBox="0 0 64 64" focusable="false">
+<figure class="celestial-scroll-figure rule-scroll-figure">
+  <span class="celestial-scroll-mark rule-scroll-mark rule-scroll-{{ kind }}" aria-hidden="true">
+    <span class="scroll-art">
+      <svg class="scroll-motif" viewBox="0 0 64 64" focusable="false">
       {% if kind == 'observe' %}
       <path d="M9 14h35v36H9zM44 20h8v37H17v-7"/><path d="M14 33s7-10 16-10 16 10 16 10-7 10-16 10-16-10-16-10Z"/><circle cx="30" cy="33" r="4"/>
       {% elif kind == 'reveal' %}
@@ -45,8 +50,11 @@
       {% else %}
       <circle cx="32" cy="32" r="22"/><path d="m32 14 6 15 13 3-13 4-6 15-6-15-13-4 13-3 6-15Z"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8" class="motif-compass"/>
       {% endif %}
-    </svg>
+      </svg>
+    </span>
+    <span class="scroll-copy"><b>{{ step }}</b></span>
+    <span class="scroll-wax"><i></i></span>
   </span>
-  <span class="scroll-copy"><b>{{ step }}</b><small>{{ label }}</small></span>
-</span>
+  <figcaption>{{ label }}</figcaption>
+</figure>
 {%- endmacro %}

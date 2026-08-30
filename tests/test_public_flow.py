@@ -34,6 +34,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "static/v22.css" in body
     assert "static/v23.css" in body
     assert "static/v24.css" in body
+    assert "static/v25.css" in body
     assert "static/companions.js" in body
     assert "brand/sealed-scroll-casket-v20.webp" in body
     assert "封印未解" in body
@@ -110,6 +111,7 @@ def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
         assert "static/v22.css" in body
         assert "static/v23.css" in body
         assert "static/v24.css" in body
+        assert "static/v25.css" in body
         assert "fonts/tianwai-masa-regular.woff2" not in body
         assert "fonts/tianwai-masa-bold.woff2" not in body
 
@@ -276,6 +278,40 @@ def test_v24_strengthens_the_existing_logo_on_daylight_headers(client):
     assert ".public-site:not(.transmission-v2-page) .brand-wordmark" in stylesheet
     assert "contrast(1.22)" in stylesheet
     assert "font-weight: 800" in stylesheet
+
+
+def test_v25_moves_scroll_explanations_below_the_art_and_adds_safe_celestial_scenes(client):
+    project_root = Path(__file__).resolve().parents[1]
+    stylesheet = (project_root / "static" / "v25.css").read_text(encoding="utf-8")
+    macros = (project_root / "templates" / "_celestial_scrolls.html").read_text(encoding="utf-8")
+    scene = project_root / "static" / "brand" / "chibi-celestial-gate-bg-v25.webp"
+    home = client.get("/").get_data(as_text=True)
+
+    assert "celestial-scroll-scenes-v25" in home
+    assert home.count("vein-scroll-figure") == 6
+    assert home.count("rule-scroll-figure") == 3
+    assert home.count("<figcaption>") == 9
+    assert '<span class="scroll-copy"><b>{{ glyph }}</b></span>' in macros
+    assert '<span class="scroll-copy"><b>{{ step }}</b></span>' in macros
+    assert "<small>{{ action }}</small>" not in macros
+    assert "<small>{{ label }}</small>" not in macros
+
+    scene_data = scene.read_bytes()
+    assert scene_data[:4] == b"RIFF"
+    assert scene_data[8:12] == b"WEBP"
+    assert len(scene_data) < 100_000
+    assert "chibi-celestial-gate-bg-v25.webp" in stylesheet
+    for selector in (
+        ".vein-scroll-figure",
+        ".rule-scroll-figure",
+        ".vein-grid .vein-card::before",
+        ".companion-card .companion-speech",
+    ):
+        assert selector in stylesheet
+    assert "z-index: 10" in stylesheet
+    assert "@media (prefers-reduced-motion: reduce)" in stylesheet
+    assert "不設公開留言區" in home
+    assert 'href="/checkout/sealed-twin-tire-safety"' not in home
 
 
 def test_all_management_templates_load_the_readable_typography_layer():

@@ -1,0 +1,346 @@
+/* V25 — spacious celestial scrolls, living cloud scenes, and unobstructed dialogue. */
+
+.celestial-scroll-figure {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  justify-items: center;
+  margin: 0;
+}
+
+.vein-scroll-figure {
+  width: 164px;
+}
+
+.vein-scroll-mark,
+.unseal-rules li > .rule-scroll-figure .rule-scroll-mark {
+  overflow: visible;
+  color: color-mix(in srgb, var(--vein-accent, #72bbaa), #244d48 42%);
+  border: 1px solid rgba(132, 92, 30, .48);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 74% 22%, rgba(255, 221, 121, .25), transparent 25%),
+    linear-gradient(90deg, rgba(117, 76, 24, .17), transparent 13%, transparent 86%, rgba(117, 76, 24, .15)),
+    repeating-linear-gradient(0deg, transparent 0 10px, rgba(77, 116, 100, .055) 11px, transparent 12px),
+    linear-gradient(145deg, #fffff7 0%, #f9edc9 58%, #dfc284 100%);
+  box-shadow:
+    0 16px 30px rgba(56, 76, 65, .22),
+    0 0 0 3px rgba(255, 253, 230, .7),
+    inset 0 0 0 1px rgba(255, 255, 255, .74),
+    inset 0 0 30px rgba(255, 255, 255, .62);
+}
+
+.vein-scroll-mark::before,
+.vein-scroll-mark::after,
+.rule-scroll-mark::before,
+.rule-scroll-mark::after {
+  top: -10px;
+  bottom: -10px;
+  width: 12px;
+  border-color: rgba(100, 61, 16, .58);
+  background:
+    radial-gradient(circle at 50% 4px, #fff0a7 0 2px, transparent 3px),
+    linear-gradient(90deg, #8f5a1e, #e8bd55 36%, #fff1a5 55%, #9a5d1e 100%);
+  box-shadow:
+    0 -4px 0 -1px #a36d25,
+    0 4px 0 -1px #8f581d,
+    0 7px 10px rgba(64, 42, 16, .27);
+}
+
+.vein-scroll-mark {
+  width: 154px;
+  height: 92px;
+  grid-template-columns: 72px 1fr;
+  gap: 9px;
+  padding: 11px 16px 11px 11px;
+}
+
+.vein-scroll-mark .scroll-art {
+  width: 65px;
+}
+
+.vein-scroll-mark .scroll-copy,
+.rule-scroll-mark .scroll-copy {
+  justify-items: center;
+}
+
+.vein-scroll-mark .scroll-copy b {
+  color: color-mix(in srgb, var(--vein-accent), #29433e 48%);
+  font-size: 35px;
+  text-shadow: 0 1px rgba(255, 255, 255, .8);
+}
+
+.vein-scroll-mark .scroll-wax,
+.rule-scroll-mark .scroll-wax {
+  position: absolute;
+  z-index: 5;
+  right: -11px;
+  bottom: -13px;
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border: 2px solid #daa35b;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 27%, #cc7960, #8e3f34 68%, #6e2f29);
+  box-shadow: 0 7px 13px rgba(87, 39, 28, .25), inset 0 0 0 3px rgba(255, 225, 176, .12);
+}
+
+.vein-scroll-mark .scroll-wax i,
+.rule-scroll-mark .scroll-wax i {
+  width: 9px;
+  height: 9px;
+  border: 1px solid rgba(255, 233, 188, .85);
+  transform: rotate(45deg);
+}
+
+.vein-scroll-figure figcaption,
+.rule-scroll-figure figcaption {
+  position: relative;
+  z-index: 6;
+  margin-top: 9px;
+  padding: 5px 12px 6px;
+  color: #496b65;
+  border: 1px solid color-mix(in srgb, var(--vein-accent, #87cabb), #c7b16f 52%);
+  border-radius: 999px;
+  background: rgba(255, 254, 241, .92);
+  box-shadow: 0 7px 16px rgba(49, 81, 73, .13);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+
+.vein-card:hover .vein-scroll-mark,
+.vein-card:focus-within .vein-scroll-mark {
+  box-shadow:
+    0 21px 38px rgba(50, 85, 76, .25),
+    0 0 28px color-mix(in srgb, var(--vein-accent), transparent 72%),
+    0 0 0 3px rgba(255, 253, 230, .74),
+    inset 0 0 28px rgba(255, 255, 255, .62);
+  transform: translateY(-4px) rotate(-1deg);
+}
+
+/* One quiet Q-style realm is cropped six ways; the foreground owns contrast and hierarchy. */
+.vein-grid .vein-card {
+  min-height: 350px;
+  overflow: hidden;
+  padding: 25px 46% 25px 23px;
+  background: #eff7f1;
+}
+
+.vein-grid .vein-card::before {
+  position: absolute;
+  z-index: 0;
+  inset: -4%;
+  width: auto;
+  height: auto;
+  content: "";
+  opacity: .76;
+  background-image: url("brand/chibi-celestial-gate-bg-v25.webp");
+  background-repeat: no-repeat;
+  background-position: var(--scene-x, 12%) center;
+  background-size: auto 108%;
+  filter: saturate(.86) brightness(1.035);
+  pointer-events: none;
+  transform: translate3d(-1%, 0, 0) scale(1.035);
+  animation: celestial-card-drift 16s ease-in-out infinite alternate;
+}
+
+.vein-grid .vein-card:nth-child(2)::before,
+.vein-grid .vein-card:nth-child(5)::before { --scene-x: 54%; animation-delay: -5s; }
+.vein-grid .vein-card:nth-child(3)::before,
+.vein-grid .vein-card:nth-child(6)::before { --scene-x: 92%; animation-delay: -9s; }
+
+.vein-grid .vein-card::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: auto;
+  height: auto;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(255, 255, 248, .9) 0%, rgba(255, 255, 248, .74) 38%, rgba(246, 252, 247, .2) 66%, rgba(232, 246, 241, .06)),
+    linear-gradient(180deg, rgba(255, 255, 252, .08), rgba(221, 239, 232, .42)),
+    linear-gradient(90deg, var(--vein-accent) 0 34%, transparent 72%) top / 100% 3px no-repeat;
+  pointer-events: none;
+}
+
+.vein-grid .vein-card > strong,
+.vein-grid .vein-card > span:not(.vein-sigil) {
+  position: relative;
+  z-index: 4;
+}
+
+.vein-grid .vein-card > strong {
+  margin-top: 10px;
+}
+
+.vein-index > header {
+  position: relative;
+  overflow: hidden;
+}
+
+.vein-index > header::after {
+  position: absolute;
+  z-index: -1;
+  top: -42px;
+  right: -1%;
+  width: 43%;
+  height: 210px;
+  content: "";
+  opacity: .58;
+  background: url("brand/chibi-celestial-gate-bg-v25.webp") left top / 158% auto no-repeat;
+  filter: saturate(.88) brightness(1.04);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 24%, #000 84%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 24%, #000 84%, transparent);
+  pointer-events: none;
+}
+
+/* The dialogue surface is deliberately above the artifact and never hides behind it. */
+.companion-card {
+  z-index: 7;
+  right: 0;
+  bottom: 0;
+  width: 49%;
+  height: 100%;
+}
+
+.companion-card img {
+  z-index: 2;
+  right: -1%;
+  bottom: -4%;
+  width: 86%;
+  max-height: 88%;
+}
+
+.companion-card .companion-speech {
+  z-index: 10;
+  top: 2%;
+  right: 3%;
+  width: max-content;
+  max-width: min(168px, 96%);
+  padding: 9px 12px;
+  white-space: normal;
+  text-align: center;
+  opacity: 1;
+  transform: none;
+}
+
+.companion-card .companion-name {
+  z-index: 8;
+  right: 4%;
+  bottom: 4%;
+}
+
+/* Rule scrolls mirror the main sealed scroll but keep the action below the paper. */
+.unseal-rules li {
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 22px;
+  min-height: 0;
+  padding-right: 28px;
+}
+
+.rule-scroll-figure {
+  z-index: 3;
+  width: 108px;
+  align-self: start;
+}
+
+.unseal-rules li > .rule-scroll-figure .rule-scroll-mark {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 104px;
+  height: 90px;
+  grid-template-columns: 54px 1fr;
+  gap: 5px;
+  align-items: center;
+  padding: 10px 10px 10px 8px;
+  font: inherit;
+  clip-path: none;
+  aspect-ratio: auto;
+}
+
+.rule-scroll-mark .scroll-art {
+  width: 50px;
+}
+
+.rule-scroll-mark .scroll-copy b {
+  font-size: 28px;
+}
+
+.unseal-rules li:hover .rule-scroll-mark {
+  transform: translateY(-4px) rotate(-1deg);
+}
+
+.unseal-rules li > .rule-companion {
+  position: relative;
+  z-index: 2;
+  right: auto;
+  bottom: auto;
+  grid-row: 2;
+  grid-column: 2;
+  justify-self: end;
+  width: 100px;
+  height: 130px;
+  margin: 0 -3px -28px 0;
+}
+
+@keyframes celestial-card-drift {
+  from { transform: translate3d(-1%, 0, 0) scale(1.035); }
+  to { transform: translate3d(1%, -.7%, 0) scale(1.055); }
+}
+
+@media (max-width: 900px) {
+  .vein-grid .vein-card { min-height: 330px; }
+  .unseal-rules li { grid-template-columns: 108px minmax(0, 1fr); gap: 18px; }
+  .companion-card .companion-speech { right: 2%; }
+}
+
+@media (max-width: 640px) {
+  .vein-grid .vein-card {
+    min-height: 274px;
+    padding: 18px 43% 18px 18px;
+  }
+
+  .vein-scroll-figure { width: 136px; }
+  .vein-scroll-mark { width: 128px; height: 78px; grid-template-columns: 58px 1fr; gap: 6px; padding: 9px 11px 9px 8px; }
+  .vein-scroll-mark .scroll-art { width: 53px; }
+  .vein-scroll-mark .scroll-copy b { font-size: 29px; }
+  .vein-scroll-mark .scroll-wax,
+  .rule-scroll-mark .scroll-wax { right: -9px; bottom: -11px; width: 27px; height: 27px; }
+  .vein-scroll-figure figcaption,
+  .rule-scroll-figure figcaption { margin-top: 7px; padding: 4px 10px 5px; font-size: 10px; }
+  .vein-grid .vein-card > strong { margin-top: 7px; }
+
+  .companion-card { width: 50%; min-width: 140px; }
+  .companion-card img { bottom: -5%; width: 86%; max-height: 80%; }
+  .companion-card .companion-speech { top: 2%; right: 1%; max-width: 128px; padding: 7px 9px; font-size: 11px; line-height: 1.45; }
+  .companion-card .companion-name { right: 1%; bottom: 3%; }
+
+  .vein-index > header::after { content: none; }
+
+  .unseal-rules li { grid-template-columns: 90px minmax(0, 1fr); gap: 14px; padding-right: 22px; }
+  .rule-scroll-figure { width: 86px; }
+  .unseal-rules li > .rule-scroll-figure .rule-scroll-mark { width: 82px; height: 72px; grid-template-columns: 38px 1fr; gap: 3px; padding: 8px 7px; }
+  .rule-scroll-mark .scroll-art { width: 37px; }
+  .rule-scroll-mark .scroll-copy b { font-size: 21px; }
+  .unseal-rules li > .rule-companion { width: 96px; height: 126px; margin-bottom: -27px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vein-grid .vein-card::before,
+  .vein-scroll-mark,
+  .rule-scroll-mark {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .vein-card:hover .vein-scroll-mark,
+  .vein-card:focus-within .vein-scroll-mark,
+  .unseal-rules li:hover .rule-scroll-mark {
+    transform: none;
+  }
+}
