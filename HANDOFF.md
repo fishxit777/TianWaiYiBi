@@ -114,6 +114,7 @@
 ## 驗證結果
 
 - 2026-08-30 V24 圖像仙卷與明亮 Logo 本機完整驗證：`python -m pytest -q` 為 168 passed、1 skipped；Python compileall、5 支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的新增行機密掃描通過。Browser 1440×960 與 390×844 已實看 Logo、首屏、六脈、首卷商品卡、拆封三步、詳情與結帳；根頁面無水平溢位，舊幾何徽章渲染 0，三張拆封卷 computed `clip-path=none`，console 0 error／warning。公開付款維持關閉，QA 未送出匿名意願、建立訂單或操作正式資料。
+- V24 已由實作提交 `76a8428` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=illustrated-celestial-scrolls-v24`。正式首頁、詳情、結帳與 V24 CSS 均回 200；六脈仙卷 6、拆封圖卷 3、首卷封卷 3 處、舊幾何徽章 0。正式 1440×960 與 390×844 實看無根頁面水平溢位、console 0 issue；Logo 明亮版清楚可辨，公開收款維持關閉、首頁結帳連結 0、公開留言元件 0。正式驗收只讀公開頁，未建立需求、訂單或正式資料寫入。
 - 2026-08-30 V23 雲上仙伴本機完整驗證：`python -m pytest -q` 為 166 passed、1 skipped；Python compileall、三支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的機密掃描通過。Browser 1440×900 與 390×844 已實看首屏、六脈、封印卡、拆封規則及頁尾；文件寬等於頁面寬、0 根頁面水平溢位、0 破圖、0 console issue，點擊台詞與六種動作正常。六張透明 WebP 均為 480×720、`yuva420p` 且低於 116 KB；本機互動沒有送出 API、匿名意願或訂單，不作市場需求證據。
 - V23 已由實作提交 `f64cad1` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=chibi-immortal-companions-v23`。正式首頁、封印詳情、收款未開放頁、V23 CSS／JS 與六張仙伴 WebP 均回 200；首頁有 8 個仙伴操作點，公開收款維持關閉、結帳連結 0、留言元件 0。正式驗收使用機器識別且只讀公開端點，未送出匿名意願、未建立訂單或操作任何正式私密資料。
 - 2026-08-30 V22 明霄仙境本機完整驗證：`python -m pytest -q` 為 165 passed、1 skipped；Python compileall、四支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的機密掃描通過。Browser 1440×900 與 390×844 已實看首頁、六脈、目錄、拆封規則、詳情、收款與客戶登入；無根頁面水平溢位、0 破圖、0 console issue、0 舊式直屬圓標、0 介面書法字體殘留。本機工作階段只存在 Windows Temp 隔離資料庫，不作市場需求證據。
