@@ -81,7 +81,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "customer-messaging-retirement-v26",
+                "release": "lingfeng-musician-companion-v27",
             }
         )
 

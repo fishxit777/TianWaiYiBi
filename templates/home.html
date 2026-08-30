@@ -14,7 +14,7 @@
   '靈機脈': ('oracle', '玄算'),
   '破局脈': ('strategist', '弈川'),
   '人間脈': ('healer', '桃夭'),
-  '傳音脈': ('musician', '清商')
+  '傳音脈': ('musician', '聆風')
 } %}
 <section class="blind-hero section-shell">
   <div class="blind-hero-copy reveal">
@@ -56,7 +56,7 @@
     <article class="vein-card vein-arcane" data-mark="機">{{ vein_scroll('oracle', '機', '星盤推演') }}<strong>靈機脈</strong><span>軟體・資料・AI・自動化</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="think" data-lines="讓我算算，哪裡能少繞一圈。|靈光不是魔法，是把複雜理清。" aria-label="讓玄算仙伴回應" aria-pressed="false"><span class="companion-speech">讓我算算，哪裡能少繞一圈。</span><img src="{{ url_for('static', filename='brand/companions/chibi-oracle-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>玄算</b><small>掐指推演</small></span></button></article>
     <article class="vein-card vein-breaker" data-mark="局">{{ vein_scroll('strategist', '局', '展扇落子') }}<strong>破局脈</strong><span>商業・服務・營運・交易</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="fan" data-lines="局不是硬闖，是換一個落子處。|先找瓶頸，再出這一手。" aria-label="讓弈川仙伴回應" aria-pressed="false"><span class="companion-speech">局不是硬闖，是換一個落子處。</span><img src="{{ url_for('static', filename='brand/companions/chibi-strategist-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>弈川</b><small>展扇落子</small></span></button></article>
     <article class="vein-card vein-mortal" data-mark="人">{{ vein_scroll('healer', '人', '桃花濟世') }}<strong>人間脈</strong><span>日常・家庭・公共・環境</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="bloom" data-lines="真正有用，才是人間好仙術。|這朵靈花，給願意把日子變好的人。" aria-label="讓桃夭仙伴回應" aria-pressed="false"><span class="companion-speech">真正有用，才是人間好仙術。</span><img src="{{ url_for('static', filename='brand/companions/chibi-healer-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>桃夭</b><small>送上靈花</small></span></button></article>
-    <article class="vein-card vein-echo" data-mark="音">{{ vein_scroll('musician', '音', '玉笛傳聲') }}<strong>傳音脈</strong><span>內容・品牌・教育・文化</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="music" data-lines="讓好內容，被對的人聽見。|噓——這段仙音只替價值傳聲。" aria-label="讓清商仙伴回應" aria-pressed="false"><span class="companion-speech">讓好內容，被對的人聽見。</span><img src="{{ url_for('static', filename='brand/companions/chibi-musician-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>清商</b><small>吹笛傳音</small></span></button></article>
+    <article class="vein-card vein-echo" data-mark="音">{{ vein_scroll('musician', '音', '玉笛傳聲') }}<strong>傳音脈</strong><span>內容・品牌・教育・文化</span><button class="immortal-companion companion-card" type="button" data-companion-button data-motion="music" data-lines="讓好內容，被對的人聽見。|噓——這段仙音只替價值傳聲。" aria-label="讓聆風仙伴回應" aria-pressed="false"><span class="companion-speech">讓好內容，被對的人聽見。</span><img src="{{ url_for('static', filename='brand/companions/chibi-musician-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><span class="companion-name"><b>聆風</b><small>吹笛傳音</small></span></button></article>
   </div>
 </section>
 
@@ -86,5 +86,5 @@
 </section>
 {% endblock %}
 {% block footer_companion %}
-<button class="immortal-companion companion-footer" type="button" data-companion-button data-motion="music" data-lines="逛完了？仙音替你留一盞回程燈。|封印未解，且待下一卷再會。" aria-label="讓清商仙伴回應" aria-pressed="false"><span class="companion-speech">逛完了？仙音替你留一盞回程燈。</span><img src="{{ url_for('static', filename='brand/companions/chibi-musician-v23.webp') }}" alt="清商仙伴吹笛送客" width="480" height="720" loading="lazy"><span class="companion-name"><b>清商</b><small>送你下山</small></span></button>
+<button class="immortal-companion companion-footer" type="button" data-companion-button data-motion="music" data-lines="逛完了？仙音替你留一盞回程燈。|封印未解，且待下一卷再會。" aria-label="讓聆風仙伴回應" aria-pressed="false"><span class="companion-speech">逛完了？仙音替你留一盞回程燈。</span><img src="{{ url_for('static', filename='brand/companions/chibi-musician-v23.webp') }}" alt="聆風仙伴吹笛送客" width="480" height="720" loading="lazy"><span class="companion-name"><b>聆風</b><small>送你下山</small></span></button>
 {% endblock %}

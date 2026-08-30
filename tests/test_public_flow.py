@@ -48,6 +48,11 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert body.count("vein-scroll-mark") == 6
     assert body.count('class="vein-card ') == 6
     assert body.count("data-companion-button") == 8
+    assert body.count("聆風") >= 3
+    assert body.count('aria-label="讓聆風仙伴回應"') == 2
+    assert 'alt="聆風仙伴吹笛送客"' in body
+    for forbidden in ("\u6e05\u5546", "\u6e05\u88d4"):
+        assert forbidden not in body
     for companion in ("guardian", "crafter", "oracle", "strategist", "healer", "musician"):
         assert f"brand/companions/chibi-{companion}-v23.webp" in body
     assert "concept-scroll-card" in body

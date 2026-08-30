@@ -210,6 +210,7 @@ py -3 scripts\admin_credential_handoff.py
 - `docs/updates/2026-08-23-admin-dual-channel-notifications.md`
 - `docs/updates/2026-08-28-line-only-admin-notifications.md`
 - `docs/updates/2026-08-30-customer-messaging-retirement-v26.md`
+- `docs/updates/2026-08-30-musician-companion-lingfeng-v27.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`

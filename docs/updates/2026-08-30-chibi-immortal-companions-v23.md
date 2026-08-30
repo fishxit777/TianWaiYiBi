@@ -2,9 +2,9 @@
 
 ## 結果
 
-- 首頁新增六位固定、可重複辨識的 Q 版仙伴，不使用無關的隨機貼圖：守護脈「守雲」、造物脈「鑄星」、靈機脈「玄算」、破局脈「弈川」、人間脈「桃夭」、傳音脈「清商」。
+- 首頁新增六位固定、可重複辨識的 Q 版仙伴，不使用無關的隨機貼圖：守護脈「守雲」、造物脈「鑄星」、靈機脈「玄算」、破局脈「弈川」、人間脈「桃夭」、傳音脈「聆風」。
 - 六位角色共用九霄封卷匣的黑漆、古金、朱砂、青玉與冷青靈光材質，維持 V20 封印卷的修仙世界觀；男女角色、服裝、法器、表情與手勢各有差異。
-- 守雲在首屏守護封卷匣；六脈卡各由對應仙伴駐守；封印目錄按主脈顯示看守角色；拆封三步形成三個插圖小場景；清商在頁尾吹笛送客。
+- 守雲在首屏守護封卷匣；六脈卡各由對應仙伴駐守；封印目錄按主脈顯示看守角色；拆封三步形成三個插圖小場景；聆風在頁尾吹笛送客。
 - 角色按鈕支援滑入、鍵盤焦點與點擊。點擊後會切換短句、播放揮手、舉槌、推演、展扇、靈花或吹笛動作，約 2.4 秒後回到待機；沒有送出 API、沒有記錄分析事件，也不把互動次數當成真人或需求證據。
 - V22 明亮雲海保留，另加入法陣、雲帶與淡金光暈填補空白。所有介面文字仍使用 V19 清楚正黑體；Logo 與品牌圖片規則不變。
 
@@ -26,7 +26,7 @@
 - 模式：Codex 內建 ImageGen；以 `sealed-scroll-casket-v20.webp` 作材質色票參考，以守雲通過透明度檢查的版本作固定角色家族風格參考。
 - 守雲母版 prompt：`Create an original full-body chibi female immortal swordswoman named Shouyun, the Guardian Vein companion. Cheerful young xianxia guardian waving with one hand, short cinnabar-red spirit sword safely downward, translucent jade protective disc behind her shoulder; premium polished 3D chibi collectible illustration; two-and-a-half-head proportions; bright morning celestial light; moon-white and pale-jade robe, black lacquer, antique gold and cinnabar; one complete character, genuine transparent background, clean alpha, no text, logo, watermark, extra limbs or cropped body.`
 - 共用家族 prompt：`Create one new full-body recurring website companion using the reference character's polished 3D chibi rendering, proportions and bright celestial lighting, and the sealed casket's black lacquer, antique gold, cinnabar, pale jade and cyan glow. One centered character, complete props and limbs, generous padding, genuine transparent background, no scenery, frame, text, logo, watermark, duplicate props or extra limbs.`
-- 六脈角色變體：`Zhuxing: cheerful male celestial crafter, ornate spirit hammer and floating black-gold cauldron`; `Xuansuan: clever female talisman scholar, thinking gesture, cyan-violet calculation wheel and talisman slips`; `Yichuan: playful male strategist, folding fan and floating jade chess piece`; `Taoyao: sunny female healer, glowing peach blossom, medicine gourd and thumbs-up`; `Qingshang: joyful male musician, pale-jade flute and cyan-gold spirit notes`。
+- 六脈角色變體：`Zhuxing: cheerful male celestial crafter, ornate spirit hammer and floating black-gold cauldron`; `Xuansuan: clever female talisman scholar, thinking gesture, cyan-violet calculation wheel and talisman slips`; `Yichuan: playful male strategist, folding fan and floating jade chess piece`; `Taoyao: sunny female healer, glowing peach blossom, medicine gourd and thumbs-up`; `Lingfeng: joyful male musician, pale-jade flute and cyan-gold spirit notes`。
 - 背景抽離 prompt：`Isolate the exact existing chibi immortal character and all intentional held or floating props. Delete every background pixel completely. Outside the subject must be genuine alpha 0, not white, black, blurred or a simulated checkerboard. Preserve identity, face, pose, expression, clothing, props, glow, proportions and crop; no redesign, relighting, background, floor, text or watermark.`
 
 ## 實作
