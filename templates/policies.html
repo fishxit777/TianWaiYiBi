@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}條款與隱私｜天外盲策{% endblock %}
+{% block body_class %}policy-page policies-page{% endblock %}
+{% block page_scripts_head %}<script src="{{ url_for('static', filename='companions.js', v='chibi-immortal-companions-v23') }}" defer></script>{% endblock %}
+{% block content %}
+<section class="policy-hero section-shell">
+  <div class="policy-hero-copy reveal">
+    <p class="section-index">仙門卷律</p>
+    <h1>買的是什麼、<br>資料怎麼用，都寫清楚。</h1>
+    <p>版本：2026-08-30-v28。現在仍是展示與需求驗證階段；正式營運者識別資料未完成前，不開放公開付費訂單。</p>
+    <nav class="policy-jump-links" aria-label="政策章節">
+      <a href="#terms">購買與使用</a>
+      <a href="#privacy">隱私告知</a>
+      <a href="#refunds">取消與退款</a>
+    </nav>
+  </div>
+  <button class="immortal-companion policy-companion" type="button" data-companion-button data-motion="fan" data-lines="條款不是迷霧，該說明的都攤開。|先辨權利邊界，再決定是否落子。|有爭議？走私人協助，不公開你的內容。" aria-label="讓弈川仙伴回應" aria-pressed="false">
+    <span class="companion-speech">條款不是迷霧，該說明的都攤開。</span>
+    <img src="{{ url_for('static', filename='brand/companions/chibi-strategist-v23.webp') }}" alt="弈川仙伴展扇說明條款" width="480" height="720">
+    <span class="companion-name"><b>弈川</b><small>替你劃界</small></span>
+  </button>
+</section>
+
+<section class="policy-content-shell section-shell">
+  <article id="terms" class="policy-document reveal">
+    <header><span>卷律壹</span><h2>購買與服務條款</h2></header>
+    <div class="policy-prose">
+      <section><h3>1. 商品與契約成立</h3><p>天外盲策是以數位方式提供的原創概念圖文。公開頁只提供購買判斷所需線索；完整名稱、機制與圖文在付款確認及開通後才揭示。訂單須經付款服務確認成功才成立，付款失敗、逾時或未完成時不會取得付費內容。</p></section>
+      <section><h3>2. 非專屬實作使用</h3><p>買家可自行評估、改寫概念，並將概念用於非專屬的個人實作或商業實作。買家不得複製、公開、散布、出租、再授權或轉售交付的原文、圖像與版面，也不得以足以還原整卷內容的方式公開。</p></section>
+      <section><h3>3. 未包含的權利與服務</h3><p>購買不構成獨家買斷、著作權讓與、商標或專利授權，也不包含工程設計、檢測認證、法規適用判斷、代執行、量產、募資、獲利或成果保證。同一概念可能非專屬提供給其他買家。</p></section>
+      <section><h3>4. 帳號、裝置與安全</h3><p>開通連結、驗證碼與登入權限限買家本人使用，不得轉讓或分享。為防止未授權散布，系統可限制可信裝置數與同時登入工作階段；不會要求買家公開完整驗證碼、密碼、Passkey 或復原碼。</p></section>
+      <section><h3>5. 內容取回與服務調整</h3><p>服務存續期間，買家可透過已購取回入口重新驗證並讀取內容。若未來必須終止內容服務，將在合理可行範圍內提前通知，並提供合理的取回安排；不以「永久營運」作無條件承諾。</p></section>
+      <section><h3>6. 條款版本</h3><p>下單時會記錄當時同意的條款版本。影響既有買家重要權益的變更不溯及既往；必要更新會在官網公告，重大變更將提供合理通知。</p></section>
+    </div>
+  </article>
+
+  <article id="privacy" class="policy-document reveal">
+    <header><span>卷律貳</span><h2>隱私聲明</h2></header>
+    <div class="policy-prose">
+      <section><h3>1. 蒐集哪些資料</h3><p>需求驗證階段只記錄匿名工作階段與頁面、篩選、查看、結帳入口、開放意願等第一方事件。正式交易開放後，另會蒐集訂購稱呼、Email、訂單與付款狀態、同意紀錄、登入與裝置安全資訊、IP 概略資訊及內容存取事件。</p></section>
+      <section><h3>2. 使用目的</h3><p>資料用於需求判斷、訂單處理、付款確認、交易通知、首次開通、已購取回、防詐與帳號安全、退款與爭議處理、服務維護及依法應辦事項，不販售客戶資料，也不建立公開留言內容。</p></section>
+      <section><h3>3. 必要服務提供者</h3><p>僅在完成服務所必要的範圍內，交由金流、交易郵件、雲端主機與資料庫等受託服務處理；各服務仍可能依其所在地及適用規則處理資料。除法令要求或防止重大危害外，不任意交付無關第三人。</p></section>
+      <section><h3>4. 保存與安全</h3><p>資料依交易、稅務、資安、備份與爭議處理的必要期間保存，期限屆滿後刪除、去識別或限制處理。系統採權限控管、加密連線、機密隔離、備份與安全事件紀錄，但任何網路服務均無法保證零風險。</p></section>
+      <section><h3>5. 當事人權利</h3><p>可依法請求查詢、閱覽、製給複製本、補充、更正、停止處理或刪除個人資料；法律或契約保存義務、資安防詐與權利主張所需資料可能依法暫不刪除。請使用私人客服入口提出可驗證本人身分的請求。</p></section>
+    </div>
+  </article>
+
+  <article id="refunds" class="policy-document reveal">
+    <header><span>卷律參</span><h2>數位內容與退款規則</h2></header>
+    <div class="policy-prose">
+      <section><h3>1. 首次揭示前</h3><p>付款完成但完整內容尚未首次成功揭示時，可透過私人客服申請取消；確認尚未揭示且款項狀態可處理後，依原付款方式辦理退款與撤權。</p></section>
+      <section><h3>2. 首次揭示後</h3><p>結帳時明確同意立即提供非有形媒介數位內容，並在首次成功揭示完整內容後，於法律允許範圍內不適用通訊交易七日解除權，因此不受理單純不喜歡、改變心意或已自行使用後的取消。</p></section>
+      <section><h3>3. 仍會處理的異常</h3><p>重複扣款、付款成功卻未交付、經合理排除後仍持續無法讀取，或交付內容與購買前明確標示有重大不符時，仍可申請查核、補正、退款或其他依法應有的救濟。</p></section>
+      <section><h3>4. 申請方式</h3><p>請從私人客服入口提供訂購時使用的 Email、問題發生時間與必要畫面。不要傳送密碼、驗證碼、Passkey、復原碼、完整卡號或其他機密。退款入帳時間依原付款服務及金融機構作業為準。</p></section>
+    </div>
+  </article>
+
+  <aside class="policy-reference-note">
+    <strong>法規參考</strong>
+    <p>本頁依現行服務模式整理，正式收款前仍應以完成的營運者資訊與實際流程再核對一次。</p>
+    <div>
+      <a href="https://cpc.ey.gov.tw/Page/4432D6D5FA6677B9/d4f8fdec-7fff-4100-bbbb-1e3c9792c58e" target="_blank" rel="noopener noreferrer">行政院消保處：消費者保護法</a>
+      <a href="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=J0170012" target="_blank" rel="noopener noreferrer">全國法規資料庫：合理例外情事準則</a>
+      <a href="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=I0050021" target="_blank" rel="noopener noreferrer">全國法規資料庫：個人資料保護法</a>
+      <a href="https://www.tipo.gov.tw/tw/copyright/694-17731.html" target="_blank" rel="noopener noreferrer">智慧財產局：著作權保護與概念</a>
+    </div>
+  </aside>
+</section>
+{% endblock %}

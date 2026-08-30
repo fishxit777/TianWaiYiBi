@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}常見問答｜天外盲策{% endblock %}
+{% block body_class %}policy-page faq-page{% endblock %}
+{% block page_scripts_head %}<script src="{{ url_for('static', filename='companions.js', v='chibi-immortal-companions-v23') }}" defer></script>{% endblock %}
+{% block content %}
+<section class="policy-hero section-shell">
+  <div class="policy-hero-copy reveal">
+    <p class="section-index">仙策問津</p>
+    <h1>拆封前，<br>先把規則問明白。</h1>
+    <p>這裡只回答購買、揭示、授權與取回方式，不會提前公開封印中的完整概念。</p>
+    <nav class="policy-jump-links" aria-label="問答相關入口">
+      <a href="{{ url_for('public.policies') }}">閱讀條款與隱私</a>
+      <a href="{{ url_for('public.support') }}">需要私人協助</a>
+    </nav>
+  </div>
+  <button class="immortal-companion policy-companion" type="button" data-companion-button data-motion="think" data-lines="先問清楚，再決定要不要拆卷。|我只解規則，不偷拆封印。|你的疑問，玄算替你逐條推演。" aria-label="讓玄算仙伴回應" aria-pressed="false">
+    <span class="companion-speech">先問清楚，再決定要不要拆卷。</span>
+    <img src="{{ url_for('static', filename='brand/companions/chibi-oracle-v23.webp') }}" alt="玄算仙伴持星盤解答規則" width="480" height="720">
+    <span class="companion-name"><b>玄算</b><small>替你推演</small></span>
+  </button>
+</section>
+
+<section class="policy-content-shell section-shell">
+  <header class="policy-section-heading reveal">
+    <p class="section-index">九問九答</p>
+    <h2>先看價值，再決定是否解印</h2>
+  </header>
+  <div class="faq-list reveal delay-1">
+    <details class="policy-disclosure faq-item">
+      <summary><span>壹</span><strong>購買前可以看到哪些線索？</strong></summary>
+      <div><p>公開頁會顯示問題情境、主脈、成熟度、內容形式與少量價值線索；真正的概念名稱、核心機制、完整文字與視覺仍保持封印。</p></div>
+    </details>
+    <details class="policy-disclosure faq-item">
+      <summary><span>貳</span><strong>拆封後實際會取得什麼？</strong></summary>
+      <div><p>會取得該卷標示的完整概念圖文，包括概念原點、運作機制、使用情境、原創視覺、限制與目前未知。每卷交付項目以商品頁當下標示為準。</p></div>
+    </details>
+    <details class="policy-disclosure faq-item">
+      <summary><span>參</span><strong>能將概念實作或商用嗎？</strong></summary>
+      <div><p>可以依條款自行評估、改寫概念並作非專屬實作或商用；不得直接複製、公開散布或轉售交付的原文、圖像與版面。這不等於獨家買斷、著作權讓與或專利授權。</p></div>
+    </details>
+    <details class="policy-disclosure faq-item">
+      <summary><span>肆</span><strong>什麼情況可以取消或退款？</strong></summary>
+      <div><p>在首次成功揭示完整內容前，可依退款規則申請取消。揭示後不受理單純改變心意；重複扣款、未交付、持續無法讀取或內容與標示重大不符等情形仍會個別處理。</p></div>
+    </details>
+    <details class="policy-disclosure faq-item">
+      <summary><span>伍</span><strong>付款後如何開通及日後取回？</strong></summary>
+      <div><p>付款確認後，系統會把專屬開通連結與一次性開通碼寄到訂購 Email。開通後可從「已購取回」重新驗證登入；服務存續期間可重複取回已購內容。</p></div>
+    </details>
+    <details class="policy-disclosure faq-item">
+      <summary><span>陸</span><strong>概念保證可量產、獲利或通過法規嗎？</strong></summary>
+      <div><p>不保證。天外盲策交付的是原創概念內容，不包含工程驗證、法規認證、專利檢索、代執行、募資、量產、獲利或安全成果承諾。</p></div>
+    </details>
+    <details class="policy-disclosure faq-item">
+      <summary><span>柒</span><strong>同一卷會只賣給一位買家嗎？</strong></summary>
+      <div><p>不會。除非另有明確書面約定，所有盲策均採非專屬提供，同一概念可能由不同買家取得並各自發展。</p></div>
+    </details>
+    <details class="policy-disclosure faq-item">
+      <summary><span>捌</span><strong>可以把買到的完整內容貼到公開平台嗎？</strong></summary>
+      <div><p>不可以公開完整內容，也不可把原文、圖像或版面轉傳、再上架或轉售。你可以公開自己獨立完成的成果，但應避免直接揭露交付內容或讓他人還原整卷。</p></div>
+    </details>
+    <details class="policy-disclosure faq-item">
+      <summary><span>玖</span><strong>付款、開通或讀取遇到問題怎麼辦？</strong></summary>
+      <div><p>請走私人客服入口，不設公開留言區。準備訂購時使用的 Email、問題發生時間與畫面即可；不要提交密碼、驗證碼、Passkey、復原碼或完整付款資料。</p></div>
+    </details>
+  </div>
+</section>
+{% endblock %}

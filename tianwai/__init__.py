@@ -34,6 +34,8 @@ def create_app(test_config=None):
             os.environ.get("ANALYTICS_TRUSTED_AFTER", "").strip()
             or "2026-08-28T16:00:00+00:00"
         ),
+        SUPPORT_EMAIL=os.environ.get("SUPPORT_EMAIL", "").strip(),
+        SUPPORT_FORM_URL=os.environ.get("SUPPORT_FORM_URL", "").strip(),
     )
     if test_config:
         app.config.update(test_config)
@@ -81,7 +83,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "lingfeng-musician-companion-v27",
+                "release": "policy-faq-private-support-v28",
             }
         )
 

@@ -77,6 +77,111 @@ def test_home_hides_internal_tools_and_all_customer_messaging_entries(client):
     assert "line.me/R/ti/p" not in body
 
 
+def test_public_policy_center_and_faq_are_linked_without_reviving_messaging(client):
+    home = client.get("/")
+    home_body = home.get_data(as_text=True)
+
+    assert home.status_code == 200
+    for path, label in (
+        ("/faq", "常見問答"),
+        ("/policies", "條款與隱私"),
+        ("/support", "私人客服"),
+    ):
+        assert f'href="{path}"' in home_body
+        assert label in home_body
+
+    faq = client.get("/faq")
+    faq_body = faq.get_data(as_text=True)
+    assert faq.status_code == 200
+    assert faq_body.count('class="policy-disclosure faq-item"') == 9
+    for question in (
+        "購買前可以看到哪些線索",
+        "拆封後實際會取得什麼",
+        "能將概念實作或商用嗎",
+        "什麼情況可以取消或退款",
+        "付款後如何開通及日後取回",
+    ):
+        assert question in faq_body
+
+    policies = client.get("/policies")
+    policies_body = policies.get_data(as_text=True)
+    assert policies.status_code == 200
+    for section_id, heading in (
+        ("terms", "購買與服務條款"),
+        ("privacy", "隱私聲明"),
+        ("refunds", "數位內容與退款規則"),
+    ):
+        assert f'id="{section_id}"' in policies_body
+        assert heading in policies_body
+    assert "非專屬實作使用" in policies_body
+    assert "首次成功揭示完整內容" in policies_body
+    assert "客服小幫手" not in policies_body
+    assert "客戶 LINE" not in policies_body
+
+    for path, fragment in (
+        ("/terms", "#terms"),
+        ("/privacy", "#privacy"),
+        ("/refunds", "#refunds"),
+    ):
+        alias = client.get(path, follow_redirects=False)
+        assert alias.status_code == 302
+        assert alias.headers["Location"].endswith(f"/policies{fragment}")
+
+
+def test_private_support_only_exposes_project_specific_validated_destinations(app, client):
+    unavailable = client.get("/support")
+    unavailable_body = unavailable.get_data(as_text=True)
+
+    assert unavailable.status_code == 200
+    assert "正式收款前啟用" in unavailable_body
+    assert "mailto:" not in unavailable_body
+    assert "docs.google.com/forms" not in unavailable_body
+    assert "forms.gle" not in unavailable_body
+
+    app.config.update(
+        SUPPORT_EMAIL="support@example.test",
+        SUPPORT_FORM_URL="https://docs.google.com/forms/d/e/tianwai-support/viewform",
+    )
+    available = client.get("/support")
+    available_body = available.get_data(as_text=True)
+
+    assert available.status_code == 200
+    assert 'href="mailto:support@example.test"' in available_body
+    assert 'href="https://docs.google.com/forms/d/e/tianwai-support/viewform"' in available_body
+    assert 'target="_blank"' in available_body
+    assert "密碼、驗證碼、完整付款資料、Passkey、復原碼" in available_body
+
+    app.config.update(
+        SUPPORT_EMAIL="not-an-email",
+        SUPPORT_FORM_URL="http://unsafe.example.test/form",
+    )
+    invalid = client.get("/support").get_data(as_text=True)
+    assert "mailto:" not in invalid
+    assert "unsafe.example.test" not in invalid
+
+
+def test_checkout_links_the_versioned_policy_center(client, app):
+    checkout = client.get("/checkout/sealed-twin-tire-safety")
+    body = checkout.get_data(as_text=True)
+
+    assert checkout.status_code == 200
+    assert 'href="/policies#terms"' in body
+    assert 'href="/policies#privacy"' in body
+    assert 'href="/policies#refunds"' in body
+
+    create_order(client)
+    from tianwai.db import get_db
+
+    with app.app_context():
+        consent = get_db().execute(
+            "SELECT terms_version, purchase_notice_consent, digital_content_consent "
+            "FROM order_consents ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+    assert consent["terms_version"] == "2026-08-30-v28-policy-center"
+    assert consent["purchase_notice_consent"] == 1
+    assert consent["digital_content_consent"] == 1
+
+
 def test_customer_messaging_routes_are_retired(client):
     for method, path in (
         (client.get, "/transmission"),
@@ -362,7 +467,7 @@ def test_idea_detail_uses_global_price(client):
     assert "守護脈" in body
     assert "NT$199" in body
     assert "完整視覺已封印" in body
-    assert "購買取得非專屬閱讀權" in body
+    assert "購買取得非專屬實作使用" in body
     assert "雙生續行輪" not in body
 
 

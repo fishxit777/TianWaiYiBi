@@ -1,8 +1,9 @@
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request, url_for
 
 from .analytics import (
     IDEA_EVENTS,
@@ -40,12 +41,66 @@ def _idea_price(idea):
     return get_setting_int("idea_price", 199)
 
 
+def _public_support_contact():
+    email = str(current_app.config.get("SUPPORT_EMAIL", "")).strip().lower()
+    form_url = str(current_app.config.get("SUPPORT_FORM_URL", "")).strip()
+    try:
+        parsed = urlparse(form_url)
+        valid_form = (
+            parsed.scheme == "https"
+            and parsed.username is None
+            and parsed.password is None
+            and (
+                (parsed.hostname == "docs.google.com" and parsed.path.startswith("/forms/"))
+                or (parsed.hostname == "forms.gle" and len(parsed.path) > 1)
+            )
+        )
+    except ValueError:
+        valid_form = False
+    ready = bool(EMAIL_PATTERN.fullmatch(email) and valid_form)
+    return {
+        "ready": ready,
+        "email": email if ready else "",
+        "form_url": form_url if ready else "",
+    }
+
+
 @public_bp.get("/")
 def home():
     ideas = _published_ideas()
     price = get_setting_int("idea_price", 199)
     record_event("page_view", dedupe_scope=datetime.now(timezone.utc).date().isoformat())
     return render_template("home.html", ideas=ideas, global_price=price)
+
+
+@public_bp.get("/faq")
+def faq():
+    return render_template("faq.html")
+
+
+@public_bp.get("/policies")
+def policies():
+    return render_template("policies.html")
+
+
+@public_bp.get("/terms")
+def terms():
+    return redirect(f"{url_for('public.policies')}#terms")
+
+
+@public_bp.get("/privacy")
+def privacy():
+    return redirect(f"{url_for('public.policies')}#privacy")
+
+
+@public_bp.get("/refunds")
+def refunds():
+    return redirect(f"{url_for('public.policies')}#refunds")
+
+
+@public_bp.get("/support")
+def support():
+    return render_template("support.html", support_contact=_public_support_contact())
 
 
 @public_bp.get("/ideas/<slug>")
@@ -137,7 +192,7 @@ def create_order():
         INSERT INTO order_consents
             (order_id, terms_version, purchase_notice_consent, digital_content_consent,
              ip, user_agent, accepted_at)
-        VALUES (?, '2026-08-23-v2-device-risk', 1, 1, ?, ?, ?)
+        VALUES (?, '2026-08-30-v28-policy-center', 1, 1, ?, ?, ?)
         """,
         (cursor.lastrowid, get_client_ip(), safe_user_agent(), utc_now()),
     )

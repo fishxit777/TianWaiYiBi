@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}私人客服｜天外盲策{% endblock %}
+{% block body_class %}policy-page support-page{% endblock %}
+{% block page_scripts_head %}<script src="{{ url_for('static', filename='companions.js', v='chibi-immortal-companions-v23') }}" defer></script>{% endblock %}
+{% block content %}
+<section class="policy-hero section-shell">
+  <div class="policy-hero-copy reveal">
+    <p class="section-index">仙門引路</p>
+    <h1>訂單與取回問題，<br>只走私人協助。</h1>
+    <p>不設公開留言區，避免買家內容、概念細節或爭議被公開。送出前請先看安全提醒。</p>
+    <nav class="policy-jump-links" aria-label="自助入口">
+      <a href="{{ url_for('public.faq') }}">先看常見問答</a>
+      <a href="{{ url_for('access.customer_login_page') }}">已購內容取回</a>
+    </nav>
+  </div>
+  <button class="immortal-companion policy-companion" type="button" data-companion-button data-motion="wave" data-lines="把問題交給仙門，不必公開你的內容。|先別送機密，我替你指向安全入口。|問題時間與畫面就夠了，驗證碼請自己收好。" aria-label="讓守雲仙伴回應" aria-pressed="false">
+    <span class="companion-speech">把問題交給仙門，不必公開你的內容。</span>
+    <img src="{{ url_for('static', filename='brand/companions/chibi-guardian-v23.webp') }}" alt="守雲仙伴指引私人客服" width="480" height="720">
+    <span class="companion-name"><b>守雲</b><small>護送問路</small></span>
+  </button>
+</section>
+
+<section class="support-shell section-shell">
+  <article class="support-card reveal">
+    <p class="section-index">私人處理</p>
+    {% if support_contact.ready %}
+    <h2>選一個聯絡方式</h2>
+    <p>表單適合付款、開通、讀取與退款問題；Email 適合補充必要畫面。兩者都不會公開顯示你的內容。</p>
+    <div class="support-actions">
+      <a class="button button-primary" href="{{ support_contact.form_url }}" target="_blank" rel="noopener noreferrer">開啟私人客服表單</a>
+      <a class="button button-ghost" href="mailto:{{ support_contact.email }}">寄送客服 Email</a>
+    </div>
+    {% else %}
+    <h2>正式收款前啟用</h2>
+    <p>目前公開收款仍關閉，不會建立正式付費訂單。天外一筆專用客服信箱與私人表單完成後，才會在此顯示入口。</p>
+    <div class="support-pending" role="status"><span aria-hidden="true"></span><strong>目前不收款，也不要求聯絡資料</strong></div>
+    {% endif %}
+  </article>
+  <aside class="support-safety reveal delay-1">
+    <p class="section-index">安全提醒</p>
+    <h2>可以提供</h2>
+    <ul><li>訂購時使用的 Email</li><li>問題發生的大約時間</li><li>不含機密的錯誤畫面</li><li>希望協助的事項</li></ul>
+    <h2>絕對不要提供</h2>
+    <p>密碼、驗證碼、完整付款資料、Passkey、復原碼、私鑰或任何可直接登入帳號的資料。</p>
+  </aside>
+</section>
+{% endblock %}
