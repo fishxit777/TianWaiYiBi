@@ -43,7 +43,16 @@ V28 為天外盲策新增獨立的 `/faq`、`/policies` 與 `/support`，並提�
 
 - 標準 1：通過。FAQ、條款中心、授權與退款邊界一致，沒有公開完整封印內容。
 - 標準 2：部分通過。私人客服程式與安全閘門完成，但天外專用信箱及 Google Form 尚待本人登入，因此正式頁會維持安全未啟用狀態。
-- 標準 3：本機通過。全套為 163 passed、1 skipped；Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check` 通過。Browser 桌機與 390×844 手機的 FAQ、政策、客服頁均為 0 根頁面水平溢位；手機單欄、正文至少 16px、互動與泡泡層級正常。
+- 標準 3：通過。全套為 163 passed、1 skipped；Python compileall、全部 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的機密掃描通過。Browser 桌機與 390×844 手機的 FAQ、政策、客服頁均為 0 根頁面水平溢位；手機單欄、正文至少 16px、互動與泡泡層級正常。實作提交 `1f4f9db` 已推送，正式 `/healthz` 回 200、`status=ok`、`release=policy-faq-private-support-v28`。
+
+## 正式站只讀驗證
+
+- 首頁、FAQ、政策、客服及首卷結帳頁均回 200。
+- FAQ 為 9 題，政策包含 3 個指定章節；客服未設定時聯絡連結為 0。
+- 首頁結帳連結為 0，結帳頁明示正式付款未開放。
+- 抽驗五條 V26 退役的留言／客戶 LINE 路由均回 404。
+- 正式 Browser 1280×720 FAQ 與 390×844 政策／客服頁均無根頁面水平溢位；所有圖片完成載入後破圖為 0，手機政策正文至少 16px，仙伴對話泡泡可見。
+- 驗證全程沒有送出表單、匿名意願或訂單，沒有登入後台，也沒有操作任何正式私密資料。
 
 ## 尚未完成
 
