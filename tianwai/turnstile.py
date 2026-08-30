@@ -12,7 +12,6 @@ from flask import current_app
 
 SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 RECOVERY_ACTION = "admin-recovery"
-CONVERSATION_ACTION = "public-conversation"
 
 
 def turnstile_site_key():
@@ -55,9 +54,8 @@ def verify_turnstile(token, remote_ip, expected_action=RECOVERY_ACTION):
             result = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError):
         return False
-    allowed_actions = {RECOVERY_ACTION, CONVERSATION_ACTION}
     action = str(expected_action or "")
-    if action not in allowed_actions:
+    if action != RECOVERY_ACTION:
         return False
     if result.get("success") is not True or result.get("action") != action:
         return False

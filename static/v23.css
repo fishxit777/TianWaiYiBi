@@ -529,19 +529,19 @@
 
 @media (prefers-reduced-motion: reduce) {
   .immortal-companion,
-  .immortal-companion img,
-  .companion-cameo img,
-  .rule-companion img {
+.immortal-companion img,
+.companion-cameo img,
+.rule-companion img {
     animation: none !important;
     transition: none !important;
   }
 
   .immortal-companion:hover img,
-  .immortal-companion:focus-visible img,
-  .vein-card:hover .companion-card img,
-  .idea-card:hover .companion-cameo img,
-  .idea-card:focus-within .companion-cameo img,
-  .unseal-rules li:hover .rule-companion img {
+.immortal-companion:focus-visible img,
+.vein-card:hover .companion-card img,
+.idea-card:hover .companion-cameo img,
+.idea-card:focus-within .companion-cameo img,
+.unseal-rules li:hover .rule-companion img {
     transform: none;
   }
 }

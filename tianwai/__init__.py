@@ -30,10 +30,6 @@ def create_app(test_config=None):
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=secure_public_cookie,
-        LINE_ADD_FRIEND_URL=(
-            os.environ.get("LINE_ADD_FRIEND_URL", "").strip()
-            or "https://line.me/R/ti/p/%40279plitu"
-        ),
         ANALYTICS_TRUSTED_AFTER=(
             os.environ.get("ANALYTICS_TRUSTED_AFTER", "").strip()
             or "2026-08-28T16:00:00+00:00"
@@ -56,7 +52,6 @@ def create_app(test_config=None):
 
     from .admin import admin_bp
     from .access import access_bp
-    from .line_bot import line_bp
     from .notification_routes import notification_bp
     from .payments import payments_bp
     from .public import public_bp
@@ -64,7 +59,6 @@ def create_app(test_config=None):
     app.register_blueprint(public_bp)
     app.register_blueprint(payments_bp)
     app.register_blueprint(access_bp)
-    app.register_blueprint(line_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(notification_bp)
 
@@ -77,7 +71,6 @@ def create_app(test_config=None):
 
         return {
             "csrf_token": get_public_csrf_token,
-            "line_add_friend_url": app.config["LINE_ADD_FRIEND_URL"],
             "payment_status": payment_checkout_status(),
         }
 
@@ -88,7 +81,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "celestial-scroll-scenes-v25",
+                "release": "customer-messaging-retirement-v26",
             }
         )
 

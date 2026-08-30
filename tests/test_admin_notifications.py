@@ -134,18 +134,17 @@ def test_daily_summary_only_marks_recent_failed_delivery_as_actionable(app):
     assert "今日有 2 筆" not in summary
 
 
-def test_daily_summary_distinguishes_line_channel_from_admin_recipient(app, monkeypatch):
+def test_daily_summary_distinguishes_line_delivery_from_admin_recipient(app, monkeypatch):
     from tianwai.notifications import build_daily_summary
 
     monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "channel-token")
-    monkeypatch.setenv("LINE_CHANNEL_SECRET", "channel-secret")
     monkeypatch.delenv("LINE_ADMIN_USER_ID", raising=False)
 
     with app.app_context():
         summary = build_daily_summary("morning")["line"]
 
-    assert "LINE 官方帳號已連線，但管理員私訊收件人尚未設定" in summary
-    assert "LINE 官方帳號頻道未設定" not in summary
+    assert "管理員 LINE 推播已連線，但私訊收件人尚未設定" in summary
+    assert "管理員 LINE 推播存取權杖尚未設定" not in summary
 
 
 def test_daily_summary_treats_verified_payment_config_with_closed_gate_as_normal(app, monkeypatch):

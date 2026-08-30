@@ -493,7 +493,7 @@ def ecpay_payment_result():
     if not _ecpay_callback_valid(parameters):
         log_security_event("ecpay_result_signature_mismatch", "critical", "rejected", "invalid_check_mac")
         return render_template(
-            "message.html", title="無法確認付款結果", message="付款結果驗證失敗，請勿重複付款並聯絡客服。"
+            "message.html", title="無法確認付款結果", message="付款結果驗證失敗，請勿重複付款；請保留付款紀錄並稍後重新檢查。"
         ), 400
     payload = _ecpay_payload(parameters)
     raw_body = json.dumps(parameters, ensure_ascii=False, sort_keys=True).encode("utf-8")
@@ -502,7 +502,7 @@ def ecpay_payment_result():
         "SELECT order_no FROM orders WHERE order_no = ?", (payload["order_no"],)
     ).fetchone()
     if order is None:
-        return render_template("message.html", title="找不到訂單", message="請聯絡客服並提供付款紀錄。"), 404
+        return render_template("message.html", title="找不到訂單", message="請確認付款結果頁連結是否完整，並保留付款紀錄。"), 404
     return redirect(
         url_for(
             "payments.payment_status_page",

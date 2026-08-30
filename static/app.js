@@ -42,7 +42,6 @@
   document.querySelector('[data-reset-idea-filter]')?.addEventListener('click',()=>applyIdeaFilter('all',true));
   if(filterButtons.length) applyIdeaFilter(new URL(location.href).searchParams.get('filter')||'all');
 
-  document.querySelectorAll('[data-line-cta]').forEach((link)=>link.addEventListener('click',()=>trackEvent('line_cta_clicked',{keepalive:true}).catch(()=>{})));
   const detail=document.querySelector('[data-analytics-idea]');
   if(detail){
     const ideaSlug=detail.dataset.analyticsIdea||''; const sent=new Set();
@@ -54,9 +53,6 @@
     button?.addEventListener('click',async()=>{button.disabled=true;if(status)status.textContent='正在安全記錄…';try{await trackEvent('interest_registered',{ideaSlug});try{localStorage.setItem(key,'1');}catch(_error){}marked();}catch(_error){button.disabled=false;if(status)status.textContent='目前無法記錄，請稍後再試。';}});
   }
 
-  const copyLineId=document.querySelector('[data-copy-line-id]');
-  copyLineId?.addEventListener('click',async()=>{const id=copyLineId.dataset.copyLineId||'@279plitu';const status=document.querySelector('#copy-line-status');try{await navigator.clipboard.writeText(id);status.textContent=`${id} 已抄錄。`;copyLineId.textContent='名號已抄錄';}catch(_error){status.textContent=`請手動抄錄：${id}`;}});
-
   const orderForm=document.querySelector('#order-form');
   if(orderForm){
     const dialog=document.querySelector('#purchase-notice-dialog'); const error=document.querySelector('#purchase-notice-error'); const confirm=document.querySelector('[data-confirm-purchase]');
@@ -67,6 +63,4 @@
   document.querySelectorAll('dialog[data-auto-modal]').forEach((dialog)=>{if(typeof dialog.showModal!=='function')return;if(dialog.open)dialog.close();setTimeout(()=>dialog.showModal(),80);});
   const paymentForm=document.querySelector('[data-auto-submit-payment]'); if(paymentForm)setTimeout(()=>paymentForm.requestSubmit(),350);
 
-  const simulator=document.querySelector('#line-simulator-form');
-  if(simulator){const send=async(message)=>{const input=simulator.querySelector('input[name="message"]');if(!message)return;const log=document.querySelector('#chat-log');const user=document.createElement('div');user.className='bubble user';user.textContent=message;log.appendChild(user);input.value='';try{const response=await fetch('/dev/line/reply',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},body:JSON.stringify({message})});const data=await response.json();const bot=document.createElement('div');bot.className='bubble bot';bot.textContent=(data.messages||[]).filter((item)=>item.type==='text').map((item)=>item.text).join('\n\n')||data.reply||data.error||'暫時沒有回應。';log.appendChild(bot);log.scrollTop=log.scrollHeight;}catch(_error){const bot=document.createElement('div');bot.className='bubble bot';bot.textContent='本機連線中斷。';log.appendChild(bot);}};simulator.addEventListener('submit',(event)=>{event.preventDefault();send(simulator.querySelector('input[name="message"]').value.trim());});document.querySelectorAll('[data-line-command]').forEach((button)=>button.addEventListener('click',()=>send(button.dataset.lineCommand||'')));}
 })();

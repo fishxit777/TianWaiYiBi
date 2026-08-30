@@ -23,7 +23,6 @@ PUBLIC_TEXT_SOURCES = (
     "templates/order_access.html",
     "templates/payment_status.html",
     "templates/message.html",
-    "templates/transmission.html",
     "static/app.js",
     "tianwai/access.py",
     "tianwai/db.py",

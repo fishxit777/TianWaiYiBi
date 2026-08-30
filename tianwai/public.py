@@ -48,12 +48,6 @@ def home():
     return render_template("home.html", ideas=ideas, global_price=price)
 
 
-@public_bp.get("/transmission")
-def transmission():
-    record_event("line_landing_viewed", dedupe_scope=datetime.now(timezone.utc).date().isoformat())
-    return render_template("transmission.html")
-
-
 @public_bp.get("/ideas/<slug>")
 def idea_detail(slug):
     idea = get_db().execute(

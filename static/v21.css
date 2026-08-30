@@ -353,8 +353,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vein-sigil,
-  .sealed-talisman,
-  .unseal-rules li > span {
+.sealed-talisman,
+.unseal-rules li > span {
     transition: none;
   }
 }

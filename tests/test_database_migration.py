@@ -1,10 +1,9 @@
 import json
-import inspect
 import sqlite3
 
 import pytest
 
-from tianwai.db import _migrate_section_messages, _migrate_section_messages_postgres, get_db
+from tianwai.db import get_db
 
 from scripts.migrate_sqlite_to_postgres import (
     MIGRATION_TABLES,
@@ -32,7 +31,6 @@ def _source_database(path):
 
 
 def test_migration_table_order_keeps_foreign_key_dependencies():
-    assert MIGRATION_TABLES.index("customers") < MIGRATION_TABLES.index("section_messages")
     assert MIGRATION_TABLES.index("customers") < MIGRATION_TABLES.index("customer_devices")
     assert MIGRATION_TABLES.index("ideas") < MIGRATION_TABLES.index("orders")
     assert MIGRATION_TABLES.index("orders") < MIGRATION_TABLES.index("activation_codes")
@@ -88,87 +86,6 @@ def test_integrity_report_fails_on_count_or_checksum_mismatch():
     report = build_integrity_report(source, destination, "source.db")
     assert report["status"] == "mismatch"
     assert report["tables"]["orders"]["verified"] is False
-
-
-def test_legacy_sqlite_conversations_upgrade_without_losing_existing_rows(tmp_path):
-    database = tmp_path / "legacy-conversations.db"
-    connection = sqlite3.connect(database)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON")
-    connection.executescript(
-        """
-        CREATE TABLE ideas (id INTEGER PRIMARY KEY);
-        CREATE TABLE customers (id INTEGER PRIMARY KEY);
-        CREATE TABLE section_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            public_id TEXT NOT NULL UNIQUE,
-            section_key TEXT NOT NULL,
-            idea_id INTEGER REFERENCES ideas(id),
-            author_type TEXT NOT NULL CHECK (author_type IN ('customer', 'admin')),
-            customer_id INTEGER REFERENCES customers(id),
-            reply_to_id INTEGER REFERENCES section_messages(id),
-            visibility TEXT NOT NULL CHECK (visibility IN ('public', 'private')),
-            status TEXT NOT NULL CHECK (status IN ('pending', 'published', 'hidden')),
-            body TEXT NOT NULL CHECK (length(body) BETWEEN 2 AND 800),
-            moderated_at TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            CHECK (author_type = 'admin' OR customer_id IS NOT NULL),
-            CHECK (visibility = 'public' OR customer_id IS NOT NULL)
-        );
-        INSERT INTO ideas VALUES (1);
-        INSERT INTO customers VALUES (1);
-        INSERT INTO section_messages
-            (public_id, section_key, idea_id, author_type, customer_id,
-             visibility, status, body, created_at, updated_at)
-        VALUES
-            ('MSG-LEGACY', 'idea-detail', 1, 'customer', 1,
-             'public', 'published', '既有留言', '2026-08-24T00:00:00+00:00',
-             '2026-08-24T00:00:00+00:00');
-        """
-    )
-
-    _migrate_section_messages(connection)
-
-    columns = {
-        row["name"] for row in connection.execute("PRAGMA table_info(section_messages)")
-    }
-    assert {"visitor_token_hash", "source_hash"} <= columns
-    preserved = connection.execute(
-        "SELECT public_id, body FROM section_messages WHERE id = 1"
-    ).fetchone()
-    assert dict(preserved) == {"public_id": "MSG-LEGACY", "body": "既有留言"}
-    connection.execute(
-        """
-        INSERT INTO section_messages
-            (public_id, section_key, idea_id, author_type, visitor_token_hash,
-             source_hash, visibility, status, body, created_at, updated_at)
-        VALUES
-            ('MSG-VISITOR', 'idea-detail', 1, 'visitor', 'v-hash', 's-hash',
-             'public', 'pending', '訪客留言', '2026-08-24T00:00:00+00:00',
-             '2026-08-24T00:00:00+00:00')
-        """
-    )
-    with pytest.raises(sqlite3.IntegrityError):
-        connection.execute(
-            """
-            INSERT INTO section_messages
-                (public_id, section_key, idea_id, author_type, visitor_token_hash,
-                 source_hash, visibility, status, body, created_at, updated_at)
-            VALUES
-                ('MSG-VISITOR-PRIVATE', 'idea-detail', 1, 'visitor', 'v-hash-2',
-                 's-hash', 'private', 'published', '不允許私密訪客留言',
-                 '2026-08-24T00:00:00+00:00', '2026-08-24T00:00:00+00:00')
-            """
-        )
-    connection.close()
-
-
-def test_postgres_conversation_migration_serializes_worker_startup():
-    source = inspect.getsource(_migrate_section_messages_postgres)
-    assert "pg_advisory_xact_lock" in source
-    assert "ADD COLUMN IF NOT EXISTS visitor_token_hash" in source
-    assert "ADD COLUMN IF NOT EXISTS source_hash" in source
 
 
 def test_payment_verification_schema_is_present_without_changing_existing_order_defaults(app):

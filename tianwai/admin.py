@@ -645,7 +645,6 @@ def dashboard_data():
         """,
         (trusted_analytics_start(datetime.now(timezone.utc) - timedelta(days=29)),),
     ).fetchall()
-    line_event_count = connection.execute("SELECT COUNT(*) AS count FROM line_events").fetchone()["count"]
     global_price = get_setting_int("idea_price", 199)
     base_url = os.environ.get("BASE_URL", "http://127.0.0.1:5088").strip()
     verification_order = connection.execute(
@@ -800,7 +799,6 @@ def dashboard_data():
                 "mode": checkout_status["mode"],
                 "base_url": base_url,
                 "public_https": base_url.lower().startswith("https://"),
-                "line_channel": bool(os.environ.get("LINE_CHANNEL_SECRET") and os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")),
                 "line_admin_alert": bool(
                     os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
                     and os.environ.get("LINE_ADMIN_USER_ID")
@@ -814,7 +812,6 @@ def dashboard_data():
                 "daily_summary_schedule": len(
                     os.environ.get("NOTIFICATION_CRON_SECRET", "").strip()
                 ) >= 32,
-                "line_events": int(line_event_count or 0),
             },
             "payment_verification": {
                 "ready": verification_status["ready"],
@@ -829,7 +826,6 @@ def dashboard_data():
                 in {"1", "true", "yes", "on"},
                 "session_ip_binding": os.environ.get("ADMIN_SESSION_BIND_IP", "true").lower()
                 in {"1", "true", "yes", "on"},
-                "line_signature_configured": bool(os.environ.get("LINE_CHANNEL_SECRET")),
                 "line_admin_alert": bool(
                     os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
                     and os.environ.get("LINE_ADMIN_USER_ID")

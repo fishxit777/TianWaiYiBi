@@ -310,9 +310,9 @@
   .vein-scroll-mark .scroll-art { width: 53px; }
   .vein-scroll-mark .scroll-copy b { font-size: 29px; }
   .vein-scroll-mark .scroll-wax,
-  .rule-scroll-mark .scroll-wax { right: -9px; bottom: -11px; width: 27px; height: 27px; }
+.rule-scroll-mark .scroll-wax { right: -9px; bottom: -11px; width: 27px; height: 27px; }
   .vein-scroll-figure figcaption,
-  .rule-scroll-figure figcaption { margin-top: 7px; padding: 4px 10px 5px; font-size: 10px; }
+.rule-scroll-figure figcaption { margin-top: 7px; padding: 4px 10px 5px; font-size: 10px; }
   .vein-grid .vein-card > strong { margin-top: 7px; }
 
   .companion-card { width: 50%; min-width: 140px; }
@@ -332,15 +332,15 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vein-grid .vein-card::before,
-  .vein-scroll-mark,
-  .rule-scroll-mark {
+.vein-scroll-mark,
+.rule-scroll-mark {
     animation: none !important;
     transition: none !important;
   }
 
   .vein-card:hover .vein-scroll-mark,
-  .vein-card:focus-within .vein-scroll-mark,
-  .unseal-rules li:hover .rule-scroll-mark {
+.vein-card:focus-within .vein-scroll-mark,
+.unseal-rules li:hover .rule-scroll-mark {
     transform: none;
   }
 }

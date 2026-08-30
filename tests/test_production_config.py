@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 
 from tianwai import create_app
@@ -13,21 +12,6 @@ def test_database_path_can_be_configured_from_environment(monkeypatch, tmp_path)
 
     assert Path(application.config["DATABASE"]) == database_path.resolve()
     assert database_path.exists()
-
-
-def test_line_links_fall_back_to_request_origin(client, monkeypatch):
-    monkeypatch.delenv("BASE_URL", raising=False)
-    origin = "https://tianwai.example"
-
-    response = client.post(
-        "/dev/line/reply",
-        json={"message": "靈感"},
-        headers={"X-CSRF-Token": _csrf_token(client, origin)},
-        base_url=origin,
-    )
-
-    assert response.status_code == 200
-    assert all(card["url"].startswith("https://tianwai.example/") for card in response.get_json()["cards"])
 
 
 def test_ecpay_production_mode_requires_explicit_live_confirmation(client, monkeypatch):
@@ -63,10 +47,3 @@ def test_ecpay_complete_production_config_reports_intentional_public_closure(app
     assert status["state"] == "closed"
     assert status["public_sales_open"] is False
     assert "公開收款關閉" in status["label"]
-
-
-def _csrf_token(client, base_url):
-    response = client.get("/dev/line", base_url=base_url)
-    match = re.search(rb'<meta name="csrf-token" content="([^"]+)"', response.data)
-    assert match
-    return match.group(1).decode("utf-8")

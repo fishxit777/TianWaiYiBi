@@ -267,21 +267,6 @@
   background: #f8fbf8;
   cursor: pointer;
 }
-.conversation-scope-note {
-  display: grid;
-  gap: 3px;
-  margin: -2px 0 2px;
-  padding: 10px 12px;
-  border-left: 3px solid #6a5e9d;
-  background: #f0edf7;
-}
-.conversation-scope-note[data-scope="public"] { border-left-color: #b48537; background: #fbf5e8; }
-.conversation-scope-note strong { color: #39334e; font-size: 11px; }
-.conversation-scope-note span { color: #6b6973; font-size: 10px; line-height: 1.5; }
-.conversation-admin-item footer button { min-height: 38px; padding: 8px 12px; font-size: 11px; }
-.conversation-admin-item footer .conversation-publish { color: #fff; border-color: #347660; background: #347660; }
-.conversation-admin-item footer .conversation-hide { color: #8e322b; border-color: #d7aaa4; background: #fff8f6; }
-.conversation-admin-item footer .conversation-reply { color: #403968; border-color: #b9b2d3; background: #f6f4fb; }
 
 /* ---------- Admin verification and security ---------- */
 .admin-ops-page .payment-verification-panel { padding: 0; overflow: hidden; }
@@ -414,11 +399,11 @@
   .admin-ops-page .admin-main { padding-bottom: 84px; }
   .admin-ops-page .admin-status-bar { position: relative; z-index: 2; }
   .admin-ops-page .metric-card.is-actionable:hover { transform: none; }
-  .orders-panel .admin-table th:nth-child(3), .orders-panel .admin-table td:nth-child(3),
-  .orders-panel .admin-table th:nth-child(6), .orders-panel .admin-table td:nth-child(6) { display: none; }
+  .orders-panel .admin-table th:nth-child(3),
+.orders-panel .admin-table td:nth-child(3),
+.orders-panel .admin-table th:nth-child(6),
+.orders-panel .admin-table td:nth-child(6) { display: none; }
   .orders-panel .admin-table .table-empty { display: table-cell !important; }
-  .conversation-admin-item footer { gap: 6px; }
-  .conversation-admin-item footer button { flex: 1 1 auto; }
   .admin-ops-page .payment-verification-panel > summary { align-items: flex-start; flex-direction: column; gap: 5px; }
   .admin-confirm-dialog form { padding: 20px; }
 }
@@ -434,7 +419,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .reading-progress span,
-  .public-site .site-header,
-  .admin-ops-page .metric-card.is-actionable { transition: none; }
+.public-site .site-header,
+.admin-ops-page .metric-card.is-actionable { transition: none; }
   .admin-refresh[aria-busy="true"] span { animation: none; }
 }

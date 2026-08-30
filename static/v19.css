@@ -58,7 +58,7 @@
   line-height: 1.6;
 }
 
-.public-site :where(.section-heading h2, .world-note h2, .how-intro h2, .creed-heading h2, .line-portal h2, .vein-index h2, .unseal-rules h2) {
+.public-site :where(.section-heading h2, .world-note h2, .how-intro h2, .creed-heading h2, .vein-index h2, .unseal-rules h2) {
   font-size: clamp(34px, 4.2vw, 52px) !important;
   font-weight: 800 !important;
   line-height: 1.25 !important;
@@ -86,8 +86,7 @@
 }
 
 .blind-hero-lead,
-.home-page .hero-lead,
-.public-site.transmission-v2-page .transmission-v2-lead {
+.home-page .hero-lead {
   font-size: 18px !important;
   line-height: 1.85 !important;
 }
@@ -198,7 +197,7 @@
   letter-spacing: 0 !important;
 }
 
-.admin-ops-page :where(.admin-status, .admin-status-bar, .workspace-heading p, .overview-intro p, .panel-note, .plain-ops-note p, .integration-next span, .advanced-tools, .demand-radar-heading p, .demand-method summary, .demand-method div, .conversation-admin-toolbar > p, .conversation-scope-note span, .payment-verification-state span, .payment-verification-state small, .payment-verification-warning) {
+.admin-ops-page :where(.admin-status, .admin-status-bar, .workspace-heading p, .overview-intro p, .panel-note, .plain-ops-note p, .integration-next span, .advanced-tools, .demand-radar-heading p, .demand-method summary, .demand-method div, .payment-verification-state span, .payment-verification-state small, .payment-verification-warning) {
   font-size: 13px !important;
   line-height: 1.65 !important;
 }
@@ -212,26 +211,7 @@
   font-size: 13px !important;
 }
 
-.admin-ops-page :where(
-  .admin-brand small,
-  .admin-sidebar nav button b,
-  .admin-breadcrumb > span,
-  .last-sync,
-  .overview-date small,
-  .metric-card-head > i,
-  .revenue-day strong,
-  .revenue-day span,
-  .traffic-source-row span,
-  .traffic-source-row strong,
-  .integration-card-head > i,
-  .integration-dot,
-  .payment-verification-panel > summary b,
-  .payment-verification-panel > summary em,
-  .plain-ops-note strong,
-  .security-flag i,
-  label > span,
-  small
-) {
+.admin-ops-page :where(.admin-brand small, .admin-sidebar nav button b, .admin-breadcrumb > span, .last-sync, .overview-date small, .metric-card-head > i, .revenue-day strong, .revenue-day span, .traffic-source-row span, .traffic-source-row strong, .integration-card-head > i, .integration-dot, .payment-verification-panel > summary b, .payment-verification-panel > summary em, .plain-ops-note strong, .security-flag i, label > span, small) {
   font-size: 12px !important;
   line-height: 1.5 !important;
 }
@@ -282,8 +262,8 @@
   }
 
   .public-site :where(button, input, textarea, select),
-  .admin-page :where(input, textarea, select),
-  .admin-login-page :where(input, textarea, select) {
+.admin-page :where(input, textarea, select),
+.admin-login-page :where(input, textarea, select) {
     font-size: 16px !important;
   }
 
@@ -295,7 +275,7 @@
     font-size: clamp(25px, 8vw, 32px) !important;
   }
 
-  .public-site :where(.section-heading h2, .world-note h2, .how-intro h2, .creed-heading h2, .line-portal h2, .vein-index h2, .unseal-rules h2) {
+  .public-site :where(.section-heading h2, .world-note h2, .how-intro h2, .creed-heading h2, .vein-index h2, .unseal-rules h2) {
     font-size: clamp(30px, 9vw, 40px) !important;
   }
 
@@ -304,7 +284,7 @@
   }
 
   .admin-ops-page .admin-status-bar,
-  .admin-ops-page .last-sync {
+.admin-ops-page .last-sync {
     font-size: 12px !important;
   }
 }

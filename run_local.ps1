@@ -40,9 +40,6 @@ if (-not $env:ADMIN_USERNAME) {
 if (-not $env:ADMIN_PASSWORD) {
     $env:ADMIN_PASSWORD = New-SecureBase64Url 32
 }
-if (-not $env:ENABLE_DEV_TOOLS) {
-    $env:ENABLE_DEV_TOOLS = 'true'
-}
 if (-not $env:BASE_URL) {
     $env:BASE_URL = 'http://127.0.0.1:5088'
 }
@@ -56,8 +53,6 @@ if (-not $env:ADMIN_SESSION_BIND_IP) {
 Write-Host ''
 Write-Host '天外一筆・仙策閣本機初版' -ForegroundColor Cyan
 Write-Host "官網：$($env:BASE_URL)"
-Write-Host "Logo 評估：$($env:BASE_URL)/logo-review"
-Write-Host "LINE 模擬器：$($env:BASE_URL)/dev/line"
 Write-Host "管理後台：$($env:BASE_URL)/admin"
 Write-Host "管理帳號：$($env:ADMIN_USERNAME)"
 Write-Host "本次臨時密碼：$($env:ADMIN_PASSWORD)" -ForegroundColor Yellow

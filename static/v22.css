@@ -17,7 +17,7 @@
 }
 
 /* Public storefront and customer paths. The moon-altar support page keeps its night ritual. */
-.public-site:not(.transmission-v2-page) {
+.public-site {
   color: var(--day-ink);
   background:
     radial-gradient(circle at 84% 2%, rgba(255, 221, 128, .76), transparent 24rem),
@@ -27,7 +27,7 @@
   background-attachment: fixed;
 }
 
-.public-site:not(.transmission-v2-page)::before {
+.public-site::before {
   opacity: .55;
   background-image:
     radial-gradient(ellipse at 20% 16%, rgba(255, 255, 255, .95) 0 13%, transparent 29%),
@@ -37,7 +37,7 @@
   mask-image: linear-gradient(to bottom, #000 0 70%, transparent 100%);
 }
 
-.public-site:not(.transmission-v2-page) .star-field {
+.public-site .star-field {
   opacity: .5;
   background-image:
     radial-gradient(circle, rgba(62, 130, 118, .24) 0 1px, transparent 1.4px),
@@ -47,17 +47,17 @@
   mask-image: linear-gradient(to bottom, #000, transparent 72%);
 }
 
-.public-site:not(.transmission-v2-page) :is(.section-index, .blind-volume, .eyebrow) {
+.public-site :is(.section-index, .blind-volume, .eyebrow) {
   color: var(--day-jade);
 }
 
-.public-site:not(.transmission-v2-page) :is(.section-deck, .detail-lead, .checkout-summary > p:not(.section-index), .access-header p) {
+.public-site :is(.section-deck, .detail-lead, .checkout-summary > p:not(.section-index), .access-header p) {
   color: var(--day-ink-soft);
 }
 
 /* Daylight jade-glass navigation. */
-.public-site:not(.transmission-v2-page) .site-header,
-.public-site:not(.transmission-v2-page) .site-header.is-compact {
+.public-site .site-header,
+.public-site .site-header.is-compact {
   border-bottom-color: rgba(125, 104, 49, .25);
   background:
     radial-gradient(circle at 82% 0, rgba(255, 223, 134, .32), transparent 18rem),
@@ -66,36 +66,36 @@
   backdrop-filter: blur(20px) saturate(1.12);
 }
 
-.public-site:not(.transmission-v2-page) .site-header::after {
+.public-site .site-header::after {
   background: linear-gradient(90deg, transparent, #bc5c49, #d2a84d);
 }
 
-.public-site:not(.transmission-v2-page) .brand-mark {
+.public-site .brand-mark {
   border-color: rgba(164, 123, 48, .5);
   background: radial-gradient(circle, rgba(255, 252, 232, .95), rgba(187, 222, 213, .76));
   box-shadow: 0 0 0 5px rgba(255, 251, 233, .68), 0 10px 28px rgba(52, 103, 94, .2);
 }
 
-.public-site:not(.transmission-v2-page) .brand-copy small {
+.public-site .brand-copy small {
   color: #5c5441;
   text-shadow: 0 1px 0 rgba(255, 255, 255, .9);
 }
 
-.public-site:not(.transmission-v2-page) .main-nav a {
+.public-site .main-nav a {
   color: #43575a;
 }
 
-.public-site:not(.transmission-v2-page) .main-nav a:hover,
-.public-site:not(.transmission-v2-page) .main-nav a:focus-visible,
-.public-site:not(.transmission-v2-page) .main-nav a[aria-current="location"]:not(.nav-seal) {
+.public-site .main-nav a:hover,
+.public-site .main-nav a:focus-visible,
+.public-site .main-nav a[aria-current="location"]:not(.nav-seal) {
   color: #1f6d61;
 }
 
-.public-site:not(.transmission-v2-page) .main-nav .customer-access-link {
+.public-site .main-nav .customer-access-link {
   color: #8b6728;
 }
 
-.public-site:not(.transmission-v2-page) .main-nav .nav-seal {
+.public-site .main-nav .nav-seal {
   color: #352b26;
   border-color: #e4c570;
   background: linear-gradient(135deg, #ffe9a9, #d8b25a);
@@ -155,7 +155,7 @@
 .home-page .hero-actions .text-link:hover { color: #8f493d; border-color: rgba(143, 73, 61, .5); }
 
 .home-page .button-primary,
-.public-site:not(.transmission-v2-page) .button-primary {
+.public-site .button-primary {
   color: #2e2925;
   border-color: #e8cb77;
   background: linear-gradient(135deg, #ffecae, #d5ad50);
@@ -163,7 +163,7 @@
 }
 
 .home-page .button-primary:hover,
-.public-site:not(.transmission-v2-page) .button-primary:hover {
+.public-site .button-primary:hover {
   background: linear-gradient(135deg, #fff4c9, #e2bf67);
 }
 
@@ -332,16 +332,16 @@
 .unseal-rules aside strong { color: #27685d; }
 
 /* Detail and checkout keep the sealed object dramatic while the reading surface is daylight. */
-.public-site:not(.transmission-v2-page) .detail-hero,
-.public-site:not(.transmission-v2-page) .checkout-shell,
-.public-site:not(.transmission-v2-page) .payment-shell,
-.public-site:not(.transmission-v2-page) .access-shell {
+.public-site .detail-hero,
+.public-site .checkout-shell,
+.public-site .payment-shell,
+.public-site .access-shell {
   color: var(--day-ink);
 }
-.public-site:not(.transmission-v2-page) .detail-breadcrumb { color: #71817e; }
-.public-site:not(.transmission-v2-page) .detail-breadcrumb a { color: #2f796d; }
-.public-site:not(.transmission-v2-page) .detail-breadcrumb strong { color: #4f6261; }
-.public-site:not(.transmission-v2-page) :is(.detail-copy h1, .checkout-summary h1, .payment-card h1, .access-header h1) { color: #253e46; }
+.public-site .detail-breadcrumb { color: #71817e; }
+.public-site .detail-breadcrumb a { color: #2f796d; }
+.public-site .detail-breadcrumb strong { color: #4f6261; }
+.public-site :is(.detail-copy h1, .checkout-summary h1, .payment-card h1, .access-header h1) { color: #253e46; }
 .blind-preview {
   border-color: rgba(133, 101, 43, .3);
   background: linear-gradient(145deg, #dcece7, #fff4dc);
@@ -380,7 +380,7 @@
 .public-site .interest-note { color: #677875; }
 .purchase-rune div strong { color: #8b6527; }
 
-.public-site:not(.transmission-v2-page) .back-link { color: #3b7169; }
+.public-site .back-link { color: #3b7169; }
 .checkout-summary dl div,
 .payment-card dl div { border-bottom-color: rgba(78, 112, 105, .2); }
 .checkout-summary dt,
@@ -401,8 +401,8 @@
 .checkout-price { border-bottom-color: rgba(77, 111, 104, .2); }
 .checkout-price span { color: #647672; }
 .checkout-price strong { color: #966c27; }
-.public-site:not(.transmission-v2-page) label { color: #4b625f; }
-.public-site:not(.transmission-v2-page) input {
+.public-site label { color: #4b625f; }
+.public-site input {
   color: #243936;
   border-color: rgba(66, 107, 98, .3);
   background: rgba(255, 255, 255, .78);
@@ -427,7 +427,7 @@
 .plain-success { color: #2e6651; background: rgba(84, 167, 126, .13); }
 .text-button,
 .inline-text-link { color: #2f796d; }
-.public-site:not(.transmission-v2-page) .button-ghost {
+.public-site .button-ghost {
   color: #315f58;
   border-color: rgba(49, 95, 88, .38);
   background: rgba(255, 255, 255, .28);
@@ -437,33 +437,33 @@
 .library-card p { color: #5c6f6d; }
 
 /* Bright trust footer. */
-.public-site:not(.transmission-v2-page) .site-footer {
+.public-site .site-footer {
   border-top-color: rgba(69, 105, 98, .22);
   color: #687a76;
 }
-.public-site:not(.transmission-v2-page) .site-footer strong { color: #304945; }
-.public-site:not(.transmission-v2-page) .footer-identity > p { color: #697b77; }
-.public-site:not(.transmission-v2-page) .footer-trust {
+.public-site .site-footer strong { color: #304945; }
+.public-site .footer-identity > p { color: #697b77; }
+.public-site .footer-trust {
   border-color: rgba(75, 108, 101, .2);
   background: rgba(75, 108, 101, .14);
 }
-.public-site:not(.transmission-v2-page) .footer-trust li { background: rgba(255, 253, 245, .76); }
-.public-site:not(.transmission-v2-page) .footer-trust strong { color: #8b6627; }
-.public-site:not(.transmission-v2-page) .footer-trust span { color: #657773; }
-.public-site:not(.transmission-v2-page) .footer-note {
+.public-site .footer-trust li { background: rgba(255, 253, 245, .76); }
+.public-site .footer-trust strong { color: #8b6627; }
+.public-site .footer-trust span { color: #657773; }
+.public-site .footer-note {
   color: #687a76;
   border-top-color: rgba(75, 108, 101, .18);
 }
-.public-site:not(.transmission-v2-page) .site-footer a { color: #2d756a; }
+.public-site .site-footer a { color: #2d756a; }
 
 @media (max-width: 820px) {
-  .public-site:not(.transmission-v2-page) .mobile-chapter-nav {
+  .public-site .mobile-chapter-nav {
     border-block-color: rgba(91, 116, 106, .23);
     background: rgba(246, 251, 243, .96);
     box-shadow: 0 10px 28px rgba(50, 85, 78, .12);
   }
-  .public-site:not(.transmission-v2-page) .mobile-chapter-nav a { color: #5b6c69; }
-  .public-site:not(.transmission-v2-page) .mobile-chapter-nav a[aria-current="location"] {
+  .public-site .mobile-chapter-nav a { color: #5b6c69; }
+  .public-site .mobile-chapter-nav a[aria-current="location"] {
     color: #256b60;
     border-bottom-color: #b88a37;
   }
@@ -490,5 +490,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .public-site:not(.transmission-v2-page) { background-attachment: scroll; }
+  .public-site { background-attachment: scroll; }
 }

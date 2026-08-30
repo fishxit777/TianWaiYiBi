@@ -385,10 +385,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .casket-stage::before,
-  .casket-aura,
-  .casket-orbit,
-  .casket-cloud,
-  .casket-artifact {
+.casket-aura,
+.casket-orbit,
+.casket-cloud,
+.casket-artifact {
     animation: none;
   }
 }

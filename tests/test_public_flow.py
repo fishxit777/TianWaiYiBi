@@ -53,10 +53,10 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "concept-scroll-card" in body
     assert "封印盲策・第壹卷" in body
     assert "雙生續行輪" not in body
-    assert "不設公開留言區" in body
+    assert "私人訂單協助" not in body
 
 
-def test_home_hides_internal_tools_and_offers_human_transmission(client):
+def test_home_hides_internal_tools_and_all_customer_messaging_entries(client):
     response = client.get("/")
     body = response.get_data(as_text=True)
 
@@ -66,39 +66,25 @@ def test_home_hides_internal_tools_and_offers_human_transmission(client):
     assert "/logo-review" not in body
     assert "/dev/line" not in body
     assert "/admin" not in body
-    assert "私人訂單協助" in body
-    assert 'href="/transmission"' in body
+    assert "私人訂單協助" not in body
+    assert "訂單協助" not in body
+    assert 'href="/transmission"' not in body
     assert "line.me/R/ti/p" not in body
 
 
-def test_transmission_landing_keeps_line_white_page_behind_branded_experience(client):
-    response = client.get("/transmission")
-    body = response.get_data(as_text=True)
-
-    assert response.status_code == 200
-    assert "私人協助・只處理交易問題" in body
-    assert "一筆啟月門" in body
-    assert "brand/transmission-title-xianxia-v14.webp" in body
-    assert "brand/wordmark-xianxia-v14.webp" in body
-    assert body.count('fetchpriority="high"') >= 4
-    assert "守閣之誓" in body
-    assert "不設公開留言或買家討論" in body
-    assert "不索取密碼與驗證碼" in body
-    assert "brand/line-add-qr.svg" in body
-    assert "https://line.me/R/ti/p/%40279plitu" in body
-    assert "啟動傳音法陣" in body
-    assert 'data-copy-line-id="@279plitu"' in body
-    assert "static/v19.css" in body
-    assert "fonts/tianwai-masa-regular.woff2" not in body
-    assert "fonts/tianwai-masa-bold.woff2" not in body
-    for private_label in ("Logo 評估", "管理後台", "開啟本機模擬器", "LINE Bot"):
-        assert private_label not in body
+def test_customer_messaging_routes_are_retired(client):
+    for method, path in (
+        (client.get, "/transmission"),
+        (client.get, "/dev/line"),
+        (client.post, "/dev/line/reply"),
+        (client.post, "/line/webhook"),
+    ):
+        assert method(path).status_code == 404
 
 
 def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
     for path in (
         "/",
-        "/transmission",
         "/ideas/sealed-twin-tire-safety",
         "/checkout/sealed-twin-tire-safety",
         "/orders/not-a-real-token",
@@ -114,13 +100,6 @@ def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
         assert "static/v25.css" in body
         assert "fonts/tianwai-masa-regular.woff2" not in body
         assert "fonts/tianwai-masa-bold.woff2" not in body
-
-
-def test_internal_line_simulator_does_not_use_public_brand_font_shell(client):
-    body = client.get("/dev/line").get_data(as_text=True)
-
-    assert 'class="internal-tool-site line-page"' in body
-    assert "fonts/tianwai-masa" not in body
 
 
 def test_readable_typography_layer_covers_public_and_admin_interfaces():
@@ -193,7 +172,8 @@ def test_v22_moves_public_storefront_into_a_sunlit_celestial_palette(client):
         ".payment-card",
     ):
         assert selector in stylesheet
-    assert ".public-site:not(.transmission-v2-page)" in stylesheet
+    assert ".public-site" in stylesheet
+    assert "transmission-v2-page" not in stylesheet
 
 
 def test_v23_adds_optimized_interactive_chibi_immortal_companions(client):
@@ -207,7 +187,7 @@ def test_v23_adds_optimized_interactive_chibi_immortal_companions(client):
     assert home.count("data-companion-button") == 8
     assert home.count('class="companion-card"') == 0
     assert home.count("companion-card") == 6
-    assert "不設公開留言區" in home
+    assert "私人訂單協助" not in home
     assert 'href="/checkout/sealed-twin-tire-safety"' not in home
 
     for name in ("guardian", "crafter", "oracle", "strategist", "healer", "musician"):
@@ -274,8 +254,8 @@ def test_v24_strengthens_the_existing_logo_on_daylight_headers(client):
 
     assert "website-nav-logo-256.png" in home
     assert "wordmark-xianxia-v14.webp" in home
-    assert ".public-site:not(.transmission-v2-page) .brand-mark" in stylesheet
-    assert ".public-site:not(.transmission-v2-page) .brand-wordmark" in stylesheet
+    assert ".public-site .brand-mark" in stylesheet
+    assert ".public-site .brand-wordmark" in stylesheet
     assert "contrast(1.22)" in stylesheet
     assert "font-weight: 800" in stylesheet
 
@@ -310,7 +290,7 @@ def test_v25_moves_scroll_explanations_below_the_art_and_adds_safe_celestial_sce
         assert selector in stylesheet
     assert "z-index: 10" in stylesheet
     assert "@media (prefers-reduced-motion: reduce)" in stylesheet
-    assert "不設公開留言區" in home
+    assert "私人訂單協助" not in home
     assert 'href="/checkout/sealed-twin-tire-safety"' not in home
 
 
@@ -333,7 +313,6 @@ def test_xianxia_title_art_is_web_optimized_and_versioned():
     assets = (
         project_root / "static" / "brand" / "wordmark-xianxia-v14.webp",
         project_root / "static" / "brand" / "home-title-xianxia-v14.webp",
-        project_root / "static" / "brand" / "transmission-title-xianxia-v14.webp",
     )
 
     for asset in assets:

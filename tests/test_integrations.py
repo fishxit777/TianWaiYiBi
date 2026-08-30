@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import hmac
 import json
@@ -11,11 +10,6 @@ from tianwai.payments import ecpay_check_mac_value
 
 def payment_signature(raw):
     return hmac.new(b"test-payment-secret", raw, hashlib.sha256).hexdigest()
-
-
-def line_signature(raw):
-    digest = hmac.new(b"test-line-secret", raw, hashlib.sha256).digest()
-    return base64.b64encode(digest).decode("ascii")
 
 
 def test_payment_webhook_is_idempotent(client):
@@ -174,7 +168,6 @@ def test_ecpay_rejects_callback_from_another_store(client, monkeypatch, app):
         ).fetchone()
         assert row["status"] == "pending"
 
-
 def test_ecpay_rejects_bad_check_mac_without_granting_access(client, monkeypatch, app):
     monkeypatch.setenv("PAYMENT_PROVIDER", "ecpay")
     monkeypatch.setenv("ECPAY_MODE", "stage")
@@ -201,82 +194,3 @@ def test_ecpay_rejects_bad_check_mac_without_granting_access(client, monkeypatch
             "SELECT status FROM orders WHERE order_no = ?", (order["order_no"],)
         ).fetchone()
         assert row["status"] == "pending"
-
-
-def test_line_webhook_verifies_signature_and_deduplicates(client):
-    payload = {
-        "events": [
-            {
-                "type": "message",
-                "webhookEventId": "line-event-001",
-                "replyToken": "reply-token",
-                "source": {"type": "user", "userId": "U123"},
-                "message": {"type": "text", "text": "價格"},
-            }
-        ]
-    }
-    raw = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    headers = {"X-Line-Signature": line_signature(raw)}
-
-    first = client.post("/line/webhook", data=raw, content_type="application/json", headers=headers)
-    second = client.post("/line/webhook", data=raw, content_type="application/json", headers=headers)
-
-    assert first.status_code == 200
-    assert first.get_json()["processed"] == 1
-    assert second.status_code == 200
-    assert second.get_json()["processed"] == 0
-
-
-def test_line_webhook_rejects_invalid_signature(client):
-    response = client.post(
-        "/line/webhook",
-        data=b'{"events":[]}',
-        content_type="application/json",
-        headers={"X-Line-Signature": "wrong"},
-    )
-
-    assert response.status_code == 401
-
-
-def test_line_simulator_shows_product_navigation(client):
-    csrf = set_public_csrf(client)
-    response = client.post(
-        "/dev/line/reply",
-        json={"message": "靈感"},
-        headers={"X-CSRF-Token": csrf},
-    )
-
-    assert response.status_code == 200
-    assert "天外盲策封印目錄" in response.get_json()["reply"]
-    assert "雙生續行輪" not in response.get_json()["reply"]
-
-
-def test_line_simulator_catalog_uses_only_published_sealed_cards(client):
-    csrf = set_public_csrf(client)
-    response = client.post(
-        "/dev/line/reply",
-        json={"message": "靈感"},
-        headers={"X-CSRF-Token": csrf},
-    )
-
-    assert response.status_code == 200
-    payload = response.get_json()
-    assert [message["type"] for message in payload["messages"]] == ["text", "flex"]
-    assert payload["messages"][1]["contents"]["type"] == "carousel"
-    assert len(payload["messages"][1]["contents"]["contents"]) == 1
-    assert len(payload["cards"]) == 1
-    assert payload["cards"][0]["title"] == "封印盲策・第壹卷"
-    assert all(card["url"].endswith("?source=line") for card in payload["cards"])
-
-
-def test_line_webhook_rejects_invalid_payload_shape(client):
-    raw = json.dumps(["not-an-event-envelope"]).encode("utf-8")
-    response = client.post(
-        "/line/webhook",
-        data=raw,
-        content_type="application/json",
-        headers={"X-Line-Signature": line_signature(raw)},
-    )
-
-    assert response.status_code == 400
-    assert response.get_json()["error"] == "LINE 事件格式不正確"

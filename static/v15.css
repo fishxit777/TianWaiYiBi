@@ -53,8 +53,7 @@
 .public-site :where(a, button, small) { font-family: var(--sans); }
 
 /* Shared gate / navigation */
-.public-site .site-header,
-.public-site.transmission-v2-page .site-header {
+.public-site .site-header {
   position: sticky;
   top: 0;
   z-index: 50;
@@ -83,8 +82,7 @@
 
 .public-site .brand { gap: 15px; }
 
-.public-site .brand-mark,
-.public-site.transmission-v2-page .brand-mark {
+.public-site .brand-mark {
   flex: 0 0 64px;
   width: 64px;
   height: 64px;
@@ -97,8 +95,7 @@
 .public-site .brand-copy { width: 216px; }
 .public-site .brand-wordmark { width: 216px; margin: -8px 0 -8px; }
 
-.public-site .brand-copy small,
-.public-site.transmission-v2-page .brand-copy small {
+.public-site .brand-copy small {
   display: block;
   margin: 0;
   padding-left: 3px;
@@ -111,8 +108,7 @@
   text-shadow: 0 2px 5px #000;
 }
 
-.public-site .main-nav,
-.public-site.transmission-v2-page .main-nav {
+.public-site .main-nav {
   gap: clamp(16px, 2.2vw, 31px);
   font-family: var(--sans);
   font-size: 14px;
@@ -139,8 +135,7 @@
 .public-site .main-nav a:not(.nav-seal):hover::after,
 .public-site .main-nav a:not(.nav-seal):focus-visible::after { right: 0; left: 0; }
 
-.public-site .main-nav .nav-seal,
-.public-site.transmission-v2-page .main-nav .nav-seal {
+.public-site .main-nav .nav-seal {
   min-height: 46px;
   padding: 13px 20px;
   color: #211a31;
@@ -245,8 +240,7 @@
 
 .home-page .hero-actions { gap: 25px; margin-top: 26px; }
 
-.home-page .button-primary,
-.home-page .line-portal .button-ghost {
+.home-page .button-primary {
   display: grid;
   min-width: 190px;
   min-height: 58px;
@@ -259,8 +253,7 @@
   box-shadow: 7px 7px 0 rgba(221,101,79,.34), 0 18px 44px rgba(0,0,0,.22);
 }
 
-.home-page .button-primary span,
-.home-page .line-portal .button-ghost span {
+.home-page .button-primary span {
   color: #251b2c;
   font-family: var(--display);
   font-size: 19px;
@@ -269,8 +262,7 @@
   letter-spacing: .13em;
 }
 
-.home-page .button-primary small,
-.home-page .line-portal .button-ghost small {
+.home-page .button-primary small {
   color: rgba(37,27,44,.66);
   font-size: 10px;
   line-height: 1.1;
@@ -568,8 +560,8 @@
 .home-page .idea-card-link { min-height: 500px; padding: 30px 30px 27px; }
 .home-page .idea-card:nth-child(6) .idea-card-link { display: grid; grid-template-columns: 120px minmax(230px,.7fr) minmax(280px,1fr); column-gap: 34px; min-height: 350px; align-content: center; }
 .home-page .idea-card:nth-child(6) .idea-card-top { grid-row: 1 / span 5; flex-direction: column; justify-content: center; gap: 24px; }
-.home-page .idea-card:nth-child(6) :is(.idea-role,.idea-card h3,.idea-discipline) { grid-column: 2; }
-.home-page .idea-card:nth-child(6) :is(.idea-summary,.idea-tags,.idea-card footer) { grid-column: 3; }
+.home-page .idea-card:nth-child(6) :is(.idea-role, .idea-card h3, .idea-discipline) { grid-column: 2; }
+.home-page .idea-card:nth-child(6) :is(.idea-summary, .idea-tags, .idea-card footer) { grid-column: 3; }
 .home-page .idea-card:nth-child(6) .idea-role { margin-top: 0; align-self: end; }
 .home-page .idea-card:nth-child(6) .idea-summary { grid-row: 2 / span 2; margin-top: 0; }
 .home-page .idea-card:nth-child(6) .idea-tags { align-self: end; }
@@ -663,35 +655,6 @@
 .home-page .creed-grid article > p { color: var(--creed-copy); font-size: 16px; line-height: 1.85; }
 
 /* Chapter five — moon altar finale */
-.home-page .line-portal {
-  position: relative;
-  grid-template-columns: 132px minmax(0,1fr) auto;
-  gap: 42px;
-  width: min(1280px, calc(100% - 48px));
-  min-height: 360px;
-  margin-bottom: 0;
-  padding: 68px clamp(38px,6vw,78px);
-  overflow: hidden;
-  color: #f8eed8;
-  border: 1px solid rgba(241,216,143,.28);
-  border-radius: 0;
-  background:
-    radial-gradient(circle at 9% 48%, rgba(157,232,218,.19), transparent 15rem),
-    radial-gradient(circle at 86% 24%, rgba(241,216,143,.16), transparent 17rem),
-    linear-gradient(125deg, #151644, #101833 72%, #24204d);
-  box-shadow: 0 34px 100px rgba(2,3,22,.42);
-  clip-path: polygon(0 8%, 97% 0, 100% 92%, 3% 100%);
-}
-
-.home-page .line-portal::after { position: absolute; top: -75px; right: 7%; width: 270px; height: 270px; content: ""; border: 1px solid rgba(241,216,143,.17); border-radius: 50%; box-shadow: 0 0 0 35px rgba(157,232,218,.025), 0 0 80px rgba(241,216,143,.08); }
-.home-page .line-glyph { position: relative; z-index: 2; width: 112px; height: 112px; border: 2px solid rgba(241,216,143,.82); box-shadow: 0 0 0 9px rgba(16,16,55,.82), 0 0 50px rgba(157,232,218,.28); }
-.home-page .line-portal .section-index { color: var(--v15-jade); }
-.home-page .line-portal h2 { color: var(--v15-gold); font-size: clamp(42px,4vw,56px); text-shadow: 0 4px 18px rgba(0,0,0,.35); -webkit-text-stroke: 0; }
-.home-page .line-portal p:not(.section-index) { max-width: 700px; color: rgba(248,238,216,.76); font-size: 17px; line-height: 1.82; }
-.home-page .line-portal .keeper-note { border-left-color: var(--v15-red); background: rgba(221,101,79,.08); }
-.home-page .line-portal .keeper-note strong { color: #ff9a83; }
-.home-page .transmission-id { color: rgba(157,232,218,.72); font-size: 13px; }
-.home-page .line-portal .button-ghost { position: relative; z-index: 2; min-width: 206px; }
 
 /* Shared ending */
 .public-site .site-footer {
@@ -706,18 +669,7 @@
 .public-site .site-footer strong { color: #fff0ca; font-size: 20px; }
 .public-site .site-footer p { font-family: var(--serif); }
 
-/* Transmission inherits the same hierarchy: brush display, readable scripture. */
-.public-site.transmission-v2-page,
-.public-site.transmission-v2-page :where(p, li, blockquote) { font-family: var(--serif); }
-.public-site.transmission-v2-page :where(a, button, small, dt, dd) { font-family: var(--sans); }
-.public-site.transmission-v2-page .transmission-v2 { padding-top: 64px; }
-.public-site.transmission-v2-page .transmission-v2-lead { max-width: 620px; font-family: var(--serif); font-size: 18px; line-height: 1.95; }
-.public-site.transmission-v2-page .ink-scroll p { font-family: var(--serif); font-size: 17px; }
-.public-site.transmission-v2-page .transmission-path-v2 p,
-.public-site.transmission-v2-page .oath-copy > p:last-child,
-.public-site.transmission-v2-page .oath-rules li { font-family: var(--serif); }
-.public-site.transmission-v2-page .three-breaths,
-.public-site.transmission-v2-page .keeper-oath { border-radius: 0; }
+
 
 @media (max-width: 1100px) {
   .home-page .hero { grid-template-columns: minmax(470px,.9fr) minmax(420px,1.1fr); }
@@ -727,28 +679,22 @@
   .home-page .creed-heading { grid-template-columns: 110px 1fr 1fr; }
   .home-page .idea-card { grid-column: span 6; }
   .home-page .idea-card:nth-child(1),
-  .home-page .idea-card:nth-child(2) { grid-column: span 6; }
+.home-page .idea-card:nth-child(2) { grid-column: span 6; }
   .home-page .idea-card:nth-child(6) { grid-column: span 12; }
   .home-page .creed-grid { grid-template-columns: repeat(2,1fr); }
   .home-page .creed-grid article:nth-child(2) { border-right: 0; }
   .home-page .creed-grid article:nth-child(-n+2) { border-bottom: 1px solid rgba(67,55,43,.18); }
-  .home-page .line-portal { grid-template-columns: 105px 1fr; }
-  .home-page .line-portal .button { grid-column: 2; justify-self: start; }
 }
 
 @media (max-width: 820px) {
-  .public-site .site-header,
-  .public-site.transmission-v2-page .site-header { min-height: 78px; padding: 9px 13px; }
+  .public-site .site-header { min-height: 78px; padding: 9px 13px; }
   .public-site .brand { gap: 10px; }
-  .public-site .brand-mark,
-  .public-site.transmission-v2-page .brand-mark { flex-basis: 54px; width: 54px; height: 54px; box-shadow: 0 0 0 3px rgba(11,11,42,.62), 0 0 24px rgba(157,232,218,.16); }
+  .public-site .brand-mark { flex-basis: 54px; width: 54px; height: 54px; box-shadow: 0 0 0 3px rgba(11,11,42,.62), 0 0 24px rgba(157,232,218,.16); }
   .public-site .brand-copy { width: min(39vw, 166px); }
   .public-site .brand-wordmark { width: 100%; margin: -6px 0 -7px; }
-  .public-site .brand-copy small,
-  .public-site.transmission-v2-page .brand-copy small { font-size: 9px; letter-spacing: .08em; white-space: nowrap; }
+  .public-site .brand-copy small { font-size: 9px; letter-spacing: .08em; white-space: nowrap; }
   .public-site .main-nav a:not(.nav-seal) { display: none; }
-  .public-site .main-nav .nav-seal,
-  .public-site.transmission-v2-page .main-nav .nav-seal { min-height: 42px; padding: 11px 12px; font-size: 12px; }
+  .public-site .main-nav .nav-seal { min-height: 42px; padding: 11px 12px; font-size: 12px; }
 
   .home-page .hero {
     display: block;
@@ -768,7 +714,7 @@
   .home-page .hero-scroll-cue { display: none; }
 
   .home-page .world-note,
-  .home-page .creed-heading { grid-template-columns: 1fr; }
+.home-page .creed-heading { grid-template-columns: 1fr; }
   .home-page .world-note { width: calc(100% - 24px); margin-top: -30px; padding: 62px 34px 72px; clip-path: polygon(0 2%, 98% 0, 100% 97%, 2% 100%); }
   .home-page .world-chapter-mark { width: 98px; min-height: 112px; }
   .home-page .world-chapter-mark strong { font-size: 27px; }
@@ -777,22 +723,21 @@
   .home-page .world-note h2 span { white-space: normal; }
   .home-page .world-note-copy { grid-column: 1; }
   .home-page .world-note h2,
-  .home-page .section-heading h2,
-  .home-page .how-intro h2,
-  .home-page .creed-heading h2,
-  .home-page .line-portal h2 { font-size: clamp(36px,9vw,46px); }
+.home-page .section-heading h2,
+.home-page .how-intro h2,
+.home-page .creed-heading h2 { font-size: clamp(36px,9vw,46px); }
   .home-page .world-note-copy { font-size: 17px; }
   .home-page .ideas-section { width: calc(100% - 28px); padding: 94px 0; }
   .home-page .section-heading { align-items: flex-start; flex-direction: column; }
   .home-page .filters { justify-content: flex-start; }
   .home-page .idea-card,
-  .home-page .idea-card:nth-child(1),
-  .home-page .idea-card:nth-child(2),
-  .home-page .idea-card:nth-child(6) { grid-column: span 12; min-height: 0; }
+.home-page .idea-card:nth-child(1),
+.home-page .idea-card:nth-child(2),
+.home-page .idea-card:nth-child(6) { grid-column: span 12; min-height: 0; }
   .home-page .idea-card-link,
-  .home-page .idea-card:nth-child(6) .idea-card-link { display: flex; min-height: 460px; flex-direction: column; padding: 28px; }
+.home-page .idea-card:nth-child(6) .idea-card-link { display: flex; min-height: 460px; flex-direction: column; padding: 28px; }
   .home-page .idea-card:nth-child(6) .idea-card-top { flex-direction: row; justify-content: space-between; }
-  .home-page .idea-card:nth-child(6) :is(.idea-role,.idea-card h3,.idea-discipline,.idea-summary,.idea-tags,.idea-card footer) { grid-column: auto; }
+  .home-page .idea-card:nth-child(6) :is(.idea-role, .idea-card h3, .idea-discipline, .idea-summary, .idea-tags, .idea-card footer) { grid-column: auto; }
   .home-page .idea-card:nth-child(6) .idea-role { margin-top: 38px; align-self: auto; }
   .home-page .idea-card:nth-child(6) .idea-summary { margin-top: 24px; }
   .home-page .idea-card:nth-child(6) .idea-tags { align-self: auto; }
@@ -804,22 +749,15 @@
   .home-page .creed-grid article { min-height: 0; border-right: 0; border-bottom: 1px solid rgba(67,55,43,.18); }
   .home-page .creed-grid article:last-child { border-bottom: 0; }
   .home-page .creed-heading > p:last-child { font-size: 17px; }
-  .home-page .line-portal { grid-template-columns: 1fr; width: calc(100% - 24px); padding: 64px 32px 72px; }
-  .home-page .line-glyph { width: 90px; height: 90px; }
-  .home-page .line-portal .button { grid-column: 1; }
-  .home-page .line-portal p:not(.section-index) { font-size: 16px; }
   .public-site .site-footer { width: calc(100% - 28px); }
 }
 
 @media (max-width: 480px) {
   .public-site { font-size: 17px; }
-  .public-site .brand-mark,
-  .public-site.transmission-v2-page .brand-mark { flex-basis: 50px; width: 50px; height: 50px; }
+  .public-site .brand-mark { flex-basis: 50px; width: 50px; height: 50px; }
   .public-site .brand-copy { width: min(42vw,154px); }
-  .public-site .brand-copy small,
-  .public-site.transmission-v2-page .brand-copy small { font-size: 8.5px; letter-spacing: .055em; }
-  .public-site .main-nav .nav-seal,
-  .public-site.transmission-v2-page .main-nav .nav-seal { padding-inline: 10px; }
+  .public-site .brand-copy small { font-size: 8.5px; letter-spacing: .055em; }
+  .public-site .main-nav .nav-seal { padding-inline: 10px; }
 
   .home-page .hero { min-height: 790px; padding: 37px 15px 88px; }
   .home-page .eyebrow { font-size: 11px; }
@@ -836,7 +774,7 @@
   .home-page .world-note { padding: 58px 26px 69px; }
   .home-page .world-note::after { right: 8%; width: 50px; height: 50px; font-size: 25px; }
   .home-page .idea-card-link,
-  .home-page .idea-card:nth-child(6) .idea-card-link { min-height: 430px; padding: 25px 23px; }
+.home-page .idea-card:nth-child(6) .idea-card-link { min-height: 430px; padding: 25px 23px; }
   .home-page .idea-seal { width: 64px; height: 64px; font-size: 29px; }
   .home-page .idea-card h3 { font-size: 29px; }
   .home-page .idea-summary { font-size: 16px; }
@@ -847,12 +785,6 @@
   .home-page .steps h3 { font-size: 25px; }
   .home-page .creed-section { padding: 60px 24px 66px; }
   .home-page .creed-grid article { padding: 29px 10px; }
-  .home-page .line-portal { padding: 60px 25px 68px; }
-  .home-page .line-portal .button-ghost { min-width: 190px; }
-
-  .public-site.transmission-v2-page .transmission-v2 { width: calc(100% - 24px); padding-top: 38px; }
-  .public-site.transmission-v2-page .transmission-v2-lead { font-size: 16px; line-height: 1.85; }
-  .public-site.transmission-v2-page .ink-scroll p { font-size: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

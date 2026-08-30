@@ -10,12 +10,12 @@
 }
 
 /* The existing mark is sound; daylight needs a dedicated high-contrast lockup. */
-.public-site:not(.transmission-v2-page) .brand {
+.public-site .brand {
   position: relative;
   isolation: isolate;
 }
 
-.public-site:not(.transmission-v2-page) .brand::before {
+.public-site .brand::before {
   position: absolute;
   z-index: -1;
   inset: -12px -22px -12px -14px;
@@ -28,7 +28,7 @@
   filter: blur(3px);
 }
 
-.public-site:not(.transmission-v2-page) .brand-mark {
+.public-site .brand-mark {
   border-color: rgba(133, 92, 31, .72);
   background: radial-gradient(circle at 42% 35%, #fffef0 0 42%, #c6e3d8 70%, #78aa9e 100%);
   box-shadow:
@@ -37,15 +37,15 @@
     0 12px 30px rgba(45, 91, 81, .28);
 }
 
-.public-site:not(.transmission-v2-page) .brand-mark img {
+.public-site .brand-mark img {
   filter: saturate(1.55) contrast(1.22) brightness(.96) drop-shadow(0 2px 3px rgba(49, 91, 82, .28));
 }
 
-.public-site:not(.transmission-v2-page) .brand-wordmark {
+.public-site .brand-wordmark {
   filter: saturate(1.18) contrast(1.16) brightness(.93) drop-shadow(0 2px 2px rgba(69, 38, 16, .3));
 }
 
-.public-site:not(.transmission-v2-page) .brand-copy small {
+.public-site .brand-copy small {
   color: #56462f;
   font-weight: 800;
   text-shadow: 0 1px 0 rgba(255, 255, 255, .94), 0 0 10px rgba(130, 92, 34, .16);
@@ -352,7 +352,7 @@
 }
 
 @media (max-width: 640px) {
-  .public-site:not(.transmission-v2-page) .brand::before { inset: -8px -11px -8px -9px; }
+  .public-site .brand::before { inset: -8px -11px -8px -9px; }
 
   .vein-scroll-mark { width: 116px; height: 68px; grid-template-columns: 43px 1fr; gap: 5px; padding: 7px; }
   .vein-scroll-mark .scroll-art { width: 40px; }
@@ -381,11 +381,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .celestial-scroll-mark,
-  .scroll-motif { animation: none !important; transition: none !important; }
+.scroll-motif { animation: none !important; transition: none !important; }
   .vein-card:hover .vein-scroll-mark,
-  .vein-card:focus-within .vein-scroll-mark,
-  .idea-card:hover .concept-scroll-card,
-  .idea-card:focus-within .concept-scroll-card,
-  .blind-preview:hover .concept-scroll-preview,
-  .unseal-rules li:hover .rule-scroll-mark { transform: none; }
+.vein-card:focus-within .vein-scroll-mark,
+.idea-card:hover .concept-scroll-card,
+.idea-card:focus-within .concept-scroll-card,
+.blind-preview:hover .concept-scroll-preview,
+.unseal-rules li:hover .rule-scroll-mark { transform: none; }
 }

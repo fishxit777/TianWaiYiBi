@@ -1,6 +1,6 @@
 # 天外一筆・仙策閣
 
-天外一筆工作室的新產品初版：一個原創修仙世界觀的付費想法商城，包含響應式官網、分區公開／私密傳音、數位內容解鎖、LINE 訊息導覽、本機模擬付款、營運後台、分析數據與安全事件紀錄。
+天外一筆工作室的新產品初版：一個原創修仙世界觀的封印盲策市場，包含響應式官網、購買前線索、數位內容解鎖、本機模擬付款、營運後台、分析數據與安全事件紀錄。
 
 專案位置：`C:\Users\bao58\Projects\TianWaiYiBi`
 
@@ -16,26 +16,22 @@
 - 每位客戶最多保留 2 台 30 天可信裝置；第三台完成驗證時自動撤銷最久未使用的裝置。同一時間只允許 1 個有效內容工作階段，新裝置登入會讓舊工作階段失效。
 - 客戶工作階段採 7 天絕對期限、24 小時閒置期限與 HttpOnly Cookie；付費內容含客戶代碼、訂單尾碼與時間的動態浮水印，不顯示完整 Email。
 - 存取風險依低／中／高／重大四級記錄；正常換機不直接視為惡意，重複使用已撤銷工作階段或第 5 次錯碼才會升高。事件使用 HMAC 串鏈，可由後台檢查完整性。
-- 每日台北時間 08:00、12:00、20:00 各送一次管理員營運摘要；高／重大存取、付款、登入與系統異常則不等排程，立即分別推送至天外一筆自己的管理員 LINE 與 Gmail。
-- 通知含訂單營收、開通存取、安全風險、串接狀態、需處理與正常但值得知道等內容；完整客戶 Email、完整 IP、驗證碼、Token 與密鑰不會出現在外部通知，任一通道失敗也不會回滾付款或權益。
-- 首頁六卷與仙策詳情頁共用可收合的分區傳音：公開內容所有訪客可讀、已驗證客戶投稿後先審核；私密內容只允許該客戶與守閣者讀取。每位客戶有固定匿名稱呼與識別色，但權限與辨識永遠同時使用名稱、徽章及後端客戶 ID，不靠顏色判斷。
-- 新客戶傳音只向管理員外部通知「有新傳音」與區塊，不外送客戶身分或正文；守閣者指定回覆後，客戶 Email 也只收到登入查看提醒，不包含對話內容。寄信失敗不會回滾站內訊息。
-- LINE Bot 支援好友加入、靈感目錄、價格、說明與 1～6 導覽；目錄使用六張 LINE Flex Carousel 商品卡，正式憑證未設定時可用本機模擬器完整預覽。
-- 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP、傳音審核與操作稽核，也能公開／隱藏留言、指定公開或私密回覆，以及編輯每項仙策內容、單品價格、排序與上下架。
+- 每日台北時間 08:00、12:00、20:00 各送一次管理員營運摘要；高／重大存取、付款、登入與系統異常則不等排程，立即推送至天外一筆自己的管理員 LINE。
+- 管理通知含訂單營收、開通存取、安全風險、串接狀態、需處理與正常但值得知道等內容；完整客戶 Email、完整 IP、驗證碼、Token 與密鑰不會出現在外部通知。客戶付款、開通與登入交易 Email 是另一條獨立流程。
+- 公開留言、匿名留言、買家討論、客服小幫手、客戶 LINE webhook／指令、私人 LINE 接手與後台留言審核均已在 V26 退役；公開站不提供聊天或客服入口。
+- 管理後台可看營收、訂單、轉換、流量來源、外部串接狀態、安全事件、封鎖 IP 與操作稽核，也能編輯每項盲策內容、單品價格、排序與上下架。
 - 分析數據以瀏覽器「工作階段」呈現，不把它宣稱為真人或陌生客戶；2026-08-29 00:00（台北）起採可信基準，另列可歸因、未歸因、管理預覽、機器與舊基準資料。管理員必須從登入後台的「官網預覽」進站，後續八小時測試事件才會安全排除於需求判讀。
 - 正式資料層已具備 PostgreSQL 相容 schema、SQLite 完整性遷移／核對工具與 PostgreSQL 17 CI；未設定 `DATABASE_URL` 時才退回本機 SQLite。
 - 管理後台已具備 WebAuthn Passkey：至少兩把金鑰就緒才可停用密碼；緊急復原需 Argon2id 密碼＋一次性復原碼＋Turnstile，成功後仍須重建兩把 Passkey。
 - 每日 PostgreSQL 備份先驗證再以 AES-256-GCM／RSA-OAEP 加密；GitHub 只保存 14 天加密 Artifact，離線私鑰不進雲端。2026-08-24 已完成正式 run、下載、解密、PostgreSQL 17.11 隔離還原與 24 表／164 筆逐表 checksum 驗收。
-- V13 Logo 已整合官網、LINE 頭像、favicon 與後台；正式 LINE 官方帳號、Messaging API 與公開 webhook 已完成接線。
-- 公開官網只保留六脈仙策、仙閣心訣與真人客服傳音入口；Logo 審稿、本機模擬器與管理後台不出現在公開導覽或頁尾。
-- 整個公開官網已統一使用自架「莫大毛筆」繁體書法字系：正文用原筆、主標用同系加粗，保留真實墨邊與飛白；首頁、六脈、結帳、付款、交付、訊息與傳音頁皆一致，放大仍維持向量銳利。後台與開發工具維持清楚的操作字體。
-- `/transmission` 是自有「九霄月壇・朱砂傳音詔」修仙轉場頁：桌機顯示八方月壇與高對比官方 QR 法印，手機才直接開啟 LINE，並清楚標示唯一名號與安全傳音守則。
+- Logo 已整合官網、favicon 與後台；公開站不載入已退役的 LINE 頭像、QR 或傳音頁素材。
+- 公開官網只保留封印盲策、六脈索引、拆封規則與已購取回；Logo 審稿、開發工具與管理後台不出現在公開導覽或頁尾。
+- V19 起只有 Logo 與品牌題字圖像保留原題字，其餘公開頁、交易流程、登入、安全頁與營運後台均使用清晰的繁體中文正黑體。
 - V16 已完成官網與後台各 20 點專業化重整：官網補齊語意 H1、難題篩選結果、用途層級、交易信任頁尾與 390px 首屏；後台改成高密度營運介面，加入正式站／同步狀態、骨架載入、六欄客戶指標、3＋3 安全旗標、表格 sticky header 與串接下一步。
 
 正式入口：
 
 - 官網：`https://tianwai-yibi.onrender.com/`
-- LINE 官方帳號：`@279plitu`（天外一筆｜仙策靈使）
 
 ## 一鍵啟動
 
@@ -51,10 +47,9 @@ cd C:\Users\bao58\Projects\TianWaiYiBi
 開啟：
 
 - 官網：`http://127.0.0.1:5088/`
-- LINE Bot 模擬器：`http://127.0.0.1:5088/dev/line`
 - 管理後台：`http://127.0.0.1:5088/admin`
 
-本機模擬器與管理入口僅供開發／營運使用，不得放入公開官網導覽或頁尾。
+管理入口僅供營運使用，不得放入公開官網導覽或頁尾。客戶 LINE webhook、指令與本機模擬器已在 V26 退役；管理員 LINE 推播仍由獨立通知流程發送。
 
 若 Windows 阻擋執行腳本，可在目前 PowerShell 視窗只放寬這一次：
 
@@ -78,7 +73,7 @@ node --check static\admin.js
 python -m pytest -q
 ```
 
-目前本機自動驗證結果為 `159 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
+目前本機自動驗證結果為 `160 passed、1 skipped`；略過項目只在 PostgreSQL 17 CI 提供 `TEST_DATABASE_URL` 時執行。
 
 ## 公開部署
 
@@ -91,7 +86,6 @@ python -m pytest -q
 - `TURNSTILE_SITE_KEY`、`TURNSTILE_SECRET_KEY`（只供管理緊急復原，正式 hostname 限制為官網）
 - `ADMIN_RECOVERY_ENABLED`（只有兩把 Passkey、離線復原碼與 Turnstile 均已正式驗收後才可設為 `true`；目前正式站已啟用）
 - `ADMIN_PASSWORD`（只作首次輪替前或本機臨時相容；Hash 驗收後應從正式環境移除）
-- `LINE_CHANNEL_SECRET`
 - `LINE_CHANNEL_ACCESS_TOKEN`
 - `LINE_ADMIN_USER_ID`（天外一筆管理員本人的 LINE userId；不得沿用其他專案）
 - `NOTIFICATION_CRON_SECRET`（至少 32 字元，Render 與 GitHub Actions 使用同一獨立值）
@@ -105,7 +99,7 @@ python -m pytest -q
 
 GitHub Actions 已設定 `NEON_BACKUP_DATABASE_URL` 與 `BACKUP_PUBLIC_KEY_PEM`；前者是唯讀備份角色，後者只有公鑰。離線私鑰不得上傳。完整金鑰、備份與還原流程見 `docs/postgres-backup-recovery.md`。
 
-`APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。設定 `DATABASE_URL` 時正式服務改用 PostgreSQL；未設定時才使用 `DATABASE_PATH` 指定的 SQLite。未設定 `BASE_URL` 時，LINE 卡片連結會自動使用目前公開請求的 HTTPS 網域。
+`APP_SECRET_KEY` 與 `PAYMENT_WEBHOOK_SECRET` 由 Render 產生。設定 `DATABASE_URL` 時正式服務改用 PostgreSQL；未設定時才使用 `DATABASE_PATH` 指定的 SQLite。
 
 SQLite 遷移到 PostgreSQL 時，不要把連線網址放在指令參數。先在目前 PowerShell 程序設定 `DATABASE_URL`，再執行：
 
@@ -158,7 +152,7 @@ py -3 scripts\admin_credential_handoff.py
 - 仙策內容欄位採伺服器端長度、型別與色系白名單驗證，前台以 Jinja escaping 輸出，不開放任意 HTML。
 - 連續管理登入失敗會暫時封鎖來源 IP。
 - 支援 `ADMIN_IP_ALLOWLIST_REQUIRED`、`ADMIN_ALLOWED_IPS` 與 `ADMIN_SESSION_BIND_IP`。
-- LINE 與支付 webhook 使用 HMAC 驗簽，並以事件 ID 防止重複處理。
+- 支付 webhook 使用 HMAC 驗簽，並以事件 ID 防止重複處理。
 - 綠界 AioCheckOut V5 回呼驗證 CheckMacValue、MerchantID、訂單編號、金額、狀態與重送；前端返回頁不是唯一付款依據。
 - 開通與登入碼最多嘗試 5 次，寄送請求限流；正式頁不顯示明文驗證碼。
 - 2 台可信裝置上限、單一有效內容工作階段、7 天絕對／24 小時閒置 session，並偵測已撤銷工作階段重播。
@@ -173,22 +167,19 @@ py -3 scripts\admin_credential_handoff.py
 
 ## 已接入
 
-- 獨立 LINE 官方帳號 `天外一筆｜仙策靈使`，Basic ID `@279plitu`。
-- 獨立 LINE Provider `天外一筆工作室`、Messaging API、長期 Channel Access Token。
-- Render 免費 Web Service 與 HTTPS webhook：`https://tianwai-yibi.onrender.com/line/webhook`。
-- LINE Developers webhook 驗證成功，`Use webhook` 已開啟。
-- LINE 內建歡迎訊息與自動回應已關閉，避免與程式回覆重複。
-- V13 圓形安全區頭像、狀態消息與正式官網連結已公開。
+- 管理摘要與高／重大異常使用本專案獨立的管理員 LINE 推播；它不是客戶客服或公開聊天通道。
+- 客戶付款、開通、登入與退款狀態使用獨立交易 Email；信件不提供公開留言或 LINE 接手入口。
+- V26 已移除客戶 LINE webhook、指令、模擬器、公開 QR／加好友連結及相關品牌素材。
 
 ## 待完成
 
 - 綠界正式小額閉環已完成付款、Brevo 交付、內容開通、全額退刷與本地撤權驗收；公開 NT$199 收款仍刻意關閉。
 - 管理摘要已改為每日 08:00／12:00／20:00 由 LINE Bot 推播；舊管理 Gmail 紀錄只留作稽核且不再重試。Brevo 只保留客戶交易 Email。
-- 電子發票、正式公開銷售條件、付款失敗補單與客服 SOP 仍需在公開收款前定案。
+- 電子發票、正式公開銷售條件、付款失敗自助處理與退款規則仍需在公開收款前定案。
 - Neon PostgreSQL、Turnstile、兩把 Passkey、10 組復原碼、Passkey-only、GitHub 加密備份與隔離還原均已正式驗收；不得重做或以破壞性方式消耗復原碼。後續只需監控每日排程並每季做一次非正式庫還原演練。
 - Render 與 GitHub Actions 的獨立 `NOTIFICATION_CRON_SECRET` 與每日三次排程已完成；管理通知只使用天外一筆專屬 `LINE_ADMIN_USER_ID`。
 
-公開收款前仍須定案售價、電子發票、正式退款／客服政策與銷售文案；綠界技術驗收完成不代表應立即開放收款。
+公開收款前仍須定案售價、電子發票、正式退款規則與銷售文案；綠界技術驗收完成不代表應立即開放收款。
 
 ## 文件
 
@@ -218,6 +209,7 @@ py -3 scripts\admin_credential_handoff.py
 - `docs/updates/2026-08-23-public-admin-40-point-professionalization.md`
 - `docs/updates/2026-08-23-admin-dual-channel-notifications.md`
 - `docs/updates/2026-08-28-line-only-admin-notifications.md`
+- `docs/updates/2026-08-30-customer-messaging-retirement-v26.md`
 - `docs/security-review.md`
 - `HANDOFF.md`
 - `assets/brand-kit-v13/README.md`

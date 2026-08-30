@@ -17,7 +17,6 @@ def app(tmp_path, monkeypatch):
     monkeypatch.delenv("ADMIN_PASSWORD_HASH", raising=False)
     monkeypatch.setenv("ADMIN_PASSWORD", "correct-horse-battery-staple")
     monkeypatch.setenv("PAYMENT_WEBHOOK_SECRET", "test-payment-secret")
-    monkeypatch.setenv("LINE_CHANNEL_SECRET", "test-line-secret")
     monkeypatch.setenv("APP_SECRET_KEY", "test-app-secret")
     monkeypatch.setenv("ENABLE_DEV_TOOLS", "true")
     monkeypatch.setenv("BASE_URL", "http://localhost")

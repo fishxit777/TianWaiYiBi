@@ -420,9 +420,6 @@ def _daily_metrics():
     checkout = payment_checkout_status()
     base_url = os.environ.get("BASE_URL", "http://127.0.0.1:5088").strip()
     line_token_ready = bool(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip())
-    line_channel_ready = bool(
-        line_token_ready and os.environ.get("LINE_CHANNEL_SECRET", "").strip()
-    )
     line_admin_ready = bool(
         line_token_ready and os.environ.get("LINE_ADMIN_USER_ID", "").strip()
     )
@@ -463,7 +460,7 @@ def _daily_metrics():
         },
         "risk": {key: int(risk[key] or 0) for key in risk.keys()},
         "integrations": {
-            "line_channel": line_channel_ready,
+            "line_delivery": line_token_ready,
             "line_admin": line_admin_ready,
             "transactional_email": transactional_email_ready,
             "payment_state": checkout.get("state", "misconfigured"),
@@ -493,10 +490,10 @@ def build_daily_summary(slot):
         todo.append(f"確認 {risk['email_failures']} 筆今日交易郵件寄送失敗。")
     if access["pending"]:
         todo.append(f"確認 {access['pending']} 份已付款但尚未完成開通的權限。")
-    if not integrations["line_channel"]:
-        todo.append("LINE 官方帳號頻道未設定完整，請檢查 webhook 驗簽與存取權杖。")
+    if not integrations["line_delivery"]:
+        todo.append("管理員 LINE 推播存取權杖尚未設定。")
     elif not integrations["line_admin"]:
-        todo.append("LINE 官方帳號已連線，但管理員私訊收件人尚未設定。")
+        todo.append("管理員 LINE 推播已連線，但私訊收件人尚未設定。")
     if not integrations["transactional_email"]:
         todo.append("補齊或檢查客戶交易郵件寄送設定。")
     if integrations["payment_state"] == "misconfigured":
@@ -511,8 +508,7 @@ def build_daily_summary(slot):
         f"證據鏈{'完整' if integrations['chain'] else '異常'}，已驗證 {integrations['chain_checked']} 筆存取事件。",
         f"目前封鎖來源 {risk['blocked_ips']} 個；活躍工作階段 {access['sessions']} 個。",
         (
-            f"LINE 官方帳號{'已連線' if integrations['line_channel'] else '未就緒'}；"
-            f"管理員私訊{'已就緒' if integrations['line_admin'] else '未設定'}；"
+            f"管理員 LINE 推播{'已就緒' if integrations['line_admin'] else '未就緒'}；"
             f"客戶交易 Email {'已就緒' if integrations['transactional_email'] else '尚未就緒'}。"
         ),
         f"金流：{integrations['payment_label']}；HTTPS：{'正常' if integrations['https'] else '未啟用'}。",
@@ -557,8 +553,7 @@ def build_daily_summary(slot):
             f"今日交易郵件失敗 {risk['email_failures']}"
         ),
         (
-            f"LINE 頻道 {'就緒' if integrations['line_channel'] else '未就緒'}｜"
-            f"管理員私訊 {'就緒' if integrations['line_admin'] else '未設定'}｜"
+            f"管理員 LINE 推播 {'就緒' if integrations['line_admin'] else '未就緒'}｜"
             f"交易 Email {'就緒' if integrations['transactional_email'] else '未就緒'}｜"
             f"金流 {integrations['payment_label']}｜HTTPS {'正常' if integrations['https'] else '未啟用'}"
         ),

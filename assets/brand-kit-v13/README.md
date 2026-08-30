@@ -2,7 +2,7 @@
 
 ## 狀態
 
-本資料夾為本機評估稿。尚未上傳、部署、替換官網或套用 LINE Bot。
+本資料夾為本機評估稿。尚未上傳、部署或替換官網。
 
 統一風格：
 
@@ -21,8 +21,6 @@
 | `logo-transparent-1254.png` | 1254 × 1254 | 透明背景候選母版，含真正 Alpha |
 | `logo-transparent-512.png` | 512 × 512 | App／社群透明版本 |
 | `website-nav-logo-256.png` | 256 × 256 | 官網導覽列透明圖標 |
-| `line-avatar-1254.png` | 1254 × 1254 | LINE Official Account 方形上傳圖 |
-| `line-circle-crop-proof.png` | 1254 × 1254 | LINE 實際圓形裁切驗證圖 |
 | `logo-dark-512.png` | 512 × 512 | App icon／PWA 候選 |
 | `logo-light-512.png` | 512 × 512 | 淺色介面候選 |
 | `favicon-192.png` | 192 × 192 | Android／PWA |
@@ -35,7 +33,6 @@
 
 ## 使用規則
 
-- LINE 上傳 `line-avatar-1254.png`，不要上傳圓形證明圖；LINE 會自行裁成圓形。
 - 官網導覽列使用透明版本；深色背景優先用 `website-nav-logo-256.png`。
 - 深色首屏使用 `website-hero-dark.png`；內容頁或明亮主題使用 `website-hero-light.png`。
 - Logo 本體不加文字。官網主視覺才使用「天外一筆／工作室」月金立體書法。

@@ -15,7 +15,6 @@ ALLOWED_WINDOWS = {7, 30, 90}
 PUBLIC_EVENT_VALUES = {
     "view_idea": None,
     "checkout_opened": None,
-    "line_cta_clicked": None,
     "filter_used": {"all", "守護脈", "造物脈", "靈機脈", "破局脈", "人間脈", "傳音脈"},
     "reading_depth": {"50", "90"},
     "engaged_read": {"45"},
@@ -45,7 +44,7 @@ SOCIAL_HOSTS = (
     "x.com",
     "twitter.com",
 )
-ATTRIBUTABLE_SOURCES = {"search", "social", "referral", "line", "email"}
+ATTRIBUTABLE_SOURCES = {"search", "social", "referral", "email"}
 DEFAULT_TRUSTED_AFTER = "2026-08-28T16:00:00+00:00"
 
 
@@ -99,34 +98,30 @@ def _coarse_source():
         return "web"
     if _admin_preview_active():
         return "admin-preview"
-    explicit = str(request.args.get("source", "")).strip().lower()
-    if explicit == "line":
-        source = explicit
+    utm_source = str(request.args.get("utm_source", "")).strip().lower()
+    utm_medium = str(request.args.get("utm_medium", "")).strip().lower()
+    joined = f"{utm_source} {utm_medium}"
+    if "email" in joined or "newsletter" in joined:
+        source = "email"
+    elif any(item in joined for item in ("facebook", "instagram", "threads", "tiktok", "social")):
+        source = "social"
+    elif any(item in joined for item in ("google", "bing", "search", "organic", "cpc")):
+        source = "search"
     else:
-        utm_source = str(request.args.get("utm_source", "")).strip().lower()
-        utm_medium = str(request.args.get("utm_medium", "")).strip().lower()
-        joined = f"{utm_source} {utm_medium}"
-        if "email" in joined or "newsletter" in joined:
-            source = "email"
-        elif any(item in joined for item in ("facebook", "instagram", "threads", "tiktok", "social")):
-            source = "social"
-        elif any(item in joined for item in ("google", "bing", "search", "organic", "cpc")):
-            source = "search"
-        else:
-            referrer = request.referrer or ""
-            referrer_host = (urlparse(referrer).hostname or "").lower()
-            request_host = (request.host.split(":", 1)[0] or "").lower()
-            if referrer_host and referrer_host != request_host:
-                if any(host in referrer_host for host in SEARCH_HOSTS):
-                    source = "search"
-                elif any(referrer_host.endswith(host) for host in SOCIAL_HOSTS):
-                    source = "social"
-                else:
-                    source = "referral"
-            elif referrer_host == request_host:
-                source = str(session.get("analytics_source", "web"))
+        referrer = request.referrer or ""
+        referrer_host = (urlparse(referrer).hostname or "").lower()
+        request_host = (request.host.split(":", 1)[0] or "").lower()
+        if referrer_host and referrer_host != request_host:
+            if any(host in referrer_host for host in SEARCH_HOSTS):
+                source = "search"
+            elif any(referrer_host.endswith(host) for host in SOCIAL_HOSTS):
+                source = "social"
             else:
-                source = "direct"
+                source = "referral"
+        elif referrer_host == request_host:
+            source = str(session.get("analytics_source", "web"))
+        else:
+            source = "direct"
     session["analytics_source"] = source
     return source
 
@@ -207,7 +202,7 @@ def validate_public_event(event_name, event_value):
 
 def public_event_dedupe_scope(event_name, event_value=""):
     day = datetime.now(timezone.utc).date().isoformat()
-    if event_name in {"view_idea", "checkout_opened", "filter_used", "line_cta_clicked"}:
+    if event_name in {"view_idea", "checkout_opened", "filter_used"}:
         return f"{day}:{event_value}"
     if event_name in {"reading_depth", "engaged_read", "interest_registered"}:
         return event_value or event_name
@@ -474,11 +469,11 @@ def build_demand_radar(connection=None, *, days=30, now=None, payment_ready=Fals
                                      AND source <> 'admin-preview' THEN session_id END) AS public_sessions,
                COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
                                      AND source <> 'admin-preview'
-                                     AND source IN ('search', 'social', 'referral', 'line', 'email')
+                                     AND source IN ('search', 'social', 'referral', 'email')
                                    THEN session_id END) AS attributable_sessions,
                COUNT(DISTINCT CASE WHEN created_at >= ? AND is_automated = 0
                                      AND source <> 'admin-preview'
-                                     AND source NOT IN ('search', 'social', 'referral', 'line', 'email')
+                                     AND source NOT IN ('search', 'social', 'referral', 'email')
                                    THEN session_id END) AS unattributed_sessions,
                COUNT(DISTINCT CASE WHEN created_at >= ? AND source = 'admin-preview'
                                    THEN session_id END) AS admin_preview_sessions,

@@ -16,7 +16,7 @@
       <p>請輸入 Email 中的一次性 12 位開通碼。開通碼有效 10 分鐘，成功後立即失效。</p>
       <p class="plain-alert">完成後此裝置會列為可信裝置。每個帳號最多保留 2 台可信裝置，且同一時間僅允許 1 台裝置存取已購內容；在另一台裝置完成驗證時，舊工作階段會自動登出。</p>
       {% if resent %}<p class="plain-success">新的開通資料已寄出。請同時檢查垃圾郵件匣。</p>{% endif %}
-      {% if delivery_error == 'rate_limited' %}<p class="plain-error" role="alert">寄送嘗試過於頻繁，請稍後再試。付款與購買權限仍然有效，請勿重複付款。</p>{% elif delivery_error %}<p class="plain-error" role="alert">開通資料目前無法寄出。付款與購買權限仍然有效，請稍後再試或聯絡客服；請勿重複付款。</p>{% endif %}
+      {% if delivery_error == 'rate_limited' %}<p class="plain-error" role="alert">寄送嘗試過於頻繁，請稍後再試。付款與購買權限仍然有效，請勿重複付款。</p>{% elif delivery_error %}<p class="plain-error" role="alert">開通資料目前無法寄出。付款與購買權限仍然有效，請稍後再試；請勿重複付款。</p>{% endif %}
       {% if error %}<p class="plain-error" role="alert">{{ error }}</p>{% endif %}
       <form action="{{ url_for('access.activate_order', activation_token=activation_token) }}" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

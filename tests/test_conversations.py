@@ -25,13 +25,17 @@ def test_public_and_admin_pages_expose_no_conversation_interface(client):
         assert "conversation-reply-form" not in body
 
 
-def test_legacy_conversation_storage_remains_for_non_destructive_migration(app):
+def test_retired_customer_message_tables_are_not_created_for_new_databases(app):
     from tianwai.db import get_db
 
     with app.app_context():
         connection = get_db()
-        columns = {
-            row["name"] for row in connection.execute("PRAGMA table_info(section_messages)")
+        tables = {
+            row["name"]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
         }
 
-    assert {"id", "section_key", "body", "status", "created_at"} <= columns
+    assert "section_messages" not in tables
+    assert "line_events" not in tables

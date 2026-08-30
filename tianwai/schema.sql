@@ -141,31 +141,6 @@ CREATE TABLE IF NOT EXISTS customer_devices (
     revoked_reason TEXT
 );
 
-CREATE TABLE IF NOT EXISTS section_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    public_id TEXT NOT NULL UNIQUE,
-    section_key TEXT NOT NULL,
-    idea_id INTEGER REFERENCES ideas(id),
-    author_type TEXT NOT NULL CHECK (author_type IN ('customer', 'visitor', 'admin')),
-    customer_id INTEGER REFERENCES customers(id),
-    visitor_token_hash TEXT,
-    source_hash TEXT,
-    reply_to_id INTEGER REFERENCES section_messages(id),
-    visibility TEXT NOT NULL CHECK (visibility IN ('public', 'private')),
-    status TEXT NOT NULL CHECK (status IN ('pending', 'published', 'hidden')),
-    body TEXT NOT NULL CHECK (length(body) BETWEEN 2 AND 800),
-    moderated_at TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    CHECK (
-        author_type = 'admin'
-        OR (author_type = 'customer' AND customer_id IS NOT NULL AND visitor_token_hash IS NULL)
-        OR (author_type = 'visitor' AND customer_id IS NULL AND visitor_token_hash IS NOT NULL)
-    ),
-    CHECK (visibility = 'public' OR customer_id IS NOT NULL),
-    CHECK (author_type <> 'visitor' OR visibility = 'public')
-);
-
 CREATE TABLE IF NOT EXISTS access_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_id TEXT NOT NULL UNIQUE,
@@ -256,13 +231,6 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     dedupe_key TEXT,
     is_automated INTEGER NOT NULL DEFAULT 0 CHECK (is_automated IN (0, 1)),
     page_path TEXT NOT NULL DEFAULT '',
-    created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS line_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_id TEXT NOT NULL UNIQUE,
-    event_type TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
 
@@ -361,9 +329,6 @@ CREATE INDEX IF NOT EXISTS idx_activation_order_expiry ON activation_codes (orde
 CREATE INDEX IF NOT EXISTS idx_customer_login_email_expiry ON customer_login_codes (customer_email, expires_at DESC);
 CREATE INDEX IF NOT EXISTS idx_customer_session_email_expiry ON customer_sessions (customer_email, expires_at DESC);
 CREATE INDEX IF NOT EXISTS idx_customer_devices_active ON customer_devices (customer_id, revoked_at, trusted_until DESC);
-CREATE INDEX IF NOT EXISTS idx_section_messages_public ON section_messages (section_key, idea_id, visibility, status, created_at);
-CREATE INDEX IF NOT EXISTS idx_section_messages_private ON section_messages (customer_id, section_key, idea_id, visibility, created_at);
-CREATE INDEX IF NOT EXISTS idx_section_messages_moderation ON section_messages (status, visibility, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_access_events_created ON access_events (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_access_events_customer ON access_events (customer_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_risk_incidents_status ON risk_incidents (status, created_at DESC);
