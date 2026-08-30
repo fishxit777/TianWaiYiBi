@@ -88,7 +88,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "xianxia-vein-sigils-v21",
+                "release": "sunlit-celestial-realm-v22",
             }
         )
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="description" content="天外盲策，把原創概念封進只在購買後現世的圖文盲盒。">
-  <meta name="theme-color" content="#17152f">
+  <meta name="theme-color" content="#edf5ec">
   <title>{% block title %}天外一筆・仙策閣{% endblock %}</title>
   <link rel="icon" href="{{ url_for('static', filename='brand/favicon-32.png') }}" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand/favicon-192.png') }}">
@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v19.css', v='readable-typography-v19') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v20.css', v='xianxia-sealed-casket-v20') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v21.css', v='xianxia-vein-sigils-v21') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v22.css', v='sunlit-celestial-realm-v22') }}">
   {% block page_scripts_head %}{% endblock %}
 </head>
 <body class="{% block site_scope_class %}public-site{% endblock %} {% block body_class %}{% endblock %}">

@@ -31,6 +31,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "static/v18.css" in body
     assert "static/v20.css" in body
     assert "static/v21.css" in body
+    assert "static/v22.css" in body
     assert "brand/sealed-scroll-casket-v20.webp" in body
     assert "封印未解" in body
     assert 'class="sealed-scroll"' not in body
@@ -100,6 +101,7 @@ def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
         assert "static/v19.css" in body
         assert "static/v20.css" in body
         assert "static/v21.css" in body
+        assert "static/v22.css" in body
         assert "fonts/tianwai-masa-regular.woff2" not in body
         assert "fonts/tianwai-masa-bold.woff2" not in body
 
@@ -157,6 +159,35 @@ def test_v21_replaces_plain_round_glyphs_with_a_shared_talisman_system(client):
     assert "clip-path: polygon" in stylesheet
     assert 'class="blind-preview-seal sealed-talisman"' in detail
     assert 'class="checkout-seal sealed-talisman"' in checkout
+
+
+def test_v22_moves_public_storefront_into_a_sunlit_celestial_palette(client):
+    project_root = Path(__file__).resolve().parents[1]
+    stylesheet = (project_root / "static" / "v22.css").read_text(encoding="utf-8")
+    home = client.get("/").get_data(as_text=True)
+
+    assert "sunlit-celestial-realm-v22" in home
+    assert '<meta name="theme-color" content="#edf5ec">' in home
+    for token in (
+        "--day-sky",
+        "--day-cloud",
+        "--day-ink",
+        "--day-jade",
+        "--day-gold",
+    ):
+        assert token in stylesheet
+    for selector in (
+        ".blindbox-home",
+        ".blind-hero",
+        ".vein-grid .vein-card",
+        ".home-page .idea-card",
+        ".unseal-rules",
+        ".blind-preview",
+        ".checkout-card",
+        ".payment-card",
+    ):
+        assert selector in stylesheet
+    assert ".public-site:not(.transmission-v2-page)" in stylesheet
 
 
 def test_all_management_templates_load_the_readable_typography_layer():
