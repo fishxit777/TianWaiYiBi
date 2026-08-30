@@ -111,6 +111,7 @@
 ## 驗證結果
 
 - 2026-08-30 V23 雲上仙伴本機完整驗證：`python -m pytest -q` 為 166 passed、1 skipped；Python compileall、三支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的機密掃描通過。Browser 1440×900 與 390×844 已實看首屏、六脈、封印卡、拆封規則及頁尾；文件寬等於頁面寬、0 根頁面水平溢位、0 破圖、0 console issue，點擊台詞與六種動作正常。六張透明 WebP 均為 480×720、`yuva420p` 且低於 116 KB；本機互動沒有送出 API、匿名意願或訂單，不作市場需求證據。
+- V23 已由實作提交 `f64cad1` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=chibi-immortal-companions-v23`。正式首頁、封印詳情、收款未開放頁、V23 CSS／JS 與六張仙伴 WebP 均回 200；首頁有 8 個仙伴操作點，公開收款維持關閉、結帳連結 0、留言元件 0。正式驗收使用機器識別且只讀公開端點，未送出匿名意願、未建立訂單或操作任何正式私密資料。
 - 2026-08-30 V22 明霄仙境本機完整驗證：`python -m pytest -q` 為 165 passed、1 skipped；Python compileall、四支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的機密掃描通過。Browser 1440×900 與 390×844 已實看首頁、六脈、目錄、拆封規則、詳情、收款與客戶登入；無根頁面水平溢位、0 破圖、0 console issue、0 舊式直屬圓標、0 介面書法字體殘留。本機工作階段只存在 Windows Temp 隔離資料庫，不作市場需求證據。
 - V22 已由設計提交 `65f4bda` 與實作提交 `2d69eaf` 推送並正式部署：`/healthz` 回 200、`status=ok`、`release=sunlit-celestial-realm-v22`。正式首頁、封印詳情、收款未開放頁與 V22 CSS 均回 200；明霄色票、6 枚命牌與共用封牌均已載入，舊式直屬圓標 0，公開收款維持關閉、首頁結帳連結 0。正式驗收使用機器識別且只讀公開端點，未建立需求、訂單或正式資料寫入。
 - 2026-08-30 V21 六脈仙門法印本機完整驗證：`python -m pytest -q` 為 164 passed、1 skipped；Python compileall、四支 JavaScript syntax、`pip check`、`git diff --check` 與不回印內容的機密掃描通過。Browser 1440×900 顯示 3×2 命牌，390×844 顯示單欄命牌；首頁、封印詳情與收款未開放頁均無根頁面水平溢位，0 破圖、0 console issue、0 舊式直屬圓標，相關命牌無書法字。
