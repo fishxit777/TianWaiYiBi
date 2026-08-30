@@ -33,7 +33,12 @@
 <section id="veins" class="vein-index section-shell reveal">
   <header><p class="section-index">六脈索引</p><h2>不按產業硬分，<br>按它替誰解決什麼。</h2></header>
   <div class="vein-grid">
-    <article><i>守</i><strong>守護脈</strong><span>安全・防災・健康・風險</span></article><article><i>造</i><strong>造物脈</strong><span>產品・機構・材料・空間</span></article><article><i>機</i><strong>靈機脈</strong><span>軟體・資料・AI・自動化</span></article><article><i>局</i><strong>破局脈</strong><span>商業・服務・營運・交易</span></article><article><i>人</i><strong>人間脈</strong><span>日常・家庭・公共・環境</span></article><article><i>音</i><strong>傳音脈</strong><span>內容・品牌・教育・文化</span></article>
+    <article class="vein-card vein-guardian" data-mark="守"><span class="vein-sigil" aria-hidden="true"><em>守</em><b>鎮</b></span><strong>守護脈</strong><span>安全・防災・健康・風險</span></article>
+    <article class="vein-card vein-forge" data-mark="造"><span class="vein-sigil" aria-hidden="true"><em>造</em><b>鑄</b></span><strong>造物脈</strong><span>產品・機構・材料・空間</span></article>
+    <article class="vein-card vein-arcane" data-mark="機"><span class="vein-sigil" aria-hidden="true"><em>機</em><b>演</b></span><strong>靈機脈</strong><span>軟體・資料・AI・自動化</span></article>
+    <article class="vein-card vein-breaker" data-mark="局"><span class="vein-sigil" aria-hidden="true"><em>局</em><b>破</b></span><strong>破局脈</strong><span>商業・服務・營運・交易</span></article>
+    <article class="vein-card vein-mortal" data-mark="人"><span class="vein-sigil" aria-hidden="true"><em>人</em><b>生</b></span><strong>人間脈</strong><span>日常・家庭・公共・環境</span></article>
+    <article class="vein-card vein-echo" data-mark="音"><span class="vein-sigil" aria-hidden="true"><em>音</em><b>鳴</b></span><strong>傳音脈</strong><span>內容・品牌・教育・文化</span></article>
   </div>
 </section>
 
@@ -46,7 +51,7 @@
     {% for idea in ideas %}
     <article class="idea-card sealed-card accent-{{ idea['accent'] }} reveal" data-tags="{{ idea['primary_vein'] }},{{ idea['secondary_vein'] }},{{ idea['tags'] }}">
       <a class="idea-card-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}" aria-label="查看{{ idea['public_title'] }}的封印線索">
-        <div class="sealed-card-art"{% if idea['hero_image'] %} style="--sealed-art:url('{{ url_for('static', filename=idea['hero_image']) }}')"{% endif %}><span>{{ idea['seal'] }}</span><em>SEALED</em></div>
+        <div class="sealed-card-art"{% if idea['hero_image'] %} style="--sealed-art:url('{{ url_for('static', filename=idea['hero_image']) }}')"{% endif %}><span class="sealed-talisman">{{ idea['seal'] }}</span><em>SEALED</em></div>
         <div class="idea-card-top"><span class="idea-number">VOL. {{ '%02d'|format(idea['sort_order']) }}</span><span class="maturity-chip">{{ idea['maturity'] }}</span></div><p class="idea-role">{{ idea['primary_vein'] }}</p><h3>{{ idea['public_title'] }}</h3><p class="idea-discipline">{{ idea['discipline'] }}</p><p class="idea-summary">{{ idea['summary'] }}</p><div class="idea-tags" aria-label="公開線索">{% for tag in idea['tags'].split(',')[:3] %}<span>{{ tag }}</span>{% endfor %}</div><footer><span>{% if payment_status.ready %}NT${{ idea['price_override'] if idea['price_override'] is not none else global_price }}{% else %}尚未收款{% endif %}</span><strong>查看封印線索 <span aria-hidden="true">↗</span></strong></footer>
       </a>
     </article>

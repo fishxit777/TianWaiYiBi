@@ -30,6 +30,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "只在拆封後現世的" in body
     assert "static/v18.css" in body
     assert "static/v20.css" in body
+    assert "static/v21.css" in body
     assert "brand/sealed-scroll-casket-v20.webp" in body
     assert "封印未解" in body
     assert 'class="sealed-scroll"' not in body
@@ -39,6 +40,9 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert body.count('class="idea-card sealed-card') == 1
     for vein in ("守護脈", "造物脈", "靈機脈", "破局脈", "人間脈", "傳音脈"):
         assert vein in body
+    assert body.count('class="vein-sigil"') == 6
+    assert body.count('class="vein-card ') == 6
+    assert 'class="sealed-talisman"' in body
     assert "封印盲策・第壹卷" in body
     assert "雙生續行輪" not in body
     assert "不設公開留言區" in body
@@ -95,6 +99,7 @@ def test_all_customer_pages_share_the_sitewide_readable_type_shell(client):
         assert 'class="public-site ' in body
         assert "static/v19.css" in body
         assert "static/v20.css" in body
+        assert "static/v21.css" in body
         assert "fonts/tianwai-masa-regular.woff2" not in body
         assert "fonts/tianwai-masa-bold.woff2" not in body
 
@@ -132,6 +137,26 @@ def test_v20_hero_uses_an_optimized_xianxia_casket_asset():
     for selector in (".celestial-casket", ".casket-artifact", ".casket-orbit", ".casket-status"):
         assert selector in stylesheet
     assert "@media (prefers-reduced-motion: reduce)" in stylesheet
+
+
+def test_v21_replaces_plain_round_glyphs_with_a_shared_talisman_system(client):
+    project_root = Path(__file__).resolve().parents[1]
+    stylesheet = (project_root / "static" / "v21.css").read_text(encoding="utf-8")
+    detail = client.get("/ideas/sealed-twin-tire-safety").get_data(as_text=True)
+    checkout = client.get("/checkout/sealed-twin-tire-safety").get_data(as_text=True)
+
+    for selector in (
+        ".vein-sigil",
+        ".sealed-talisman",
+        ".blind-preview-seal",
+        ".checkout-seal",
+        ".casket-status > i",
+        ".unseal-rules li > span",
+    ):
+        assert selector in stylesheet
+    assert "clip-path: polygon" in stylesheet
+    assert 'class="blind-preview-seal sealed-talisman"' in detail
+    assert 'class="checkout-seal sealed-talisman"' in checkout
 
 
 def test_all_management_templates_load_the_readable_typography_layer():
