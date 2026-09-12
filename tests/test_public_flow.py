@@ -34,6 +34,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "static/v22.css" in body
     assert "static/v23.css" in body
     assert "static/v29.css" in body
+    assert "static/v30.css" in body
     assert "static/v24.css" in body
     assert "static/v25.css" in body
     assert "static/companions.js" in body
@@ -43,7 +44,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "blindbox-twin-tire-hero-v1.webp" in body
     assert 'id="idea-result-count"' in body
     assert 'aria-pressed="true">全部' in body
-    assert body.count('class="idea-card sealed-card') == 1
+    assert body.count('class="idea-card sealed-card') == 13
     for vein in ("守護脈", "造物脈", "靈機脈", "破局脈", "人間脈", "傳音脈"):
         assert vein in body
     assert body.count("vein-scroll-mark") == 6
@@ -58,6 +59,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
         assert f"brand/companions/chibi-{companion}-v23.webp" in body
     assert "concept-scroll-card" in body
     assert "封印盲策・第壹卷" in body
+    assert "封印盲策・第拾參卷" in body
     assert "雙生續行輪" not in body
     assert "私人訂單協助" not in body
 
@@ -593,7 +595,8 @@ def test_mock_payment_requires_one_time_activation_before_paid_content(client):
     activated_body = activated.get_data(as_text=True)
     assert "雙生續行輪" in activated_body
     assert "blindbox-twin-tire-cutaway-v1.webp" in activated_body
-    assert "概念視覺・不代表已完成工程驗證" in activated_body
+    assert "概念視覺・不代表已完成實作驗證" in activated_body
+    assert "機制示意・仍須依實際場域驗證" in activated_body
 
     reused = client.post(
         link_match.group(1),

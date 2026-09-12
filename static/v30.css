@@ -1,0 +1,17 @@
+/* V30: keep longer filtered catalog rows deliberate instead of leaving a dead corner. */
+@media (min-width: 901px) {
+  .home-page .idea-card.is-last-row-single {
+    grid-column: 3 / span 8;
+  }
+
+  .home-page .idea-card.is-last-row-double {
+    grid-column: span 6;
+  }
+}
+
+.revealed-scroll .reveal-concept-hero img,
+.revealed-scroll .reveal-visual-grid img {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #e8f1eb;
+}

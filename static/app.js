@@ -25,13 +25,19 @@
     const available = new Set(filterButtons.map((button) => button.dataset.filter || 'all'));
     const filter = available.has(requested) ? requested : 'all';
     filterButtons.forEach((button) => { const active=(button.dataset.filter||'all')===filter; button.classList.toggle('is-active',active); button.setAttribute('aria-pressed',String(active)); });
-    let visibleCount=0;
-    document.querySelectorAll('.idea-card').forEach((card) => {
+    const cards=[...document.querySelectorAll('.idea-card')];
+    const visibleCards=[];
+    cards.forEach((card) => {
+      card.classList.remove('is-last-row-single','is-last-row-double');
       const visible=filter==='all'||(card.dataset.tags||'').split(',').includes(filter);
       card.hidden=!visible; card.setAttribute('aria-hidden',String(!visible));
       card.querySelectorAll('a,button,input,select,textarea').forEach((control)=>visible?control.removeAttribute('tabindex'):control.setAttribute('tabindex','-1'));
-      if(visible) visibleCount+=1;
+      if(visible) visibleCards.push(card);
     });
+    const visibleCount=visibleCards.length;
+    const remainder=visibleCount%3;
+    if(remainder===1) visibleCards.at(-1)?.classList.add('is-last-row-single');
+    if(remainder===2) visibleCards.slice(-2).forEach((card)=>card.classList.add('is-last-row-double'));
     const result=document.querySelector('#idea-result-count');
     if(result) result.textContent=filter==='all'?`目前顯示全部 ${visibleCount} 卷`:`${filter}・找到 ${visibleCount} 卷`;
     const empty=document.querySelector('#idea-filter-empty'); if(empty) empty.hidden=visibleCount>0;

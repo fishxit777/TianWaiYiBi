@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from tianwai.db import get_db
 from tianwai.ideas import classify_idea, publication_gaps
 
@@ -17,18 +19,81 @@ def test_classifier_recognizes_software_automation():
     assert result["secondary_vein"] == "破局脈"
 
 
-def test_first_sealed_scroll_is_the_only_published_seed(app):
+def test_thirteen_sealed_scrolls_are_published_in_volume_order(app):
     with app.app_context():
         rows = get_db().execute(
-            "SELECT slug, public_title, title, primary_vein, secondary_vein, published FROM ideas ORDER BY id"
+            """
+            SELECT slug, public_title, title, primary_vein, secondary_vein,
+                   paid_content, hero_image, diagram_image, scene_image,
+                   sort_order, published
+            FROM ideas ORDER BY sort_order
+            """
         ).fetchall()
 
     published = [row for row in rows if row["published"] == 1]
-    assert len(published) == 1
+    assert len(published) == 13
+    assert [row["sort_order"] for row in published] == list(range(1, 14))
+    assert len({row["slug"] for row in published}) == 13
     assert published[0]["slug"] == "sealed-twin-tire-safety"
     assert published[0]["public_title"] == "封印盲策・第壹卷"
     assert published[0]["primary_vein"] == "守護脈"
     assert published[0]["secondary_vein"] == "造物脈"
+    assert [row["public_title"] for row in published] == [
+        "封印盲策・第壹卷", "封印盲策・第貳卷", "封印盲策・第參卷",
+        "封印盲策・第肆卷", "封印盲策・第伍卷", "封印盲策・第陸卷",
+        "封印盲策・第柒卷", "封印盲策・第捌卷", "封印盲策・第玖卷",
+        "封印盲策・第拾卷", "封印盲策・第拾壹卷", "封印盲策・第拾貳卷",
+        "封印盲策・第拾參卷",
+    ]
+    for row in published[1:]:
+        assert row["slug"].startswith("sealed-concept-v")
+        assert len(row["paid_content"]) >= 350
+        assert all(row[key] for key in ("hero_image", "diagram_image", "scene_image"))
+
+
+def test_every_new_volume_has_three_compact_webp_assets(app):
+    static_root = Path(app.static_folder)
+    with app.app_context():
+        rows = get_db().execute(
+            """
+            SELECT hero_image, diagram_image, scene_image
+            FROM ideas WHERE published = 1 AND sort_order > 1
+            """
+        ).fetchall()
+
+    paths = [static_root / row[key] for row in rows for key in ("hero_image", "diagram_image", "scene_image")]
+    assert len(paths) == 36
+    assert len({path.name for path in paths}) == 36
+    for path in paths:
+        assert path.is_file(), path
+        assert path.read_bytes()[:4] == b"RIFF"
+        assert path.stat().st_size < 700_000
+
+
+def test_new_public_surfaces_keep_all_true_titles_and_mechanisms_sealed(client, app):
+    with app.app_context():
+        ideas = get_db().execute(
+            "SELECT slug, title, paid_content FROM ideas WHERE published = 1 AND sort_order > 1"
+        ).fetchall()
+
+    home = client.get("/").get_data(as_text=True)
+    api = str(client.get("/api/ideas").get_json())
+    for idea in ideas:
+        detail = client.get(f"/ideas/{idea['slug']}")
+        body = detail.get_data(as_text=True)
+        assert detail.status_code == 200
+        assert idea["title"] not in home
+        assert idea["title"] not in body
+        assert idea["title"] not in api
+        assert idea["paid_content"] not in body
+
+
+def test_revealed_visual_captions_are_generic_across_all_concepts():
+    template = Path("templates/order_access.html").read_text(encoding="utf-8")
+
+    assert "低速離開立即危險位置" not in template
+    assert "機制示意・仍須依實際場域驗證" in template
+    assert "使用情境・不代表已完成實地驗證" in template
 
 
 def test_public_surfaces_never_reveal_paid_title_or_mechanism(client, app):
@@ -70,4 +135,3 @@ def test_retired_conversation_routes_and_assets_are_not_exposed(client):
     assert "turnstile" not in detail.lower()
     assert "公開留言" not in detail
     assert "匿名留言" not in home
-

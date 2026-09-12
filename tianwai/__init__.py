@@ -83,7 +83,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "distinct-faq-risk-boundary-v29",
+                "release": "twelve-sealed-concepts-v30",
             }
         )
 

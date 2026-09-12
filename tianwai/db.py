@@ -7,6 +7,8 @@ from pathlib import Path
 
 from flask import current_app, g
 
+from .v30_catalog import V30_BLINDBOX_SEEDS
+
 
 def database_backend(database_url=None):
     """Return the configured durable database backend without exposing its URL."""
@@ -241,7 +243,7 @@ BLINDBOX_SEEDS = [
         "classification_confidence": 94,
         "sort_order": 1,
     }
-]
+] + V30_BLINDBOX_SEEDS
 
 
 def seed_database(connection):
