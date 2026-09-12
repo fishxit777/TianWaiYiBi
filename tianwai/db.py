@@ -289,6 +289,37 @@ def seed_database(connection):
                 idea["classification_confidence"], idea["sort_order"], now, now,
             ),
         )
+        if idea.get("hero_caption"):
+            current_visuals = connection.execute(
+                """
+                SELECT hero_image, diagram_image, scene_image,
+                       hero_caption, diagram_caption, scene_caption
+                FROM ideas WHERE slug = ?
+                """,
+                (idea["slug"],),
+            ).fetchone()
+            desired_visuals = (
+                idea["hero_image"], idea["diagram_image"], idea["scene_image"],
+                idea["hero_caption"], idea["diagram_caption"], idea["scene_caption"],
+            )
+            current_values = tuple(
+                current_visuals[key]
+                for key in (
+                    "hero_image", "diagram_image", "scene_image",
+                    "hero_caption", "diagram_caption", "scene_caption",
+                )
+            )
+            if current_values != desired_visuals:
+                connection.execute(
+                    """
+                    UPDATE ideas
+                    SET hero_image = ?, diagram_image = ?, scene_image = ?,
+                        hero_caption = ?, diagram_caption = ?, scene_caption = ?,
+                        updated_at = ?
+                    WHERE slug = ?
+                    """,
+                    (*desired_visuals, now, idea["slug"]),
+                )
     connection.commit()
 
 
@@ -322,6 +353,9 @@ def migrate_database(connection):
         "hero_image": "TEXT NOT NULL DEFAULT ''",
         "diagram_image": "TEXT NOT NULL DEFAULT ''",
         "scene_image": "TEXT NOT NULL DEFAULT ''",
+        "hero_caption": "TEXT NOT NULL DEFAULT ''",
+        "diagram_caption": "TEXT NOT NULL DEFAULT ''",
+        "scene_caption": "TEXT NOT NULL DEFAULT ''",
         "classification_confidence": "INTEGER NOT NULL DEFAULT 0",
     }
     for column, definition in idea_migrations.items():

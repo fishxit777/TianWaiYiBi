@@ -65,6 +65,7 @@ def test_every_new_volume_has_three_compact_webp_assets(app):
     assert len(paths) == 36
     assert len({path.name for path in paths}) == 36
     for path in paths:
+        assert path.name.startswith("v31-")
         assert path.is_file(), path
         assert path.read_bytes()[:4] == b"RIFF"
         assert path.stat().st_size < 700_000
@@ -88,12 +89,42 @@ def test_new_public_surfaces_keep_all_true_titles_and_mechanisms_sealed(client, 
         assert idea["paid_content"] not in body
 
 
-def test_revealed_visual_captions_are_generic_across_all_concepts():
+def test_revealed_visuals_have_volume_specific_engineering_captions(app):
     template = Path("templates/order_access.html").read_text(encoding="utf-8")
 
-    assert "低速離開立即危險位置" not in template
-    assert "機制示意・仍須依實際場域驗證" in template
-    assert "使用情境・不代表已完成實地驗證" in template
+    assert "order['hero_caption']" in template
+    assert "order['diagram_caption']" in template
+    assert "order['scene_caption']" in template
+    with app.app_context():
+        rows = get_db().execute(
+            """
+            SELECT slug, hero_caption, diagram_caption, scene_caption
+            FROM ideas WHERE published = 1 AND sort_order > 1
+            """
+        ).fetchall()
+
+    assert len(rows) == 12
+    captions = []
+    for row in rows:
+        assert all(row[key].strip() for key in ("hero_caption", "diagram_caption", "scene_caption"))
+        captions.extend(row[key] for key in ("hero_caption", "diagram_caption", "scene_caption"))
+    assert len(set(captions)) == 36
+
+
+def test_v31_catalog_no_longer_references_ancient_v30_visuals():
+    catalog = Path("tianwai/v30_catalog.py").read_text(encoding="utf-8")
+
+    assert "brand/concepts/v30-" not in catalog
+    assert catalog.count("brand/concepts/v31-") == 36
+
+
+def test_mobile_revealed_header_wraps_long_engineering_titles():
+    css = Path("static/v31.css").read_text(encoding="utf-8")
+
+    assert ".revealed-scroll .access-header > div" in css
+    assert "min-width: 0" in css
+    assert "overflow-wrap: anywhere" in css
+    assert "grid-template-columns: 52px minmax(0, 1fr)" in css
 
 
 def test_public_surfaces_never_reveal_paid_title_or_mechanism(client, app):

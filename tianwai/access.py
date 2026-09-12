@@ -112,7 +112,8 @@ def _order_for_activation_token(activation_token):
         SELECT orders.*, ideas.title, ideas.public_title, ideas.role, ideas.discipline, ideas.primary_vein,
                ideas.secondary_vein, ideas.maturity, ideas.paid_content,
                ideas.deliverables, ideas.tags, ideas.accent, ideas.hero_image,
-               ideas.diagram_image, ideas.scene_image
+               ideas.diagram_image, ideas.scene_image, ideas.hero_caption,
+               ideas.diagram_caption, ideas.scene_caption
         FROM orders JOIN ideas ON ideas.id = orders.idea_id
         WHERE orders.activation_token_hash = ?
         """,
@@ -811,7 +812,8 @@ def order_content(order_no):
         SELECT orders.*, ideas.title, ideas.role, ideas.discipline, ideas.primary_vein,
                ideas.secondary_vein, ideas.maturity, ideas.paid_content,
                ideas.deliverables, ideas.accent, ideas.hero_image,
-               ideas.diagram_image, ideas.scene_image
+               ideas.diagram_image, ideas.scene_image, ideas.hero_caption,
+               ideas.diagram_caption, ideas.scene_caption
         FROM orders JOIN ideas ON ideas.id = orders.idea_id
         WHERE orders.order_no = ? AND orders.customer_email = ? AND orders.status = 'paid'
         """,

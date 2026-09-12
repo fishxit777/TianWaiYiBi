@@ -83,7 +83,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "twelve-sealed-concepts-v30",
+                "release": "modern-buildable-visuals-v31",
             }
         )
 

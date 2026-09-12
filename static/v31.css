@@ -1,0 +1,56 @@
+/* V31: modern revealed visuals and long engineering titles. */
+.revealed-scroll .access-header > div {
+  min-width: 0;
+}
+
+.revealed-scroll .access-header h1 {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.revealed-scroll .reveal-concept-hero figcaption,
+.revealed-scroll .reveal-visual-grid figcaption {
+  color: #4d6765;
+  font-size: 14px !important;
+  line-height: 1.65;
+}
+
+@media (max-width: 640px) {
+  .revealed-scroll .access-shell {
+    padding-top: 54px;
+  }
+
+  .revealed-scroll .access-header {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 14px;
+    width: 100%;
+    margin-bottom: 26px;
+  }
+
+  .revealed-scroll .access-seal {
+    width: 52px;
+    height: 52px;
+  }
+
+  .revealed-scroll .access-header h1 {
+    font-size: clamp(28px, 8.5vw, 36px);
+    line-height: 1.16;
+    letter-spacing: .01em;
+  }
+
+  .revealed-scroll .access-header p {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .revealed-scroll .reveal-concept-hero {
+    margin: 28px 0 34px;
+  }
+
+  .revealed-scroll .reveal-concept-hero figcaption,
+  .revealed-scroll .reveal-visual-grid figcaption {
+    padding: 10px 2px 0;
+    font-size: 13px !important;
+  }
+}

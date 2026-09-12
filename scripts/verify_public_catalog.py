@@ -52,7 +52,7 @@ def verify(base: str) -> dict[str, int]:
     public_text = home + public_api
     return {
         "health_http": health_status,
-        "health_v30": int(json.loads(health).get("release") == "twelve-sealed-concepts-v30"),
+        "health_v31": int(json.loads(health).get("release") == "modern-buildable-visuals-v31"),
         "home_http": home_status,
         "published_cards": home.count('class="idea-card sealed-card'),
         "public_titles_present": sum(idea["public_title"] in home for idea in BLINDBOX_SEEDS),

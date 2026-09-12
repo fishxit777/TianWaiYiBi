@@ -35,6 +35,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "static/v23.css" in body
     assert "static/v29.css" in body
     assert "static/v30.css" in body
+    assert "static/v31.css" in body
     assert "static/v24.css" in body
     assert "static/v25.css" in body
     assert "static/companions.js" in body
