@@ -6,7 +6,7 @@ import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -26,6 +26,8 @@ def fetch(base: str, path: str, method: str = "GET") -> tuple[int, str]:
             return response.status, body
     except HTTPError as error:
         return error.code, ""
+    except (TimeoutError, URLError):
+        return 0, ""
 
 
 def verify(base: str) -> dict[str, int]:
@@ -33,7 +35,7 @@ def verify(base: str) -> dict[str, int]:
     home_status, home = fetch(base, "/")
     _, public_api = fetch(base, "/api/ideas")
 
-    with ThreadPoolExecutor(max_workers=12) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         details = list(pool.map(lambda idea: fetch(base, f"/ideas/{idea['slug']}"), BLINDBOX_SEEDS))
         checkouts = list(pool.map(lambda idea: fetch(base, f"/checkout/{idea['slug']}"), BLINDBOX_SEEDS))
         asset_paths = [
@@ -79,7 +81,7 @@ def main() -> None:
 
     expected = {
         "health_http": 200,
-        "health_v30": 1,
+        "health_v31": 1,
         "home_http": 200,
         "published_cards": 13,
         "public_titles_present": 13,
