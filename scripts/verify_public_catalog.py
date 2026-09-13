@@ -40,10 +40,12 @@ def verify(base: str) -> dict[str, int]:
         checkouts = list(pool.map(lambda idea: fetch(base, f"/checkout/{idea['slug']}"), BLINDBOX_SEEDS))
         asset_paths = [
             "/static/" + idea[key]
-            for idea in BLINDBOX_SEEDS[1:]
+            for idea in BLINDBOX_SEEDS
             for key in ("hero_image", "diagram_image", "scene_image")
         ]
+        asset_paths += [path.replace("v31-", "v30-") for path in asset_paths if "/v31-" in path]
         assets = list(pool.map(lambda path: fetch(base, path, "HEAD"), asset_paths))
+        private_assets = list(pool.map(lambda slot: fetch(base, f"/library/assets/1/{slot}", "HEAD"), ("hero", "diagram", "scene")))
         retired = list(
             pool.map(
                 lambda path: fetch(base, path),
@@ -54,7 +56,7 @@ def verify(base: str) -> dict[str, int]:
     public_text = home + public_api
     return {
         "health_http": health_status,
-        "health_v31": int(json.loads(health).get("release") == "modern-buildable-visuals-v31"),
+        "health_v32": int(json.loads(health or "{}").get("release") == "independent-content-security-v32"),
         "home_http": home_status,
         "published_cards": home.count('class="idea-card sealed-card'),
         "public_titles_present": sum(idea["public_title"] in home for idea in BLINDBOX_SEEDS),
@@ -68,7 +70,9 @@ def verify(base: str) -> dict[str, int]:
         "checkout_forms": sum('id="order-form"' in body for _, body in checkouts),
         "home_checkout_links": home.count('href="/checkout/'),
         "payment_closed": int("公開收款仍關閉" in home),
-        "new_assets_200": sum(status == 200 for status, _ in assets),
+        "paid_asset_path_leaks": sum(path in (public_text + "".join(body for _, body in details)) for path in asset_paths),
+        "retired_paid_assets_404": sum(status == 404 for status, _ in assets),
+        "private_asset_slots_404": sum(status == 404 for status, _ in private_assets),
         "retired_routes_404": sum(status == 404 for status, _ in retired),
     }
 
@@ -81,7 +85,7 @@ def main() -> None:
 
     expected = {
         "health_http": 200,
-        "health_v31": 1,
+        "health_v32": 1,
         "home_http": 200,
         "published_cards": 13,
         "public_titles_present": 13,
@@ -92,7 +96,9 @@ def main() -> None:
         "checkout_forms": 0,
         "home_checkout_links": 0,
         "payment_closed": 1,
-        "new_assets_200": 36,
+        "paid_asset_path_leaks": 0,
+        "retired_paid_assets_404": 75,
+        "private_asset_slots_404": 3,
         "retired_routes_404": 4,
     }
     if results != expected:

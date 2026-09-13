@@ -11,6 +11,18 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
+@pytest.fixture(autouse=True)
+def isolated_service_environment(monkeypatch):
+    """Never inherit real database, payment or messaging configuration in tests."""
+    prefixes = ("ADMIN_", "LINE_", "SMTP_", "BREVO_", "ECPAY_", "PAYMENT_", "TURNSTILE_", "WEBAUTHN_", "NOTIFICATION_")
+    names = {"DATABASE_URL", "DATABASE_PATH", "APP_SECRET_KEY", "COOKIE_SECURE", "TRUST_PROXY", "BASE_URL", "MAIL_FROM", "MAIL_FROM_NAME"}
+    for name in tuple(os.environ):
+        if name in names or name.startswith(prefixes):
+            monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("EMAIL_PROVIDER", "outbox")
+
+
 @pytest.fixture
 def app(tmp_path, monkeypatch):
     monkeypatch.setenv("ADMIN_USERNAME", "keeper")
@@ -20,7 +32,7 @@ def app(tmp_path, monkeypatch):
     monkeypatch.setenv("APP_SECRET_KEY", "test-app-secret")
     monkeypatch.setenv("ENABLE_DEV_TOOLS", "true")
     monkeypatch.setenv("BASE_URL", "http://localhost")
-    monkeypatch.setenv("LINE_ADMIN_USER_ID", "UADMIN1234567890")
+    monkeypatch.setenv("LINE_ADMIN_USER_ID", "U" + "a" * 32)
     monkeypatch.setenv(
         "NOTIFICATION_CRON_SECRET",
         "test-notification-secret-with-at-least-32-characters",

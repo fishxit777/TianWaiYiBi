@@ -339,6 +339,38 @@ def _column_names(connection, table):
     return {row["name"] for row in connection.execute(f"PRAGMA table_info({table})").fetchall()}
 
 
+def migrate_notification_outbox(connection):
+    """Add isolated outbox coordination without rewriting pending rows or claims."""
+    notification_columns = _column_names(connection, "notification_queue")
+    for column, definition in {
+        "claim_token": "TEXT NOT NULL DEFAULT ''",
+        "claimed_until": "TEXT NOT NULL DEFAULT ''",
+        "next_attempt_at": "TEXT NOT NULL DEFAULT ''",
+        "first_attempt_at": "TEXT NOT NULL DEFAULT ''",
+        "provider_retry_key": "TEXT NOT NULL DEFAULT ''",
+        "recipient_fingerprint": "TEXT NOT NULL DEFAULT ''",
+        "retryable": "INTEGER NOT NULL DEFAULT 1",
+    }.items():
+        if column not in notification_columns:
+            if getattr(connection, "backend", "sqlite") == "postgresql":
+                connection.execute(f"ALTER TABLE notification_queue ADD COLUMN IF NOT EXISTS {column} {definition}")
+            else:
+                try:
+                    connection.execute(f"ALTER TABLE notification_queue ADD COLUMN {column} {definition}")
+                except sqlite3.OperationalError:
+                    # Another initializing SQLite worker may have added the column.
+                    if column not in _column_names(connection, "notification_queue"):
+                        raise
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS notification_delivery_windows ("
+        "bucket_key TEXT PRIMARY KEY, attempts INTEGER NOT NULL DEFAULT 0, expires_at TEXT NOT NULL)"
+    )
+    connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_notification_due "
+        "ON notification_queue (channel, retryable, next_attempt_at, claimed_until)"
+    )
+
+
 def migrate_database(connection):
     """Apply additive SQLite migrations for databases created by earlier releases."""
     idea_columns = _column_names(connection, "ideas")
@@ -440,6 +472,8 @@ def migrate_database(connection):
     if "restricted" not in admin_session_columns:
         connection.execute("ALTER TABLE admin_sessions ADD COLUMN restricted INTEGER NOT NULL DEFAULT 0")
 
+    migrate_notification_outbox(connection)
+
     migration_now = utc_now()
     code_cap = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(timespec="seconds")
     connection.execute(
@@ -526,6 +560,10 @@ def migrate_database(connection):
 
 def init_db():
     connection = get_db()
+    if getattr(connection, "backend", "sqlite") == "postgresql":
+        # Serialize startup DDL across gunicorn workers. Transaction-scoped locks
+        # also work with a transaction-pooling proxy; never use a session lock.
+        connection.execute("SELECT pg_advisory_xact_lock(1415006530, 1)")
     schema_name = "schema_postgres.sql" if getattr(connection, "backend", "sqlite") == "postgresql" else "schema.sql"
     schema_path = Path(__file__).with_name(schema_name)
     connection.executescript(schema_path.read_text(encoding="utf-8"))

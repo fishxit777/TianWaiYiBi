@@ -26,6 +26,7 @@ def create_app(test_config=None):
         WEBAUTHN_RP_ID=os.environ.get("WEBAUTHN_RP_ID", "").strip(),
         WEBAUTHN_ORIGIN=os.environ.get("WEBAUTHN_ORIGIN", "").strip(),
         DATABASE=str(database_path.resolve()),
+        PRIVATE_ASSET_ROOT=str(project_root / "private_assets"),
         MAX_CONTENT_LENGTH=64 * 1024,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
@@ -57,13 +58,16 @@ def create_app(test_config=None):
     from .notification_routes import notification_bp
     from .payments import payments_bp
     from .public import public_bp
+    from .private_content import private_content_bp, deny_public_paid_assets
 
     app.register_blueprint(public_bp)
     app.register_blueprint(payments_bp)
     app.register_blueprint(access_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(notification_bp)
+    app.register_blueprint(private_content_bp)
 
+    app.before_request(deny_public_paid_assets)
     app.before_request(security_preflight)
     app.after_request(add_security_headers)
 
@@ -83,7 +87,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "modern-buildable-visuals-v31",
+                "release": "independent-content-security-v32",
             }
         )
 

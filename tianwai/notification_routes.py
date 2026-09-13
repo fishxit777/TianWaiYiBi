@@ -3,7 +3,7 @@ import os
 
 from flask import Blueprint, abort, jsonify, request
 
-from .notifications import SLOTS, queue_daily_summary
+from .notifications import SLOTS, queue_daily_summary, retry_private_alerts
 
 
 notification_bp = Blueprint("notification_jobs", __name__, url_prefix="/internal/notifications")
@@ -21,4 +21,6 @@ def daily_summary():
     if slot not in SLOTS:
         return jsonify({"error": "invalid_slot"}), 400
 
-    return jsonify(queue_daily_summary(slot))
+    # Reuse this project's existing three daily jobs; due time is not a new scheduler.
+    retry_result = retry_private_alerts(limit=10)
+    return jsonify({**queue_daily_summary(slot), "retry": retry_result})

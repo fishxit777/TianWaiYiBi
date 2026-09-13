@@ -1,6 +1,10 @@
 import json
+import hashlib
+import ipaddress
 import os
 import re
+import time
+import uuid
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -15,6 +19,12 @@ TAIPEI = timezone(timedelta(hours=8), name="Asia/Taipei")
 TOP_IDEA_MINIMUM_SESSIONS = 10
 DAILY_SUMMARY_RETRY_HOURS = 24
 PRIVATE_ALERT_RETRY_DAYS = 7
+MAX_DELIVERY_ATTEMPTS = 5
+CLAIM_LEASE_SECONDS = 60
+ALERT_WINDOW_SECONDS = 300
+ALERT_WINDOW_LIMIT = 10
+ALERT_HOURLY_LIMIT = 60
+PAYLOAD_VERSION = 32
 SLOTS = {
     "morning": "晨間 08:00",
     "noon": "午間 12:00",
@@ -53,36 +63,22 @@ EVENT_LABELS = {
 def _mask_line(value):
     if not value:
         return "not-configured"
-    return f"LINE:{'*' * max(len(value) - 4, 4)}{value[-4:]}"
+    return "LINE:private-admin"
 
 
 def mask_ip(value):
     value = str(value or "unknown").strip()
     if value in {"unknown", "system"}:
         return value
-    if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", value):
-        parts = value.split(".")
-        return ".".join(parts[:3] + ["*"])
-    if ":" in value:
-        parts = [part for part in value.split(":") if part]
-        return ":".join(parts[:3]) + ":*"
-    return "masked"
-
-
-def _sanitize_detail(value):
-    text = str(value or "").replace("\r", " ").replace("\n", " ")[:280]
-    text = re.sub(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", "[email-hidden]", text)
-    text = re.sub(
-        r"(?i)\b(token|code|secret|password|cookie|authorization|signature)\s*[:=]\s*[^\s,;]+",
-        r"\1=[hidden]",
-        text,
-    )
-    text = re.sub(
-        r"(?<!\d)(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}(?!\d)",
-        r"\1.*",
-        text,
-    )
-    return text
+    if "%" in value:
+        return "masked"
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return "masked"
+    if address.version == 4:
+        return ".".join(str(address).split(".")[:3] + ["*"])
+    return ":".join(address.exploded.split(":")[:3]) + ":*"
 
 
 def _taipei_now():
@@ -101,12 +97,30 @@ def _format_taipei(value=None):
     return moment.astimezone(TAIPEI).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def send_line_push(message):
+def line_admin_delivery_ready():
+    return bool(
+        os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
+        and re.fullmatch(r"U[0-9a-fA-F]{32}", os.environ.get("LINE_ADMIN_USER_ID", "").strip())
+    )
+
+
+def _recipient_fingerprint():
+    """Bind retries to the original channel and private recipient without storing them."""
+    token = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
+    recipient = os.environ.get("LINE_ADMIN_USER_ID", "").strip()
+    return hashlib.sha256(f"tianwai-admin-line\0{token}\0{recipient}".encode()).hexdigest()
+
+
+def send_line_push(message, *, retry_key=None):
     """Send a private text alert to the TianWai admin; never include customer PII."""
     token = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
     admin_user_id = os.environ.get("LINE_ADMIN_USER_ID", "").strip()
-    if not token or not admin_user_id:
+    if not line_admin_delivery_ready():
         return "skipped", "line_admin_not_configured"
+    try:
+        retry_key = str(uuid.UUID(str(retry_key)))
+    except (ValueError, TypeError, AttributeError):
+        return "failed", "invalid_provider_retry_key"
 
     payload = json.dumps(
         {"to": admin_user_id, "messages": [{"type": "text", "text": str(message)[:1800]}]},
@@ -115,7 +129,8 @@ def send_line_push(message):
     req = urllib.request.Request(
         "https://api.line.me/v2/bot/message/push",
         data=payload,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+                 "X-Line-Retry-Key": retry_key},
         method="POST",
     )
     try:
@@ -124,6 +139,9 @@ def send_line_push(message):
                 return "sent", ""
             return "failed", f"http_{response.status}"
     except urllib.error.HTTPError as exc:
+        # This means API acceptance, not a read receipt or guaranteed recipient delivery.
+        if exc.code == 409 and exc.headers and exc.headers.get("x-line-accepted-request-id"):
+            return "sent", ""
         return "failed", f"http_{exc.code}"
     except (urllib.error.URLError, TimeoutError):
         return "failed", "network_error"
@@ -133,7 +151,14 @@ def _deliver(row):
     try:
         payload = json.loads(row["payload_json"])
         if row["channel"] == "line":
-            return send_line_push(payload["message"])
+            if payload.get("version") != PAYLOAD_VERSION:
+                return "skipped", "legacy_payload_disabled"
+            first_attempt = datetime.fromisoformat(row["first_attempt_at"])
+            if datetime.now(timezone.utc) - first_attempt >= timedelta(hours=23):
+                return "skipped", "provider_retry_window_expired"
+            if row["recipient_fingerprint"] != _recipient_fingerprint():
+                return "skipped", "recipient_configuration_changed"
+            return send_line_push(payload["message"], retry_key=row["provider_retry_key"])
         if row["channel"] == "email":
             return "skipped", "legacy_admin_email_delivery_disabled"
         return "failed", "unsupported_channel"
@@ -141,19 +166,102 @@ def _deliver(row):
         return "failed", "invalid_queue_payload"
 
 
-def _persist_delivery(row_id, status, error):
+def _persist_delivery(row_id, status, error, claim_token):
     connection = get_db()
     now = utc_now()
+    row = connection.execute(
+        "SELECT attempts FROM notification_queue WHERE id = ? AND claim_token = ?",
+        (row_id, claim_token),
+    ).fetchone()
+    if row is None:
+        return
+    # Only bounded internal error codes are stored, never exceptions/provider bodies.
+    error = str(error) if re.fullmatch(r"[a-z_0-9]{0,60}", str(error)) else "delivery_error"
+    attempts = int(row["attempts"])
+    retryable = status == "failed" and (error == "network_error" or bool(re.fullmatch(r"http_5\d\d", error)))
+    if attempts >= MAX_DELIVERY_ATTEMPTS and status != "sent":
+        error, retryable = "retry_exhausted", False
+    next_attempt = (
+        (datetime.now(timezone.utc) + timedelta(seconds=60 * (2 ** (attempts - 1)))).isoformat(timespec="seconds")
+        if retryable else ""
+    )
     connection.execute(
         """
         UPDATE notification_queue
-        SET status = ?, attempts = attempts + 1, last_error = ?, updated_at = ?,
-            sent_at = CASE WHEN ? = 'sent' THEN ? ELSE sent_at END
-        WHERE id = ?
+        SET status = ?, last_error = ?, updated_at = ?,
+            sent_at = CASE WHEN ? = 'sent' THEN ? ELSE sent_at END,
+            claim_token = '', claimed_until = '', next_attempt_at = ?, retryable = ?
+        WHERE id = ? AND claim_token = ?
         """,
-        (status, str(error)[:120], now, status, now, row_id),
+        (status, error, now, status, now, next_attempt, int(retryable), row_id, claim_token),
     )
     connection.commit()
+
+
+def _claim_delivery(row):
+    """One transactional CAS lease + quota reservation, valid across app workers."""
+    if not line_admin_delivery_ready():
+        return None
+    connection = get_db()
+    moment = datetime.now(timezone.utc)
+    now = moment.isoformat(timespec="seconds")
+    token = str(uuid.uuid4())
+    lease = (moment + timedelta(seconds=CLAIM_LEASE_SECONDS)).isoformat(timespec="seconds")
+    cursor = connection.execute(
+        """UPDATE notification_queue
+           SET claim_token = ?, claimed_until = ?, attempts = attempts + 1,
+               first_attempt_at = CASE WHEN first_attempt_at = '' THEN ? ELSE first_attempt_at END,
+               provider_retry_key = CASE WHEN provider_retry_key = '' THEN ? ELSE provider_retry_key END,
+               recipient_fingerprint = CASE WHEN recipient_fingerprint = '' THEN ? ELSE recipient_fingerprint END
+           WHERE id = ? AND channel = 'line' AND status IN ('pending', 'failed', 'skipped')
+             AND retryable = 1 AND attempts < ? AND next_attempt_at <= ? AND claimed_until <= ?""",
+        (token, lease, now, str(uuid.uuid4()), _recipient_fingerprint(), row["id"],
+         MAX_DELIVERY_ATTEMPTS, now, now),
+    )
+    if cursor.rowcount != 1:
+        connection.rollback()
+        return None
+    # A storm cannot consume the summary's separate delivery budget.
+    summary = ":daily-summary:" in row["dedupe_key"]
+    group = "summary" if summary else "alert"
+    for seconds, cap in ((ALERT_WINDOW_SECONDS, 3 if summary else ALERT_WINDOW_LIMIT),
+                         (3600, 6 if summary else ALERT_HOURLY_LIMIT)):
+        bucket = int(moment.timestamp()) // seconds
+        bucket_key = f"tianwai:line:{group}:{seconds}:{bucket}"
+        expires = datetime.fromtimestamp((bucket + 1) * seconds, timezone.utc).isoformat(timespec="seconds")
+        connection.execute(
+            "INSERT OR IGNORE INTO notification_delivery_windows (bucket_key, attempts, expires_at) VALUES (?, 0, ?)",
+            (bucket_key, expires),
+        )
+        reserved = connection.execute(
+            "UPDATE notification_delivery_windows SET attempts = attempts + 1 WHERE bucket_key = ? AND attempts < ?",
+            (bucket_key, cap),
+        )
+        if reserved.rowcount != 1:
+            connection.rollback()
+            connection.execute(
+                "UPDATE notification_queue SET next_attempt_at = ?, last_error = 'rate_deferred' "
+                "WHERE id = ? AND claimed_until <= ? AND status <> 'sent' AND retryable = 1",
+                (expires, row["id"], now),
+            )
+            connection.commit()
+            return None
+    connection.execute("DELETE FROM notification_delivery_windows WHERE expires_at < ?", (now,))
+    connection.commit()
+    return connection.execute("SELECT * FROM notification_queue WHERE id = ? AND claim_token = ?", (row["id"], token)).fetchone()
+
+
+def _attempt_delivery(row):
+    claimed = _claim_delivery(row)
+    if claimed is None:
+        return None
+    try:
+        status, error = _deliver(claimed)
+    except Exception:
+        # Keep customer/security actions available; no raw provider exception logging.
+        status, error = "failed", "delivery_error"
+    _persist_delivery(row["id"], status, error, claimed["claim_token"])
+    return status
 
 
 def queue_admin_messages(
@@ -168,7 +276,7 @@ def queue_admin_messages(
     channel_payloads = {
         "line": (
             _mask_line(os.environ.get("LINE_ADMIN_USER_ID", "").strip()),
-            {"message": str(line_message)[:1800]},
+            {"version": PAYLOAD_VERSION, "message": str(line_message)[:1800]},
         ),
     }
     result = {"queued": 0, "deduplicated": 0, "channels": {}}
@@ -203,9 +311,8 @@ def queue_admin_messages(
         if row["status"] == "sent":
             result["channels"][channel] = row["status"]
             continue
-        status, error = _deliver(row)
-        _persist_delivery(row["id"], status, error)
-        result["channels"][channel] = status
+        status = _attempt_delivery(row)
+        result["channels"][channel] = status or ("skipped" if not line_admin_delivery_ready() else row["status"])
     return result
 
 
@@ -224,8 +331,13 @@ def _event_messages(
     detail="",
     occurred_at=None,
 ):
-    level_text = SEVERITY_LABELS.get(str(level), str(level).upper())
-    event_text = EVENT_LABELS.get(str(event_type), str(event_type))
+    level_text = SEVERITY_LABELS.get(str(level), "注意")
+    event_text = EVENT_LABELS.get(str(event_type), "未分類高風險事件")
+    safe_type = str(event_type) if str(event_type) in EVENT_LABELS else "unclassified"
+    safe_event = str(event_id) if re.fullmatch(r"(?:AE-[A-F0-9]{16}|(?:SE|MAIL)-[0-9]{1,12})", str(event_id)) else "請於後台查核"
+    safe_incident = str(incident_no) if re.fullmatch(r"RI-[A-F0-9]{12}", str(incident_no)) else "請於後台查核"
+    safe_score = risk_score if isinstance(risk_score, int) and 0 <= risk_score <= 100 else "未評分"
+    safe_actions = {"logged": "已記錄", "rejected": "已拒絕", "blocked": "已封鎖", "session_revoked": "已撤銷工作階段"}
     occurred = _format_taipei(occurred_at)
     recommendation = (
         "立即登入後台檢查案件、相關存取紀錄與付款狀態；確認無誤前不要手動解除限制。"
@@ -234,26 +346,19 @@ def _event_messages(
     )
     details = [
         f"嚴重度：{level_text}",
-        f"事件：{event_text}（{event_type}）",
+        f"事件：{event_text}（{safe_type}）",
         f"時間：{occurred}（台北）",
-        f"事件編號：{event_id or '未提供'}",
-        f"案件編號：{incident_no or '未建立'}",
-        f"客戶代碼：{customer_public_id or 'unknown'}",
-        f"風險分數：{risk_score if risk_score is not None else '未評分'}",
+        f"事件編號：{safe_event}",
+        f"案件編號：{safe_incident}",
+        f"風險分數：{safe_score}",
         f"來源 IP：{mask_ip(ip)}",
-        f"路徑：{str(path or 'system')[:160]}",
-        f"系統動作：{str(action_taken or 'logged')[:100]}",
+        f"系統動作：{safe_actions.get(str(action_taken), '已記錄，請於後台查核')}",
     ]
-    safe_detail = _sanitize_detail(detail)
-    if safe_detail:
-        details.append(f"判定摘要：{safe_detail}")
-    if user_agent:
-        details.append(f"裝置／瀏覽器：{_sanitize_detail(user_agent)[:120]}")
     details.extend(
         [
             f"建議處置：{recommendation}",
-            f"管理後台：{os.environ.get('BASE_URL', 'http://127.0.0.1:5088').rstrip('/')}/admin",
-            "隱私提醒：通知已隱藏完整 Email、完整 IP、驗證碼、Token 與密鑰。",
+            "管理後台：請從天外一筆官網進入，不經由事件提供的連結。",
+            "隱私提醒：通知不含客戶／訂單代碼、原始路徑、自由文字、付費內容或憑證。",
         ]
     )
     line_details = ["天外一筆｜即時異常告警"] + details
@@ -276,6 +381,8 @@ def queue_private_alert(
     detail="",
     occurred_at=None,
 ):
+    if level not in {"high", "critical"}:
+        return {"queued": 0, "deduplicated": 0, "channels": {}}
     line = _event_messages(
         level=level,
         event_type=event_type,
@@ -298,6 +405,8 @@ def queue_private_alert(
 
 
 def queue_security_alert(security_event_id, **context):
+    if context.get("level") not in {"high", "critical"}:
+        return {"queued": 0, "deduplicated": 0, "channels": {}}
     line = _event_messages(**context)
     return queue_admin_messages(
         f"security:{security_event_id}",
@@ -387,7 +496,7 @@ def _daily_metrics():
     ).fetchone()
     top_idea = connection.execute(
         """
-        SELECT ideas.title, COUNT(DISTINCT analytics_events.session_id) AS count
+        SELECT COUNT(DISTINCT analytics_events.session_id) AS count
         FROM analytics_events JOIN ideas ON ideas.id = analytics_events.idea_id
         WHERE analytics_events.event_name = 'view_idea'
           AND analytics_events.is_automated = 0
@@ -420,9 +529,7 @@ def _daily_metrics():
     checkout = payment_checkout_status()
     base_url = os.environ.get("BASE_URL", "http://127.0.0.1:5088").strip()
     line_token_ready = bool(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip())
-    line_admin_ready = bool(
-        line_token_ready and os.environ.get("LINE_ADMIN_USER_ID", "").strip()
-    )
+    line_admin_ready = line_admin_delivery_ready()
     transactional_email_ready = email_delivery_ready()
     chain = verify_access_event_chain()
     return {
@@ -448,10 +555,10 @@ def _daily_metrics():
             "automated_sessions": int(traffic["automated_sessions"] or 0),
             "legacy_sessions": int(traffic["legacy_sessions"] or 0),
             "top": (
-                f"{top_idea['title']}（{top_idea['count']} 個仙策工作階段）"
+                f"最高 {top_idea['count']} 個仙策工作階段（品項請於後台查看）"
                 if top_idea and int(top_idea["count"] or 0) >= TOP_IDEA_MINIMUM_SESSIONS
                 else (
-                    f"暫不排名：最高「{top_idea['title']}」{top_idea['count']} 個工作階段，"
+                    f"暫不排名：最高 {top_idea['count']} 個工作階段，"
                     f"未達 {TOP_IDEA_MINIMUM_SESSIONS} 個工作階段門檻"
                     if top_idea
                     else "目前沒有公開仙策詳情工作階段"
@@ -469,7 +576,7 @@ def _daily_metrics():
             "chain": bool(chain["valid"]),
             "chain_checked": int(chain["checked"]),
         },
-        "admin_url": f"{base_url.rstrip('/')}/admin",
+        "admin_url": "請從天外一筆官網進入管理後台",
     }
 
 
@@ -587,6 +694,18 @@ def retry_private_alerts(limit=10):
     connection = get_db()
     attempt_limit = max(1, min(int(limit), 50))
     now = datetime.now(timezone.utc)
+    # A worker can crash after reserving its final attempt but before persistence.
+    # Atomically retire only expired final leases; active workers retain ownership.
+    connection.execute(
+        """UPDATE notification_queue
+           SET status = 'failed', last_error = 'retry_exhausted', retryable = 0,
+               claim_token = '', claimed_until = '', next_attempt_at = '', updated_at = ?
+           WHERE channel = 'line' AND status IN ('pending', 'failed', 'skipped')
+             AND retryable = 1 AND attempts >= ? AND claim_token <> ''
+             AND claimed_until <> '' AND claimed_until <= ?""",
+        (now.isoformat(timespec="seconds"), MAX_DELIVERY_ATTEMPTS, now.isoformat(timespec="seconds")),
+    )
+    connection.commit()
     summary_cutoff = (now - timedelta(hours=DAILY_SUMMARY_RETRY_HOURS)).isoformat(timespec="seconds")
     alert_cutoff = (now - timedelta(days=PRIVATE_ALERT_RETRY_DAYS)).isoformat(timespec="seconds")
     eligibility = """
@@ -605,26 +724,27 @@ def retry_private_alerts(limit=10):
         f"""
         SELECT * FROM notification_queue
         WHERE channel = 'line' AND status IN ('pending', 'failed', 'skipped')
+          AND retryable = 1 AND attempts < ? AND next_attempt_at <= ? AND claimed_until <= ?
           AND {eligibility}
         ORDER BY id ASC LIMIT ?
         """,
-        (summary_cutoff, alert_cutoff, 50),
+        (MAX_DELIVERY_ATTEMPTS, now.isoformat(timespec="seconds"), now.isoformat(timespec="seconds"),
+         summary_cutoff, alert_cutoff, 50),
     ).fetchall()
     sent = 0
     processed = 0
     deferred_unconfigured = 0
     by_channel = {"line": 0}
+    deadline = time.monotonic() + 8
     for row in rows:
-        if processed >= attempt_limit:
+        if processed >= attempt_limit or time.monotonic() >= deadline:
             break
-        if row["channel"] == "line" and not (
-            os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
-            and os.environ.get("LINE_ADMIN_USER_ID", "").strip()
-        ):
+        if not line_admin_delivery_ready():
             deferred_unconfigured += 1
             continue
-        status, error = _deliver(row)
-        _persist_delivery(row["id"], status, error)
+        status = _attempt_delivery(row)
+        if status is None:
+            continue
         processed += 1
         if status == "sent":
             sent += 1

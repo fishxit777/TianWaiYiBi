@@ -12,6 +12,7 @@ from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRe
 from .analytics import ALLOWED_WINDOWS, build_demand_radar, trusted_analytics_start
 from .db import get_db, get_setting_int, utc_now
 from .mailer import email_delivery_ready
+from .notifications import line_admin_delivery_ready
 from .risk import verify_access_event_chain
 from .security import (
     ADMIN_COOKIE,
@@ -799,10 +800,7 @@ def dashboard_data():
                 "mode": checkout_status["mode"],
                 "base_url": base_url,
                 "public_https": base_url.lower().startswith("https://"),
-                "line_admin_alert": bool(
-                    os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
-                    and os.environ.get("LINE_ADMIN_USER_ID")
-                ),
+                "line_admin_alert": line_admin_delivery_ready(),
                 "payment_provider": checkout_status["provider"],
                 "payment_label": checkout_status["label"],
                 "payment_state": checkout_status.get("state", "misconfigured"),
@@ -826,10 +824,7 @@ def dashboard_data():
                 in {"1", "true", "yes", "on"},
                 "session_ip_binding": os.environ.get("ADMIN_SESSION_BIND_IP", "true").lower()
                 in {"1", "true", "yes", "on"},
-                "line_admin_alert": bool(
-                    os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
-                    and os.environ.get("LINE_ADMIN_USER_ID")
-                ),
+                "line_admin_alert": line_admin_delivery_ready(),
                 "daily_summary_schedule": len(
                     os.environ.get("NOTIFICATION_CRON_SECRET", "").strip()
                 ) >= 32,
@@ -1230,12 +1225,12 @@ def update_idea(idea_id):
         return jsonify({"error": "工作狀態不正確"}), 400
     topic = str(data.get("topic", "")).strip()[:120]
     image_paths = {}
+    from .private_content import resolve_private_asset
+
     for field in ("hero_image", "diagram_image", "scene_image"):
         value = str(data.get(field, "")).strip()
-        if value and not re.fullmatch(r"brand/[a-zA-Z0-9._/-]+\.(?:webp|png|jpe?g)", value):
-            return jsonify({"error": f"{field} 必須是 static/brand 內的圖片路徑"}), 400
-        if ".." in value:
-            return jsonify({"error": f"{field} 路徑不安全"}), 400
+        if value and resolve_private_asset(value) is None:
+            return jsonify({"error": f"{field} 必須是已匯入私有素材庫的圖片識別路徑"}), 400
         image_paths[field] = value
 
     raw_override = data.get("price_override")

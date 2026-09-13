@@ -129,7 +129,9 @@ def test_high_risk_code_failures_queue_privacy_minimized_alert(client, app):
         payload = json.loads(notification["payload_json"])["message"]
         assert incident is not None
         assert [row["channel"] for row in channels] == ["line"]
-        assert notification["status"] in {"sent", "failed", "skipped"}
+        assert notification["status"] == "pending"
+        assert notification["attempts"] == 0
         assert "traveler@example.com" not in payload
         assert activation_code.replace("-", "") not in payload
-        assert "TYB-" in payload
+        assert "TYB-" not in payload
+        assert "天外一筆｜即時異常告警" in payload

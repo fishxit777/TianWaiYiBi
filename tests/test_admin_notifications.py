@@ -9,7 +9,7 @@ def _stub_line(monkeypatch):
     monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "test-line-access-token")
     monkeypatch.setattr(
         "tianwai.notifications.send_line_push",
-        lambda _message: ("sent", ""),
+        lambda _message, **_kwargs: ("sent", ""),
     )
 
 

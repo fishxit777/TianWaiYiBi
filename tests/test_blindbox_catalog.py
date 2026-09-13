@@ -52,7 +52,7 @@ def test_thirteen_sealed_scrolls_are_published_in_volume_order(app):
 
 
 def test_every_new_volume_has_three_compact_webp_assets(app):
-    static_root = Path(app.static_folder)
+    private_root = Path(app.config["PRIVATE_ASSET_ROOT"])
     with app.app_context():
         rows = get_db().execute(
             """
@@ -61,7 +61,7 @@ def test_every_new_volume_has_three_compact_webp_assets(app):
             """
         ).fetchall()
 
-    paths = [static_root / row[key] for row in rows for key in ("hero_image", "diagram_image", "scene_image")]
+    paths = [private_root / row[key] for row in rows for key in ("hero_image", "diagram_image", "scene_image")]
     assert len(paths) == 36
     assert len({path.name for path in paths}) == 36
     for path in paths:

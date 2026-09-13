@@ -975,7 +975,7 @@
     button.disabled = true;
     try {
       const result = await api('/admin/api/security/notifications/retry', {method: 'POST'});
-      await loadDashboard(`近期通知已重試 ${result.processed} 筆，送達 ${result.sent} 筆；排除過期 ${result.ignored_stale || 0} 筆，待設定通道 ${result.deferred_unconfigured || 0} 筆。`);
+      await loadDashboard(`近期通知已處理 ${result.processed} 筆，LINE 已接受 ${result.sent} 筆（不代表已閱讀）；排除過期 ${result.ignored_stale || 0} 筆，待設定通道 ${result.deferred_unconfigured || 0} 筆。`);
     } catch (error) { showError(error); }
     finally { button.disabled = false; }
   });

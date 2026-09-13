@@ -45,6 +45,8 @@ def _presentation_frame(source: Image.Image) -> Image.Image:
 
 
 def build(source_dir: Path, output_dir: Path) -> None:
+    if output_dir.resolve().is_relative_to(Path(__file__).resolve().parents[1] / "static"):
+        raise ValueError("Paid assets must be built outside public static; use private_assets/brand/concepts")
     output_dir.mkdir(parents=True, exist_ok=True)
     expected = {
         f"v31-{volume:02d}-{kind}.png"

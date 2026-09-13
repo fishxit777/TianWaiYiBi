@@ -413,7 +413,7 @@ def add_security_headers(response):
         "/activate/",
         "/payment/status/",
         "/customer/",
-        "/library/",
+        "/library",
         "/orders/",
     )
     if request.path.startswith(sensitive_customer_paths):

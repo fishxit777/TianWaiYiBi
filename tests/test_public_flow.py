@@ -42,7 +42,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "brand/sealed-scroll-casket-v20.webp" in body
     assert "封印未解" in body
     assert 'class="sealed-scroll"' not in body
-    assert "blindbox-twin-tire-hero-v1.webp" in body
+    assert "blindbox-twin-tire-hero-v1.webp" not in body
     assert 'id="idea-result-count"' in body
     assert 'aria-pressed="true">全部' in body
     assert body.count('class="idea-card sealed-card') == 13
@@ -595,7 +595,8 @@ def test_mock_payment_requires_one_time_activation_before_paid_content(client):
     assert activated.status_code == 200
     activated_body = activated.get_data(as_text=True)
     assert "雙生續行輪" in activated_body
-    assert "blindbox-twin-tire-cutaway-v1.webp" in activated_body
+    assert re.search(r"/library/assets/\d+/diagram", activated_body)
+    assert "blindbox-twin-tire-cutaway-v1.webp" not in activated_body
     assert "概念視覺・不代表已完成實作驗證" in activated_body
     assert "機制示意・仍須依實際場域驗證" in activated_body
 

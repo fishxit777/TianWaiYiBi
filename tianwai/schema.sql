@@ -189,7 +189,20 @@ CREATE TABLE IF NOT EXISTS notification_queue (
     last_error TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    sent_at TEXT
+    sent_at TEXT,
+    claim_token TEXT NOT NULL DEFAULT '',
+    claimed_until TEXT NOT NULL DEFAULT '',
+    next_attempt_at TEXT NOT NULL DEFAULT '',
+    first_attempt_at TEXT NOT NULL DEFAULT '',
+    provider_retry_key TEXT NOT NULL DEFAULT '',
+    recipient_fingerprint TEXT NOT NULL DEFAULT '',
+    retryable INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS notification_delivery_windows (
+    bucket_key TEXT PRIMARY KEY,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    expires_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS email_events (

@@ -70,7 +70,7 @@
     {% set card_companion = companion_by_vein.get(idea['primary_vein'], companion_by_vein['守護脈']) %}
     <article class="idea-card sealed-card accent-{{ idea['accent'] }} reveal" data-tags="{{ idea['primary_vein'] }},{{ idea['secondary_vein'] }},{{ idea['tags'] }}">
       <a class="idea-card-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}" aria-label="查看{{ idea['public_title'] }}的封印線索">
-        <div class="sealed-card-art"{% if idea['hero_image'] %} style="--sealed-art:url('{{ url_for('static', filename=idea['hero_image']) }}')"{% endif %}>{{ concept_scroll(idea['seal'], 'card') }}<em>封印未解</em></div>
+        <div class="sealed-card-art">{{ concept_scroll(idea['seal'], 'card') }}<em>封印未解</em></div>
         <span class="companion-cameo" aria-hidden="true"><img src="{{ url_for('static', filename='brand/companions/chibi-' ~ card_companion[0] ~ '-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><b>{{ card_companion[1] }}正在看守此卷</b></span>
         <div class="idea-card-top"><span class="idea-number">VOL. {{ '%02d'|format(idea['sort_order']) }}</span><span class="maturity-chip">{{ idea['maturity'] }}</span></div><p class="idea-role">{{ idea['primary_vein'] }}</p><h3>{{ idea['public_title'] }}</h3><p class="idea-discipline">{{ idea['discipline'] }}</p><p class="idea-summary">{{ idea['summary'] }}</p><div class="idea-tags" aria-label="公開線索">{% for tag in idea['tags'].split(',')[:3] %}<span>{{ tag }}</span>{% endfor %}</div><footer><span>{% if payment_status.ready %}NT${{ idea['price_override'] if idea['price_override'] is not none else global_price }}{% else %}尚未收款{% endif %}</span><strong>查看封印線索 <span aria-hidden="true">↗</span></strong></footer>
       </a>

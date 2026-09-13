@@ -466,6 +466,9 @@ def current_customer_session():
     raw_token = request.cookies.get(CUSTOMER_COOKIE, "")
     if not raw_token:
         return None
+    raw_device = request.cookies.get(DEVICE_COOKIE, "")
+    now = _now()
+    now_iso = _iso(now)
     connection = get_db()
     row = connection.execute(
         """
@@ -474,14 +477,21 @@ def current_customer_session():
                customer_devices.public_id AS device_public_id
         FROM customer_sessions
         JOIN customers ON customers.id = customer_sessions.customer_id
-        LEFT JOIN customer_devices ON customer_devices.id = customer_sessions.device_id
+        JOIN customer_devices ON customer_devices.id = customer_sessions.device_id
+          AND customer_devices.customer_id = customer_sessions.customer_id
         WHERE customer_sessions.session_hash = ?
           AND customer_sessions.revoked_at IS NULL
           AND customer_sessions.expires_at > ?
           AND customer_sessions.idle_expires_at > ?
           AND customers.status = 'active'
+          AND customer_devices.device_token_hash = ?
+          AND customer_devices.revoked_at IS NULL
+          AND customer_devices.trusted_until > ?
         """,
-        (hash_token(raw_token), utc_now(), utc_now()),
+        (
+            hash_token(raw_token), now_iso, now_iso,
+            hash_scoped_token("customer-device", raw_device), now_iso,
+        ),
     ).fetchone()
     if row is None:
         revoked = connection.execute(
@@ -511,7 +521,7 @@ def current_customer_session():
         return None
     connection.execute(
         "UPDATE customer_sessions SET last_seen_at = ?, idle_expires_at = ? WHERE id = ?",
-        (utc_now(), _iso(_now() + timedelta(hours=CUSTOMER_IDLE_HOURS)), row["id"]),
+        (now_iso, _iso(now + timedelta(hours=CUSTOMER_IDLE_HOURS)), row["id"]),
     )
     if row["device_id"]:
         connection.execute(
@@ -771,11 +781,26 @@ def customer_login_complete():
             development_code="",
         ), 400
 
-    connection.execute(
-        "UPDATE customer_login_codes SET used_at = ? WHERE id = ?",
-        (utc_now(), code_row["id"]),
+    consumed_at = utc_now()
+    cursor = connection.execute(
+        """
+        UPDATE customer_login_codes SET used_at = ?
+        WHERE id = ? AND used_at IS NULL AND revoked_at IS NULL
+          AND expires_at > ? AND failed_attempts < ?
+        """,
+        (consumed_at, code_row["id"], consumed_at, CODE_ATTEMPT_LIMIT),
     )
     connection.commit()
+    if cursor.rowcount != 1:
+        # Another request may have consumed/revoked the code after our SELECT.
+        # Only the request which atomically claims it may issue a session.
+        return render_template(
+            "customer_login.html",
+            step="verify",
+            error="登入碼已使用或失效。請重新申請。",
+            sent=True,
+            development_code="",
+        ), 400
     customer = _ensure_customer(email)
     record_access_event(
         "customer_login_code_accepted", 5, "login_verified", customer_id=customer["id"]
