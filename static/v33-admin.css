@@ -1,0 +1,126 @@
+/* V33 · 明亮青玉司務台。僅限管理頁；驗證、金流與通知行為維持原樣。 */
+.admin-page,
+.admin-login-page {
+  --admin-ink: #253d39;
+  --admin-muted: #536963;
+  --admin-line: #c9d8ce;
+  --admin-paper: #f4f6ee;
+  color: var(--admin-ink);
+  background: radial-gradient(ellipse at 5% 0, #dfede3, transparent 42rem),
+    radial-gradient(ellipse at 95% 0, #f5ebc9, transparent 35rem), #f4f6ee;
+}
+.admin-page :is(a, button, input, textarea, select, summary, [tabindex]):focus-visible,
+.admin-login-page :is(a, button, input, textarea, select):focus-visible {
+  outline: 3px solid #276757;
+  outline-offset: 3px;
+}
+.admin-page :is(button, input, textarea, select),
+.admin-login-page :is(button, input, textarea, select) { min-height: 44px; }
+.admin-page :is(button, a), .admin-login-page :is(button, a) { -webkit-tap-highlight-color: #cde4d7; }
+.admin-page :is(button, input, select, textarea):disabled { cursor: not-allowed; opacity: .58; }
+.admin-page :is(h1, h2, h3, p, small), .admin-login-page :is(h1, h2, h3, p, small) { overflow-wrap: anywhere; }
+.admin-ops-page .admin-topbar { flex-wrap: wrap; gap: 10px 20px; background: #f2f6edee; }
+.admin-ops-page .admin-sidebar { background: linear-gradient(165deg, #263e38, #344e43); }
+.admin-ops-page .admin-brand small { color: #d7dfca; }
+.admin-ops-page .overview-intro { border: 1px solid #c8d7bd; color: #2b4940; background: linear-gradient(110deg, #e4eedd, #f5efda); box-shadow: 0 8px 28px #31483a0a; }
+.admin-ops-page .overview-intro :is(h2, p, .workspace-kicker, .overview-date span, .overview-date strong, .overview-date small) { color: #345248; }
+.admin-ops-page .workspace-heading { border-left-color: #7b9b81; background: #fbfcf7c9; }
+.admin-ops-page .admin-panel { background: #fffffbf2; }
+.admin-ops-page .admin-primary-button { background: #315e4e; border-color: #315e4e; }
+.admin-ops-page .admin-primary-button:hover { background: #274b3e; }
+.admin-ops-page .last-sync { color: #52665e; white-space: normal; }
+.admin-ops-page .last-sync.is-stale { color: #805111; padding: 5px 9px; border: 1px solid #d4b875; border-radius: 6px; background: #fff2d8; }
+.admin-data-note { margin: 8px 0 14px; color: #52655d; font-size: 13px; line-height: 1.6; }
+.admin-main[data-load-state="error"] .admin-data-note,
+.admin-main[data-load-state="stale"] .admin-data-note { color: #853d31; }
+.admin-main[data-load-state="error"] .metric-skeleton { display: none; }
+.admin-ops-page .table-scroll { max-width: 100%; scroll-padding-inline: 16px; overscroll-behavior-inline: contain; }
+.admin-ops-page .table-scroll:focus-visible { outline-offset: -4px; }
+.admin-ops-page .admin-table caption { padding: 14px 16px; color: #4c6259; background: #edf3e9; text-align: left; font-size: 13px; line-height: 1.6; caption-side: top; }
+.admin-ops-page .admin-table th { color: #3e554b; background: #edf0e7; }
+.admin-ops-page .admin-table td { overflow-wrap: anywhere; }
+.admin-ops-page .event-item { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; }
+.admin-ops-page .event-item > div { min-width: 0; }
+.admin-ops-page .event-item > div :is(strong, span) { display: block; }
+.admin-ops-page .event-item time { grid-column: 1 / -1; justify-self: start; color: #586a62; }
+.admin-ops-page .event-code { margin-top: 4px; color: #62766a; font-size: 11px; }
+.admin-ops-page .event-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-ops-page .event-actions button { padding-inline: 10px; }
+.admin-ops-page .price-label { display: block; color: #425d4f; font-weight: 700; }
+.admin-ops-page .catalog-layout { grid-template-columns: minmax(0, 1.4fr) minmax(260px, .8fr); gap: 20px; }
+.admin-ops-page .catalog-layout .price-card { position: static; min-width: 0; }
+.admin-ops-page .catalog-card { grid-column: 1 / -1; min-width: 0; }
+.admin-ops-page .idea-editor { color: #294338; border-color: #b7c9b5; background: #f5f7ee; }
+.admin-ops-page .idea-editor :is(header, footer) { background: #f5f7ee; }
+.admin-ops-page .idea-editor header { align-items: flex-start; }
+.admin-ops-page .idea-editor .dialog-close { flex: 0 0 44px; }
+.admin-ops-page .editor-section { min-width: 0; margin: 20px 0; padding: 20px; border: 1px solid #c5d6c8; border-radius: 9px; background: #fffffb; }
+.admin-ops-page .editor-section legend { padding-inline: 8px; color: #315b47; font-size: 17px; font-weight: 800; }
+.admin-ops-page .editor-section > p { margin: 0 0 18px; color: #586d61; font-size: 13px; }
+.admin-ops-page .editor-section > label { display: grid; gap: 7px; margin-block: 18px; }
+.admin-ops-page .editor-section .editor-grid { gap: 18px; margin-bottom: 18px; }
+.admin-ops-page .editor-section[data-editor-scope="paid"] { border-color: #d4be81; background: #fffcf2; }
+.admin-ops-page .editor-section[data-editor-scope="paid"] legend { color: #765c24; }
+.admin-ops-page .editor-section[data-editor-scope="internal"] { background: #edf3ed; }
+.admin-ops-page .idea-editor footer { padding-top: 16px; border-top: 1px solid #c9d5c8; }
+.admin-ops-page .idea-editor :is(input, textarea, select) { font-size: 16px !important; }
+
+/* 身分驗證亦延續同一個品牌紙面，而不是另一套深色網站。 */
+.admin-login-page .admin-login-shell { gap: clamp(28px, 6vw, 80px); }
+.admin-login-page .admin-login-brand { padding: 0; }
+.admin-login-page .admin-login-logo { position: static; width: 180px; height: 180px; object-fit: contain; transform: none; border: 1px solid #cbbb80; border-radius: 50%; background: #fcfbed; filter: drop-shadow(0 10px 20px #46635014); }
+.admin-login-page .admin-login-brand :is(h1, p) { color: #334f42; }
+.admin-login-page .admin-login-brand > p:first-of-type { color: #597750; }
+.admin-login-page .admin-login-card { border: 1px solid #c9d6bc; border-radius: 14px; background: #fffffaf2; box-shadow: 0 20px 65px #34503a10; }
+.admin-login-page .admin-login-card :is(h2, label, small),
+.admin-login-page .identity-restricted-note { color: #435d4c; }
+.admin-login-page .admin-login-card input { color: #253e30; border-color: #afc2ac; background: #f8faf3; }
+.admin-login-page .section-index, .credential-setup-page .section-index { color: #6d773d; }
+.admin-login-page .button-primary, .credential-setup-page .button-primary { color: #fffdf4; background: #355e48; border: 1px solid #355e48; box-shadow: 3px 3px 0 #d9dfc9; }
+.admin-login-page .button-primary:hover, .credential-setup-page .button-primary:hover { background: #274c38; }
+.admin-login-page .identity-status, .credential-setup-page .credential-status { color: #315f47; }
+.admin-login-page .identity-status.is-error, .credential-setup-page .credential-status.is-error,
+.admin-login-page .login-error { color: #8a352b; background: #fff0e8; }
+.admin-login-page .login-divider { color: #61725e; }
+.admin-login-page .inline-text-link { color: #355f46; text-underline-offset: 4px; }
+.credential-setup-page .credential-setup-header p { color: #506658; }
+.credential-setup-page .credential-panel { color: #2f4938; border-color: #c4d2b9; border-radius: 12px; background: #fffffa; box-shadow: 0 12px 34px #3450390a; }
+.credential-setup-page .credential-panel :is(p, small, label) { color: #516858; }
+.credential-setup-page .credential-list-heading strong { color: #74672f; }
+.credential-setup-page .credential-item { border-color: #ced9c3; border-radius: 8px; background: #f4f7ed; }
+.credential-setup-page .credential-item h3 { color: #355638; }
+.credential-setup-page .security-mode { color: #805523; border-color: #d1b87b; background: #fff3d7; }
+.credential-setup-page .security-mode:is(.is-active, .is-ready) { color: #29563e; border-color: #9cbc9c; background: #e8f3e5; }
+.credential-setup-page .button-ghost { color: #365941; border-color: #a6be9e; background: #f5f8ed; }
+.credential-setup-page .credential-revoke { color: #883d31; border-color: #cfa79a; background: #fff4eb; }
+.credential-setup-page .credential-empty { border-color: #b9c8b0; background: #f5f7ef; }
+.credential-setup-page .credential-privacy-note { color: #46664f; border-left-color: #70936b; background: #e6efde; }
+.credential-setup-page .recovery-code-output { color: #503e26; background: #fffae9; border-color: #c9b478; }
+
+@media (max-width: 1100px) {
+  .admin-ops-page .catalog-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .admin-login-page .admin-login-shell { gap: 24px; padding: 28px 0 40px; }
+  .admin-login-page .admin-login-logo { width: 92px; height: 92px; }
+  .admin-login-page .admin-login-brand { text-align: left; }
+  .admin-login-page .admin-login-brand h1 { margin-block: 8px; }
+  .admin-login-page .admin-login-card { padding: 24px 20px; }
+  .admin-ops-page .admin-topbar { position: static; align-items: flex-start; }
+  .admin-ops-page .admin-topbar-actions { flex-wrap: wrap; gap: 8px; }
+  .admin-ops-page .admin-sidebar { display: flex; height: auto; flex-direction: column; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .admin-ops-page .admin-sidebar nav { width: 100%; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .admin-ops-page .admin-sidebar-footer { display: flex; width: 100%; gap: 8px; margin-top: 6px; padding-inline: 8px; }
+  .admin-ops-page .admin-sidebar-footer :is(.admin-preview-link, form) { display: block; flex: 1 1 0; margin: 0; }
+  .admin-ops-page .admin-sidebar-footer :is(.admin-preview-link, button) { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 8px 10px; color: #f2f6e8; border: 1px solid #708677; border-radius: 6px; font-size: 14px; }
+  .admin-ops-page .admin-main { padding-bottom: calc(174px + env(safe-area-inset-bottom)); }
+  .admin-ops-page .idea-editor form { padding: 16px; }
+  .admin-ops-page .editor-section { padding: 14px; }
+  .admin-ops-page .editor-section .editor-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-ops-page .idea-editor footer { flex-wrap: wrap; }
+  .admin-ops-page .idea-editor footer button { flex: 1 1 120px; }
+  .credential-setup-page .credential-panel { padding: 22px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-page *, .admin-login-page * { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+}

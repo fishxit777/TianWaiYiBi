@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block title %}付款結果｜{{ order['title'] }}{% endblock %}
-{% block body_class %}payment-page{% endblock %}
+{% block body_class %}payment-page flow-page{% endblock %}
 {% block content %}
 <section class="payment-shell section-shell">
   <div class="payment-card payment-result-card reveal">
     {% if order['status'] == 'paid' %}
     <p class="plain-kicker">付款已確認</p>
     <h1>下一步：完成開通</h1>
+    <p class="flow-state flow-state-success" role="status"><strong>付款成功，無須再次付款。</strong>請接著使用交易信中的開通碼。</p>
     <div class="payment-order"><div><span>訂單 {{ order['order_no'] }}</span><strong>{{ order['title'] }}</strong></div><strong>NT${{ order['amount'] }}</strong></div>
     {% if delivery_status in ('sent', 'development') %}
     <ol class="plain-steps">
@@ -20,24 +21,24 @@
     {% endif %}
     {% if development_code %}<div class="development-code"><span>本機測試開通碼</span><strong>{{ development_code }}</strong><small>正式環境不會在付款頁顯示開通碼。</small></div>{% endif %}
     <a class="button button-primary button-wide" href="{{ url_for('access.activate_page', activation_token=activation_token) }}">前往專屬開通頁</a>
-    <dialog class="consumer-dialog" data-auto-modal open aria-labelledby="paid-notice-title">
-      <div class="consumer-dialog-card">
-        <p class="plain-kicker">付款成功</p>
-        <h2 id="paid-notice-title">你的付款已確認</h2>
-        {% if delivery_status in ('sent', 'development') %}
-        <p>開通資料已寄到購買 Email。一次性開通碼使用後立即失效；日後登入碼會在 10 分鐘後失效，但不會影響已購買內容。</p>
-        {% else %}
-        <p>付款已確認，但開通資料尚未成功寄出。請前往開通頁重新寄送；請勿重複付款。</p>
-        {% endif %}
-        <div class="dialog-actions"><button class="button button-ghost" type="button" data-dialog-close>留在本頁</button><a class="button button-primary" href="{{ url_for('access.activate_page', activation_token=activation_token) }}">立即開通</a></div>
-      </div>
-    </dialog>
-    {% else %}
+    {% elif order['status'] == 'pending' %}
     <p class="plain-kicker">等待付款確認</p>
     <h1>目前尚未開通</h1>
     <p>系統尚未收到通過驗證的付款成功通知。請勿重複付款；請保留付款紀錄，稍後再重新檢查狀態。</p>
     <a class="button button-primary button-wide" href="{{ request.path }}">重新檢查付款狀態</a>
+    <p class="flow-field-help">重新檢查只會讀取最新狀態，不會再次扣款。</p>
+    {% elif order['status'] == 'refunded' %}
+    <p class="plain-kicker">訂單已退款</p>
+    <h1>本筆內容已停止授權</h1>
+    <p class="flow-state" role="status">系統已記錄本筆退款，原訂單不再提供內容存取。實際入帳時間請以支付機構為準。</p>
+    <a class="button button-primary button-wide" href="{{ url_for('access.customer_login_page') }}">查看其他已購內容</a>
+    {% else %}
+    <p class="plain-kicker">需要確認訂單狀態</p>
+    <h1>目前無法開通</h1>
+    <p class="plain-alert">這筆訂單目前不是已付款可開通狀態。若你已付款，請保留付款紀錄並聯繫私人客服；請勿重複付款。</p>
+    <a class="button button-primary button-wide" href="{{ url_for('public.support') }}">取得私人協助</a>
     {% endif %}
+    <nav class="flow-secondary-links" aria-label="付款後協助"><a href="{{ url_for('access.customer_login_page') }}">已完成開通？前往已購取回</a><a href="{{ url_for('public.support') }}">付款或寄信問題</a></nav>
   </div>
 </section>
 {% endblock %}

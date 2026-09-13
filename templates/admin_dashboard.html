@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v17.css', v='professional-ui-v17') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v18.css', v='sealed-blind-strategy-v1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v19.css', v='readable-typography-v19') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v33-admin.css', v='polished-admin-v33') }}">
 </head>
 <body class="admin-page admin-ops-page">
   <a class="skip-link" href="#admin-root">跳至主要內容</a>
@@ -36,17 +37,18 @@
     </div>
   </aside>
 
-  <main id="admin-root" class="admin-main" tabindex="-1">
+  <main id="admin-root" class="admin-main" tabindex="-1" data-load-state="loading">
     <header class="admin-topbar">
       <div class="admin-breadcrumb"><span>營運中樞</span><i aria-hidden="true">/</i><h1 id="workspace-title">今日總覽</h1></div>
       <div class="admin-topbar-actions">
         <span class="admin-environment"><i aria-hidden="true"></i>正式站</span>
-        <span id="last-sync" class="last-sync">尚未同步</span>
+        <span id="last-sync" class="last-sync" title="事件與同步時間以台北時間 UTC+8 顯示；營收日彙總另標 UTC 日界">尚未同步・台北時間</span>
         <span class="admin-account"><i aria-hidden="true"></i>{{ username }}</span>
         <button id="refresh-dashboard" class="admin-refresh" type="button"><span aria-hidden="true">↻</span>重新整理</button>
       </div>
     </header>
     <div id="admin-status" class="admin-status admin-status-bar" role="status" aria-live="polite"><span id="admin-status-message">正在讀取營運資料…</span><button id="retry-dashboard" type="button" hidden>重新載入</button></div>
+    <p id="admin-data-note" class="admin-data-note">資料尚未載入，空白與破折號不代表零筆；本頁為手動同步快照。</p>
 
     <section id="overview" class="admin-workspace is-active" data-admin-panel="overview">
       <div class="overview-intro">
@@ -58,7 +60,7 @@
       </div>
       <div class="overview-layout">
         <section class="admin-panel attention-panel" aria-labelledby="attention-title">
-          <div class="panel-heading"><div><span>ACTION REQUIRED</span><h3 id="attention-title">今日需要處理</h3></div><strong id="attention-total" class="panel-count">0</strong></div>
+          <div class="panel-heading"><div><span>ACTION REQUIRED</span><h3 id="attention-title">今日需要處理</h3></div><strong id="attention-total" class="panel-count">—</strong></div>
           <div id="attention-list" class="attention-list"></div>
         </section>
         <section class="admin-panel pulse-panel" aria-labelledby="pulse-title">
@@ -67,7 +69,7 @@
         </section>
       </div>
       <div class="admin-two-col overview-panels">
-        <section class="admin-panel"><div class="panel-heading"><div><span>近七日</span><h3>營收走勢</h3></div></div><div id="revenue-chart" class="revenue-chart"></div></section>
+        <section class="admin-panel"><div class="panel-heading"><div><span>近七日 · UTC 日界</span><h3>營收走勢</h3></div></div><div id="revenue-chart" class="revenue-chart"></div></section>
         <section class="admin-panel"><div class="panel-heading"><div><span>近三十日</span><h3>訪客從哪裡來</h3></div></div><div id="traffic-sources" class="traffic-sources"></div></section>
       </div>
       <section class="admin-panel demand-radar-panel" aria-labelledby="demand-radar-title">
@@ -90,14 +92,14 @@
       <div class="order-toolbar admin-panel">
         <div class="order-search"><label for="order-search"><span class="sr-only">搜尋訂單</span><i aria-hidden="true">⌕</i></label><input id="order-search" type="search" placeholder="搜尋訂單編號、仙策、客戶或 Email" autocomplete="off"><button id="clear-order-search" type="button" aria-label="清除訂單搜尋" hidden>×</button></div>
         <div id="order-filters" class="order-filters" role="group" aria-label="訂單狀態篩選">
-          <button class="is-active" type="button" data-order-filter="all" aria-pressed="true">全部 <b id="order-count-all">0</b></button>
-          <button type="button" data-order-filter="pending" aria-pressed="false">待付款 <b id="order-count-pending">0</b></button>
-          <button type="button" data-order-filter="paid" aria-pressed="false">已付款 <b id="order-count-paid">0</b></button>
-          <button type="button" data-order-filter="closed" aria-pressed="false">已取消／退款 <b id="order-count-closed">0</b></button>
+          <button class="is-active" type="button" data-order-filter="all" aria-pressed="true">全部 <b id="order-count-all">—</b></button>
+          <button type="button" data-order-filter="pending" aria-pressed="false">待付款 <b id="order-count-pending">—</b></button>
+          <button type="button" data-order-filter="paid" aria-pressed="false">已付款 <b id="order-count-paid">—</b></button>
+          <button type="button" data-order-filter="closed" aria-pressed="false">已取消／退款 <b id="order-count-closed">—</b></button>
         </div>
       </div>
       <div class="admin-panel table-panel orders-panel">
-        <div class="table-scroll"><table class="admin-table"><thead><tr><th>訂單</th><th>仙策</th><th>客戶</th><th>金額</th><th>狀態</th><th>建立時間</th></tr></thead><tbody id="orders-table"></tbody></table></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="交易訂單，可左右捲動"><table class="admin-table"><caption>最近交易訂單 · 金額為新台幣，時間為台北時間</caption><thead><tr><th scope="col">訂單</th><th scope="col">仙策</th><th scope="col">客戶</th><th scope="col">金額</th><th scope="col">狀態</th><th scope="col">建立時間</th></tr></thead><tbody id="orders-table"></tbody></table></div>
         <p id="order-result-summary" class="table-summary"></p>
       </div>
     </section>
@@ -112,8 +114,9 @@
         </form>
         <form id="price-form" class="admin-panel price-card">
           <div class="panel-heading"><div><span>DEFAULT PRICE</span><h3>全站預設價格</h3></div></div>
-          <div class="price-input"><span>NT$</span><input id="global-price" name="price" type="number" min="1" max="100000" required></div>
-          <button class="admin-primary-button" type="submit">更新預設價格</button><small>只影響沒有單獨設定價格的仙策。</small>
+          <label class="price-label" for="global-price">預設單卷金額（新台幣）</label>
+          <div class="price-input"><span aria-hidden="true">NT$</span><input id="global-price" name="price" type="number" min="1" max="100000" aria-describedby="global-price-help" required></div>
+          <button class="admin-primary-button" type="submit">更新預設價格</button><small id="global-price-help">只影響沒有單獨設定價格的仙策；不會開啟公開收款。</small>
         </form>
         <section class="admin-panel catalog-card"><div class="panel-heading"><div><span>SEALED CATALOG</span><h3>封印卷與製作狀態</h3></div><strong id="published-count" class="panel-note">—</strong></div><div id="idea-admin-list" class="idea-admin-list"></div></section>
       </div>
@@ -124,11 +127,11 @@
       <div id="customer-metrics" class="customer-metrics"></div>
       <div class="admin-panel table-panel">
         <div class="panel-heading table-heading"><div><span>PAID ACCESS</span><h3>已付款內容開通進度</h3></div></div>
-        <div class="table-scroll"><table class="admin-table"><thead><tr><th>客戶</th><th>購買內容</th><th>訂單</th><th>交付狀態</th><th>開通狀態</th><th>付款時間</th></tr></thead><tbody id="customer-access-table"></tbody></table></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="內容開通進度，可左右捲動"><table class="admin-table"><caption>已付款內容 · 交付與開通是不同階段</caption><thead><tr><th scope="col">客戶</th><th scope="col">購買內容</th><th scope="col">訂單</th><th scope="col">交付狀態</th><th scope="col">開通狀態</th><th scope="col">付款時間</th></tr></thead><tbody id="customer-access-table"></tbody></table></div>
       </div>
       <div class="admin-panel table-panel">
         <div class="panel-heading table-heading"><div><span>TRUSTED DEVICES</span><h3>可信裝置與工作階段</h3></div></div>
-        <div class="table-scroll"><table class="admin-table"><thead><tr><th>客戶代碼</th><th>裝置</th><th>網路概略</th><th>最後使用</th><th>狀態</th><th>操作</th></tr></thead><tbody id="customer-device-table"></tbody></table></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="可信裝置清單，可左右捲動"><table class="admin-table"><caption>可信裝置與工作階段 · 最後使用時間為台北時間</caption><thead><tr><th scope="col">客戶代碼</th><th scope="col">裝置</th><th scope="col">網路概略</th><th scope="col">最後使用</th><th scope="col">狀態</th><th scope="col">操作</th></tr></thead><tbody id="customer-device-table"></tbody></table></div>
       </div>
     </section>
 
@@ -153,7 +156,7 @@
       <div class="workspace-heading"><div><span class="workspace-kicker">SECURITY</span><h2>安全與操作稽核</h2><p>先處理高風險事件與封鎖，再追查管理操作；一般日常不需要碰測試工具。</p></div><a class="admin-secondary-action" href="{{ url_for('admin.passkey_setup') }}">Passkey 安全設定</a></div>
       <div id="security-flags" class="security-flags security-config-grid" aria-live="polite"></div>
       <div class="admin-two-col security-columns">
-        <section class="admin-panel"><div class="panel-heading"><div><span>EVENTS</span><h3>最近安全事件</h3></div><strong id="risk-event-count" class="panel-count danger">0</strong></div><div id="security-event-filters" class="security-event-filters" role="group" aria-label="安全事件嚴重度篩選"><button class="is-active" type="button" data-security-filter="priority" aria-pressed="true">高風險優先</button><button type="button" data-security-filter="all" aria-pressed="false">全部事件</button></div><div id="security-events" class="event-list"></div></section>
+        <section class="admin-panel"><div class="panel-heading"><div><span>EVENTS</span><h3>最近安全事件</h3></div><strong id="risk-event-count" class="panel-count danger">—</strong></div><div id="security-event-filters" class="security-event-filters" role="group" aria-label="安全事件嚴重度篩選"><button class="is-active" type="button" data-security-filter="priority" aria-pressed="true">高風險優先</button><button type="button" data-security-filter="all" aria-pressed="false">全部事件</button></div><div id="security-events" class="event-list"></div></section>
         <section class="admin-panel"><div class="panel-heading"><div><span>BLOCKS</span><h3>目前封鎖 IP</h3></div></div><div id="blocked-ips" class="event-list"></div></section>
       </div>
       <div class="admin-two-col security-columns">
@@ -166,19 +169,52 @@
     </section>
   </main>
 
-  <dialog id="idea-editor" class="idea-editor">
+  <dialog id="idea-editor" class="idea-editor" aria-labelledby="idea-editor-title" aria-describedby="idea-editor-help">
     <form id="idea-editor-form" method="dialog">
-      <header><div><span>SEALED CONTENT</span><h2>編輯盲策卷</h2><p id="idea-editor-slug"></p></div><button class="dialog-close" type="button" data-close-dialog aria-label="關閉編輯視窗">×</button></header>
+      <header><div><span>SEALED CONTENT</span><h2 id="idea-editor-title">編輯盲策卷</h2><p id="idea-editor-slug"></p><p id="idea-editor-help">依序檢查公開線索、拆封內容與內部設定。儲存不會自動上架。</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="關閉編輯視窗">×</button></header>
       <input id="idea-id" type="hidden">
-      <div class="editor-grid">
-        <label>公開封印名稱<input id="idea-public-title" maxlength="80" required></label><label>拆封後真實標題<input id="idea-title" maxlength="80" required></label><label>卷內角色／定位<input id="idea-role" maxlength="60" required></label><label>法印字<input id="idea-seal" maxlength="4" required></label>
-        <label>主脈<select id="idea-primary-vein" required>{% for vein in ('守護脈','造物脈','靈機脈','破局脈','人間脈','傳音脈') %}<option value="{{ vein }}">{{ vein }}</option>{% endfor %}</select></label><label>副脈<select id="idea-secondary-vein"><option value="">不設定</option>{% for vein in ('守護脈','造物脈','靈機脈','破局脈','人間脈','傳音脈') %}<option value="{{ vein }}">{{ vein }}</option>{% endfor %}</select></label>
-        <label>製作狀態<select id="idea-workflow-status" required><option value="draft">草稿</option><option value="review">檢查中</option><option value="ready">可上架</option><option value="published">已上架</option><option value="archived">封存</option></select></label><label>成熟度<input id="idea-maturity" maxlength="80" required></label>
-        <label>視覺色系<select id="idea-accent" required><option value="cinnabar">朱砂</option><option value="jade">青玉</option><option value="gold">月金</option><option value="azure">天青</option><option value="violet">靛紫</option><option value="silver">月銀</option></select></label>
-        <label>排序<input id="idea-sort-order" type="number" min="1" max="999" required></label><label>單品價格（留空套用全站價）<input id="idea-price-override" type="number" min="1" max="100000" placeholder="套用全站價"></label>
-      </div>
-      <label>原始想法（內部）<textarea id="idea-raw-idea" minlength="2" maxlength="3000" rows="4" required></textarea></label><label>主題（內部）<input id="idea-topic" maxlength="120"></label><label>公開領域線索<input id="idea-discipline" maxlength="100" required></label><label>卡片摘要<textarea id="idea-summary" minlength="10" maxlength="240" rows="3" required></textarea></label><label>購買前封印線索<textarea id="idea-teaser" minlength="10" maxlength="600" rows="4" required></textarea></label><label>拆封後完整內容<textarea id="idea-paid-content" minlength="20" maxlength="6000" rows="12" required></textarea></label><label>取得內容（以｜分隔）<input id="idea-deliverables" maxlength="500" required></label><label>標籤（以逗號分隔）<input id="idea-tags" maxlength="200" required></label>
-      <div class="editor-grid"><label>主視覺路徑<input id="idea-hero-image" maxlength="180" placeholder="brand/example.webp"></label><label>結構圖路徑<input id="idea-diagram-image" maxlength="180" placeholder="brand/example.webp"></label><label>情境圖路徑<input id="idea-scene-image" maxlength="180" placeholder="brand/example.webp"></label></div>
+      <fieldset class="editor-section" data-editor-scope="public">
+        <legend>01 · 購買前公開線索</legend>
+        <p>這一區會出現在公開卡片或介紹頁，請勿填入真正解法與付費內容。</p>
+        <div class="editor-grid">
+          <label>公開封印名稱<input id="idea-public-title" maxlength="80" required></label>
+          <label>法印字<input id="idea-seal" maxlength="4" required></label>
+          <label>主脈<select id="idea-primary-vein" required>{% for vein in ('守護脈','造物脈','靈機脈','破局脈','人間脈','傳音脈') %}<option value="{{ vein }}">{{ vein }}</option>{% endfor %}</select></label>
+          <label>副脈<select id="idea-secondary-vein"><option value="">不設定</option>{% for vein in ('守護脈','造物脈','靈機脈','破局脈','人間脈','傳音脈') %}<option value="{{ vein }}">{{ vein }}</option>{% endfor %}</select></label>
+          <label>成熟度<input id="idea-maturity" maxlength="80" required></label>
+          <label>公開領域線索<input id="idea-discipline" maxlength="100" required></label>
+        </div>
+        <label>卡片摘要<textarea id="idea-summary" minlength="10" maxlength="240" rows="3" required></textarea></label>
+        <label>購買前封印線索<textarea id="idea-teaser" minlength="10" maxlength="600" rows="4" required></textarea></label>
+        <label>取得內容（以｜分隔）<input id="idea-deliverables" maxlength="500" required></label>
+        <label>標籤（以逗號分隔）<input id="idea-tags" maxlength="200" required></label>
+      </fieldset>
+      <fieldset class="editor-section" data-editor-scope="paid">
+        <legend>02 · 拆封後內容</legend>
+        <p>此區是完整內容編輯區，不會因儲存而解除付費閱讀權限檢查。</p>
+        <div class="editor-grid">
+          <label>拆封後真實標題<input id="idea-title" maxlength="80" required></label>
+          <label>卷內角色／定位<input id="idea-role" maxlength="60" required></label>
+        </div>
+        <label>拆封後完整內容<textarea id="idea-paid-content" minlength="20" maxlength="6000" rows="12" required></textarea></label>
+        <div class="editor-grid">
+          <label>主視覺路徑<input id="idea-hero-image" maxlength="180" placeholder="brand/example.webp"></label>
+          <label>結構圖路徑<input id="idea-diagram-image" maxlength="180" placeholder="brand/example.webp"></label>
+          <label>情境圖路徑<input id="idea-scene-image" maxlength="180" placeholder="brand/example.webp"></label>
+        </div>
+      </fieldset>
+      <fieldset class="editor-section" data-editor-scope="internal">
+        <legend>03 · 內部製作與發佈設定</legend>
+        <p>原始構想留在內部。定價與發佈仍依既有確認流程，不會自動啟用收款。</p>
+        <label>原始想法（內部）<textarea id="idea-raw-idea" minlength="2" maxlength="3000" rows="4" required></textarea></label>
+        <label>主題（內部）<input id="idea-topic" maxlength="120"></label>
+        <div class="editor-grid">
+          <label>製作狀態<select id="idea-workflow-status" required><option value="draft">草稿</option><option value="review">檢查中</option><option value="ready">可上架</option><option value="published">已上架</option><option value="archived">封存</option></select></label>
+          <label>視覺色系<select id="idea-accent" required><option value="cinnabar">朱砂</option><option value="jade">青玉</option><option value="gold">月金</option><option value="azure">天青</option><option value="violet">靛紫</option><option value="silver">月銀</option></select></label>
+          <label>排序<input id="idea-sort-order" type="number" min="1" max="999" required></label>
+          <label>單品價格（留空套用全站價）<input id="idea-price-override" type="number" min="1" max="100000" placeholder="套用全站價"></label>
+        </div>
+      </fieldset>
       <p id="idea-editor-status" class="form-status" role="status" aria-live="polite"></p><p id="idea-editor-dirty" class="editor-dirty" hidden>尚有未儲存變更</p>
       <footer><button type="button" data-close-dialog>取消</button><button class="save-idea" type="submit">儲存盲策內容</button></footer>
     </form>
@@ -187,7 +223,7 @@
     <form id="admin-confirm-form">
       <header><div><span>OPERATION CHECK</span><h2 id="admin-confirm-title">確認操作</h2><p id="admin-confirm-message"></p></div><button class="dialog-close" type="button" data-close-confirm-dialog aria-label="關閉確認視窗">×</button></header>
       <p id="admin-confirm-impact" class="admin-confirm-impact"></p>
-      <footer><button type="button" data-close-confirm-dialog>返回檢查</button><button id="admin-confirm-submit" class="save-idea" type="submit">確認執行</button></footer>
+      <footer><button id="admin-confirm-cancel" type="button" data-close-confirm-dialog>返回檢查</button><button id="admin-confirm-submit" class="save-idea" type="submit">確認執行</button></footer>
     </form>
   </dialog>
   <dialog id="payment-refund-dialog" class="idea-editor payment-refund-dialog" aria-labelledby="payment-refund-dialog-title">
@@ -198,6 +234,6 @@
       <footer><button type="button" data-close-refund-dialog>取消</button><button class="save-idea" type="submit">確認退款並撤回</button></footer>
     </form>
   </dialog>
-  <script src="{{ url_for('static', filename='admin.js', v='sealed-blind-strategy-v1') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin.js', v='polished-admin-v33') }}" defer></script>
 </body>
 </html>

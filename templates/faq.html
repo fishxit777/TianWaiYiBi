@@ -3,11 +3,12 @@
 {% block body_class %}policy-page faq-page{% endblock %}
 {% block page_scripts_head %}<script src="{{ url_for('static', filename='companions.js', v='chibi-immortal-companions-v23') }}" defer></script>{% endblock %}
 {% block content %}
+<nav class="page-breadcrumb section-shell" aria-label="麵包屑"><a href="{{ url_for('public.home') }}">首頁</a><span aria-hidden="true">／</span><span aria-current="page">常見問答</span></nav>
 <section class="policy-hero section-shell">
   <div class="policy-hero-copy reveal">
     <p class="section-index">仙策問津</p>
     <h1>想不想拆卷，<br>先用八個答案判斷。</h1>
-    <p>這裡只回答「適不適合、會拿到什麼、下一步怎麼做」。正式權利與責任另收在政策中心，不把兩頁寫成同一份內容。</p>
+    <p>從適合誰、交付什麼，到買過後如何取回，先找到你在意的答案。需要確認正式權利與責任時，再閱讀條款與隱私。</p>
     <nav class="policy-jump-links" aria-label="問答相關入口">
       <a href="{{ url_for('public.policies') }}">閱讀條款與隱私</a>
       <a href="{{ url_for('public.support') }}">需要私人協助</a>
@@ -24,8 +25,10 @@
   <header class="policy-section-heading reveal">
     <p class="section-index">八步問路</p>
     <h2>先解決你的實際疑問</h2>
+    <nav class="page-topic-nav" aria-label="依問題找答案"><a href="#faq-fit">適合與交付</a><a href="#faq-use">使用與邊界</a><a href="#faq-help">取回與協助</a></nav>
   </header>
   <div class="faq-list faq-single-column reveal delay-1">
+    <h3 id="faq-fit" class="faq-group-heading"><span>01</span> 先判斷這一卷是否適合</h3>
     <details class="policy-disclosure faq-item">
       <summary><span>壹</span><strong>這一卷適合我嗎？</strong></summary>
       <div><p>先看商品頁的問題情境、主脈與成熟度。如果那不是你想解決的問題，或你需要的是可直接量產的成品，就先不要拆卷。</p></div>
@@ -38,6 +41,7 @@
       <summary><span>參</span><strong>拆封後會拿到什麼？</strong></summary>
       <div><p>每卷會交付商品頁標示的完整概念圖文，通常包含概念原點、運作方式、使用情境、示意視覺、限制與未知。實際項目以該卷頁面為準。</p></div>
     </details>
+    <h3 id="faq-use" class="faq-group-heading"><span>02</span> 再確認使用邊界</h3>
     <details class="policy-disclosure faq-item">
       <summary><span>肆</span><strong>可以拿去實作或商用嗎？</strong></summary>
       <div><p>可以自行評估、改寫並作非專屬實作或商用；但不能直接轉賣或公開整卷原文與圖像。完整邊界請看<a href="{{ url_for('public.policies') }}#terms">購買與服務條款</a>。</p></div>
@@ -50,14 +54,16 @@
       <summary><span>陸</span><strong>同一卷只會賣給我嗎？</strong></summary>
       <div><p>不會。盲策預設為非專屬提供，同一方向可能由不同買家各自發展；如果你需要獨家合作，不能把一般拆卷當成買斷。</p></div>
     </details>
+    <h3 id="faq-help" class="faq-group-heading"><span>03</span> 已購取回與問題協助</h3>
     <details class="policy-disclosure faq-item">
       <summary><span>柒</span><strong>買過之後怎麼取回？</strong></summary>
-      <div><p>付款確認後，開通資訊會寄到訂購 Email。完成開通後，可從「已購取回」重新驗證登入，在服務存續期間回來讀取已購內容。</p></div>
+      <div><p>付款確認後，開通資訊會寄到訂購 Email。完成開通後，可從「已購取回」重新驗證登入，在服務存續期間回來讀取已購內容。</p><a class="page-inline-action" href="{{ url_for('access.customer_login_page') }}">前往已購取回 <span aria-hidden="true">→</span></a></div>
     </details>
     <details class="policy-disclosure faq-item">
       <summary><span>捌</span><strong>付款、取消或取回遇到問題怎麼辦？</strong></summary>
       <div><p>請走<a href="{{ url_for('public.support') }}">私人客服</a>，不要公開貼出買家內容。提供問題時間與必要畫面即可；密碼、驗證碼、Passkey、復原碼和完整付款資料都不要傳送。</p></div>
     </details>
   </div>
+  <div class="page-next-step"><p>答案清楚了？回到封印目錄，挑選你想進一步了解的問題。</p><a href="{{ url_for('public.home') }}#ideas">回到封印目錄 <span aria-hidden="true">→</span></a></div>
 </section>
 {% endblock %}

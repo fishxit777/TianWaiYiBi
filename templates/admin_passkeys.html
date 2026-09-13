@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v16.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v17.css', v='professional-ui-v17') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v19.css', v='readable-typography-v19') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v33-admin.css', v='polished-admin-v33') }}">
 </head>
 <body class="admin-page credential-setup-page">
   <main class="credential-setup-shell">
@@ -17,7 +18,7 @@
       <div>
         <p class="section-index">ADMIN SECURITY</p>
         <h1>Passkey 與登入金鑰</h1>
-        <p>免費最高安全配置：Windows Hello 作為主要金鑰，手機或硬體金鑰作為備援。</p>
+        <p>建議雙金鑰配置：Windows Hello 作為主要金鑰，手機或硬體金鑰作為備援。</p>
       </div>
       <a class="button button-ghost" href="{{ url_for('admin.dashboard') }}#security">返回安全稽核</a>
     </header>

@@ -1,6 +1,38 @@
 (() => {
   const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
   const siteHeader = document.querySelector('.site-header');
+  const chapterNav = document.querySelector('.mobile-chapter-nav');
+  const mobileMenu = document.querySelector('.mobile-site-menu');
+  const updateHeaderSpace = () => {
+    const headerHeight = siteHeader?.getBoundingClientRect().height || 0;
+    const chapterHeight = chapterNav?.getBoundingClientRect().height || 0;
+    document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+    document.documentElement.style.setProperty('--navigation-clearance', `${headerHeight + chapterHeight + 20}px`);
+  };
+  if (typeof ResizeObserver !== 'undefined') {
+    const observer = new ResizeObserver(updateHeaderSpace);
+    [siteHeader, chapterNav].filter(Boolean).forEach((element) => observer.observe(element));
+  }
+  updateHeaderSpace();
+  addEventListener('resize', updateHeaderSpace, {passive: true});
+  const closeMenu = (restoreFocus = false) => {
+    if (!mobileMenu?.open) return;
+    mobileMenu.open = false;
+    if (restoreFocus) mobileMenu.querySelector('summary')?.focus();
+  };
+  mobileMenu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => closeMenu()));
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeMenu(true); });
+  document.addEventListener('click', (event) => { if (!mobileMenu?.contains(event.target)) closeMenu(); });
+  const updateCurrentNavigation = () => {
+    document.querySelectorAll('.main-nav a, .mobile-chapter-nav a, .mobile-site-menu a').forEach((link) => {
+      const url = new URL(link.href);
+      const current = url.pathname === location.pathname && (url.hash ? url.hash === location.hash : true);
+      if (current) link.setAttribute('aria-current', url.hash ? 'location' : 'page');
+      else link.removeAttribute('aria-current');
+    });
+  };
+  updateCurrentNavigation();
+  addEventListener('hashchange', updateCurrentNavigation);
   const readingProgress = document.querySelector('[data-reading-progress]');
   const updateReadingPosition = () => {
     const range = Math.max(document.documentElement.scrollHeight - innerHeight, 1);
@@ -20,6 +52,16 @@
   };
 
   const filterButtons = [...document.querySelectorAll('[data-filter]')];
+  filterButtons.forEach((button) => {
+    const filter = button.dataset.filter;
+    const count = [...document.querySelectorAll('.idea-card')].filter((card) => filter === 'all' || (card.dataset.tags || '').split(',').includes(filter)).length;
+    const badge = document.createElement('span');
+    badge.className = 'filter-count';
+    badge.textContent = String(count);
+    badge.setAttribute('aria-hidden', 'true');
+    button.append(badge);
+    button.setAttribute('aria-label', `${filter === 'all' ? '全部' : filter}，${count} 卷`);
+  });
   const applyIdeaFilter = (requested, track=false) => {
     if (!filterButtons.length) return;
     const available = new Set(filterButtons.map((button) => button.dataset.filter || 'all'));
@@ -41,12 +83,26 @@
     const result=document.querySelector('#idea-result-count');
     if(result) result.textContent=filter==='all'?`目前顯示全部 ${visibleCount} 卷`:`${filter}・找到 ${visibleCount} 卷`;
     const empty=document.querySelector('#idea-filter-empty'); if(empty) empty.hidden=visibleCount>0;
-    const url=new URL(location.href); if(filter==='all') url.searchParams.delete('filter'); else url.searchParams.set('filter',filter); history.replaceState(null,'',`${url.pathname}${url.search}${url.hash}`);
+    const url=new URL(location.href); if(filter==='all') url.searchParams.delete('filter'); else url.searchParams.set('filter',filter);
+    if(track && url.href !== location.href) history.pushState(null,'',`${url.pathname}${url.search}${url.hash}`);
     if(track) trackEvent('filter_used',{eventValue:filter}).catch(()=>{});
   };
   filterButtons.forEach((button)=>button.addEventListener('click',()=>applyIdeaFilter(button.dataset.filter||'all',true)));
-  document.querySelector('[data-reset-idea-filter]')?.addEventListener('click',()=>applyIdeaFilter('all',true));
+  document.querySelector('[data-reset-idea-filter]')?.addEventListener('click',()=>{applyIdeaFilter('all',true);filterButtons[0]?.focus();});
   if(filterButtons.length) applyIdeaFilter(new URL(location.href).searchParams.get('filter')||'all');
+  addEventListener('popstate', () => {applyIdeaFilter(new URL(location.href).searchParams.get('filter') || 'all');updateCurrentNavigation();});
+  document.querySelectorAll('[data-vein-link]').forEach((link) => link.addEventListener('click', (event) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    const url = new URL(link.href);
+    if (url.href !== location.href) history.pushState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    applyIdeaFilter(url.searchParams.get('filter') || 'all');
+    updateCurrentNavigation();
+    const result = document.querySelector('#idea-result-count');
+    document.querySelector('#ideas')?.scrollIntoView({behavior: 'auto'});
+    result?.focus({preventScroll: true});
+    trackEvent('filter_used', {eventValue: url.searchParams.get('filter') || 'all'}).catch(() => {});
+  }));
 
   const detail=document.querySelector('[data-analytics-idea]');
   if(detail){
@@ -54,7 +110,7 @@
     const depth=()=>{const rect=detail.getBoundingClientRect(); const ratio=rect.height?Math.max(0,Math.min(rect.height,innerHeight-rect.top))/rect.height:0; [50,90].forEach((threshold)=>{if(ratio>=threshold/100&&!sent.has(threshold)){sent.add(threshold);trackEvent('reading_depth',{ideaSlug,eventValue:String(threshold)}).catch(()=>{});}})};
     depth(); addEventListener('scroll',depth,{passive:true});
     const button=document.querySelector('[data-interest-cta]'); const status=document.querySelector('[data-interest-status]'); const key=`twyb:interest:${ideaSlug}`;
-    const marked=()=>{if(!button)return;button.textContent='已記下開放意願';button.disabled=true;if(status)status.textContent='已記錄匿名意願；沒有建立訂單，也沒有傳送個人資料。';};
+    const marked=()=>{if(!button)return;button.textContent='已記下開放意願';button.disabled=true;if(status)status.textContent='已記錄匿名意願；沒有建立訂單，也沒有留下聯絡資料，不會另行通知。';};
     try{if(localStorage.getItem(key)==='1')marked();}catch(_error){}
     button?.addEventListener('click',async()=>{button.disabled=true;if(status)status.textContent='正在安全記錄…';try{await trackEvent('interest_registered',{ideaSlug});try{localStorage.setItem(key,'1');}catch(_error){}marked();}catch(_error){button.disabled=false;if(status)status.textContent='目前無法記錄，請稍後再試。';}});
   }

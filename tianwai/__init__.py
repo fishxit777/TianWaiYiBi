@@ -87,7 +87,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "independent-content-security-v32",
+                "release": "experience-polish-v33",
             }
         )
 

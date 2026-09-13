@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v16.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v17.css', v='professional-ui-v17') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v19.css', v='readable-typography-v19') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v33-admin.css', v='polished-admin-v33') }}">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body class="admin-login-page admin-recovery-page">
@@ -27,7 +28,7 @@
       <label>管理帳號<input name="username" type="text" maxlength="120" autocomplete="username" required></label>
       <label>管理密碼<input name="password" type="password" maxlength="512" autocomplete="current-password" required></label>
       <label>一次性復原碼<input name="recovery_code" type="text" maxlength="80" autocomplete="off" spellcheck="false" required></label>
-      <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-action="admin-recovery" data-theme="dark"></div>
+      <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-action="admin-recovery" data-theme="light"></div>
       <button class="button button-primary button-wide" type="submit">撤銷舊金鑰並開始復原</button>
       <small>系統不會透過 LINE、Email 或日誌傳送或保存明文密碼與復原碼。</small>
       <a class="inline-text-link" href="{{ url_for('admin.login_page') }}">返回 Passkey 登入</a>

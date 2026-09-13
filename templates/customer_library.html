@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block title %}已購內容｜天外一筆{% endblock %}
-{% block body_class %}access-page{% endblock %}
+{% block body_class %}access-page flow-page{% endblock %}
 {% block content %}
 <section class="access-shell section-shell customer-library">
   <header class="access-header reveal"><span class="access-seal"><img src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt=""></span><div><p class="section-index">客戶專區</p><h1>已購內容</h1><p>購買權限會保留；只有短效登入碼會失效。</p></div></header>
-  <div class="library-grid reveal delay-1">
-    {% for order in orders %}<article class="library-card"><span>{{ order['role'] }}</span><h2>{{ order['title'] }}</h2><p>{{ order['discipline'] }}</p><a class="button button-primary" href="{{ url_for('access.order_content', order_no=order['order_no']) }}">開啟內容</a></article>{% else %}<p class="plain-alert">目前帳號下沒有已付款內容。</p>{% endfor %}
+  <div class="flow-library-toolbar"><p><strong>{{ orders|length }}</strong> 卷可閱讀內容</p><a href="{{ url_for('public.support') }}">已付款但找不到內容？</a></div>
+  <div class="library-grid reveal delay-1" aria-label="已購內容清單">
+    {% for order in orders %}<article class="library-card"><span>{{ order['role'] }}</span><h2 id="library-title-{{ loop.index }}">{{ order['title'] }}</h2><p>{{ order['discipline'] }}</p><a class="button button-primary" aria-describedby="library-title-{{ loop.index }}" aria-label="閱讀：{{ order['title'] }}" href="{{ url_for('access.order_content', order_no=order['order_no']) }}">開啟內容 <span aria-hidden="true">→</span></a></article>{% else %}<div class="flow-empty-library"><p class="plain-kicker">已購內容清單</p><h2>目前沒有可閱讀的內容</h2><p>可能使用了不同的購買信箱，或付款狀態仍待確認。請先核對交易信，不需要重新購買。</p><a class="button button-primary" href="{{ url_for('access.customer_login_page') }}">改用購買時的信箱登入</a><a class="text-button inline-text-link" href="{{ url_for('public.support') }}">請私人客服協助確認</a></div>{% endfor %}
   </div>
-  <form class="library-logout" action="{{ url_for('access.customer_logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-ghost" type="submit">登出</button></form>
+  <div class="flow-library-session"><p>共用裝置閱讀結束後，請登出以保護已購內容。</p><form class="library-logout" action="{{ url_for('access.customer_logout') }}" method="post" data-flow-form data-pending-label="正在登出…"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-ghost" type="submit">登出此裝置</button><p class="flow-submit-status" data-flow-submit-status role="status"></p></form></div>
 </section>
 {% endblock %}

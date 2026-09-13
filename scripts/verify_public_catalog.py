@@ -56,7 +56,7 @@ def verify(base: str) -> dict[str, int]:
     public_text = home + public_api
     return {
         "health_http": health_status,
-        "health_v32": int(json.loads(health or "{}").get("release") == "independent-content-security-v32"),
+        "health_current_release": int(json.loads(health or "{}").get("release") == "experience-polish-v33"),
         "home_http": home_status,
         "published_cards": home.count('class="idea-card sealed-card'),
         "public_titles_present": sum(idea["public_title"] in home for idea in BLINDBOX_SEEDS),
@@ -85,7 +85,7 @@ def main() -> None:
 
     expected = {
         "health_http": 200,
-        "health_v32": 1,
+        "health_current_release": 1,
         "home_http": 200,
         "published_cards": 13,
         "public_titles_present": 13,

@@ -1,4 +1,9 @@
 (() => {
+  const announcement = document.createElement('span');
+  announcement.className = 'visually-hidden';
+  announcement.setAttribute('role', 'status');
+  announcement.setAttribute('aria-live', 'polite');
+  document.body.append(announcement);
   document.querySelectorAll('[data-companion-button]').forEach((button) => {
     const speech = button.querySelector('.companion-speech');
     const lines = (button.dataset.lines || speech?.textContent || '')
@@ -12,6 +17,7 @@
       if (lines.length > 1) {
         lineIndex = (lineIndex + 1) % lines.length;
         if (speech) speech.textContent = lines[lineIndex];
+        announcement.textContent = `${button.querySelector('.companion-name b')?.textContent || '仙伴'}：${lines[lineIndex]}`;
       }
 
       clearTimeout(settleTimer);

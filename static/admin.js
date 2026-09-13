@@ -19,6 +19,26 @@
   };
   const orderLabels = {pending: '待付款', paid: '已付款', cancelled: '已取消', refunded: '已退款'};
   const deliveryLabels = {sent: '已寄出', development: '測試交付', failed: '交付失敗', pending: '等待交付'};
+  const notificationLabels = {sent: '服務已接受', pending: '等待寄送', failed: '寄送失敗', skipped: '通道未就緒', sending: '寄送中'};
+  const workflowLabels = {draft: '草稿', review: '檢查中', ready: '可上架', published: '已上架', archived: '封存'};
+  const incidentLabels = {open: '待處理', reviewing: '檢視中', resolved: '已處理', dismissed: '已排除'};
+  const severityLabels = {info: '資訊', low: '一般', medium: '注意', high: '高風險', critical: '重大'};
+  const eventLabels = {
+    activation_code_rejected: '開通碼驗證失敗', customer_login_code_rejected: '客戶登入碼驗證失敗',
+    revoked_session_replay: '已撤銷工作階段重複使用', payment_signature_rejected: '付款簽章驗證失敗',
+    payment_signature_mismatch: '付款簽章不符', payment_order_not_found: '付款回呼找不到訂單',
+    payment_amount_mismatch: '付款金額不符', ecpay_signature_mismatch: '綠界回呼簽章不符',
+    ecpay_result_signature_mismatch: '綠界結果簽章不符', line_signature_mismatch: 'LINE 簽章不符',
+    transactional_email_delivery_failed: '交易信寄送失敗', admin_auth_blocked: '管理登入來源暫時封鎖',
+    admin_auth_failed: '管理登入驗證失敗', admin_session_ip_mismatch: '管理工作階段來源異常',
+    admin_ip_denied: '非允許來源存取後台', admin_csrf_rejected: '管理操作驗證遭拒',
+    admin_login_csrf_rejected: '管理登入安全驗證遭拒', admin_emergency_recovery: '緊急復原啟動',
+    admin_recovery_completed: '緊急復原完成', sensitive_path_probe: '敏感路徑掃描',
+    csrf_rejected: '網頁安全驗證遭拒', oversized_request: '請求大小超出限制',
+    admin_password_login_disabled: '已停用的密碼登入遭嘗試', admin_passkey_registration_failed: 'Passkey 登記失敗',
+    manual_security_test: '人工安全測試紀錄', ecpay_simulated_paid: '模擬付款已忽略'
+  };
+  const actionLabels = {logged: '已記錄', rejected: '已拒絕', ignored: '已忽略', temporarily_blocked: '已暫時封鎖', session_revoked: '已撤銷工作階段', test_recorded: '測試已記錄', delivery_failed_queued_for_review: '寄送失敗，等待查核'};
   let dashboard = null;
   let orderFilter = 'all';
   let securityFilter = 'priority';
@@ -35,7 +55,13 @@
     return element;
   };
   const money = (value) => `NT$${Number(value || 0).toLocaleString('zh-TW')}`;
-  const dateText = (value) => value ? new Date(value).toLocaleString('zh-TW', {hour12: false}) : '—';
+  const dateText = (value) => {
+    const moment = value ? new Date(value) : null;
+    return moment && !Number.isNaN(moment.getTime())
+      ? moment.toLocaleString('zh-TW', {timeZone: 'Asia/Taipei', hour12: false})
+      : '—';
+  };
+  const statusLabel = (labels, value) => Object.hasOwn(labels, value) ? labels[value] : `待辨識（${String(value || '未提供')}）`;
   const setBadge = (selector, count) => {
     const badge = document.querySelector(selector);
     if (!badge) return;
@@ -54,7 +80,11 @@
     if (!lastSyncAt) return;
     const seconds = Math.max(0, Math.floor((Date.now() - lastSyncAt.getTime()) / 1000));
     const label = seconds < 15 ? '剛剛同步' : (seconds < 60 ? `${seconds} 秒前同步` : `${Math.floor(seconds / 60)} 分鐘前同步`);
-    document.querySelector('#last-sync').textContent = label;
+    const stale = seconds >= 300;
+    const target = document.querySelector('#last-sync');
+    target.textContent = `${label}・台北時間${stale ? '・建議更新' : ''}`;
+    target.classList.toggle('is-stale', stale);
+    target.title = `上次成功同步：${dateText(lastSyncAt)}（台北時間 UTC+8）；資料不會自動刷新。`;
   };
 
   const confirmAction = ({title, message, impact, confirmLabel = '確認執行', tone = 'default'}) => new Promise((resolve) => {
@@ -66,7 +96,7 @@
     document.querySelector('#admin-confirm-submit').textContent = confirmLabel;
     confirmDialog.dataset.tone = tone;
     confirmDialog.showModal();
-    document.querySelector('#admin-confirm-submit').focus();
+    document.querySelector('#admin-confirm-cancel').focus();
   });
 
   const closeConfirm = (accepted = false) => {
@@ -108,8 +138,8 @@
 
   function renderDate() {
     const today = new Date();
-    document.querySelector('#today-weekday').textContent = new Intl.DateTimeFormat('zh-TW', {weekday: 'long'}).format(today);
-    document.querySelector('#today-date').textContent = new Intl.DateTimeFormat('zh-TW', {month: '2-digit', day: '2-digit'}).format(today);
+    document.querySelector('#today-weekday').textContent = new Intl.DateTimeFormat('zh-TW', {timeZone: 'Asia/Taipei', weekday: 'long'}).format(today);
+    document.querySelector('#today-date').textContent = new Intl.DateTimeFormat('zh-TW', {timeZone: 'Asia/Taipei', month: '2-digit', day: '2-digit'}).format(today);
   }
 
   function renderMetrics(metrics) {
@@ -130,7 +160,7 @@
       const card = node('article', `metric-card tone-${tone}`);
       card.dataset.tone = tone;
       const header = node('div', 'metric-card-head');
-      header.append(node('span', 'metric-label', label), node('i', '', tone === 'attention' ? '需處理' : '即時'));
+      header.append(node('span', 'metric-label', label), node('i', '', tone === 'attention' ? '需處理' : '同步快照'));
       card.append(header, node('strong', '', value), node('small', '', detail));
       if (view) {
         card.classList.add('is-actionable');
@@ -227,8 +257,8 @@
     const today = new Date();
     const series = [];
     for (let offset = 6; offset >= 0; offset -= 1) {
-      const day = new Date(today);
-      day.setDate(today.getDate() - offset);
+      const day = new Date(today.getTime() - offset * 86400000);
+      // Revenue rows are aggregated by UTC date on the server; keep that accounting boundary.
       const key = day.toISOString().slice(0, 10);
       series.push({key, amount: indexed.get(key) || 0});
     }
@@ -238,7 +268,7 @@
       const progress = node('progress');
       progress.max = max;
       progress.value = item.amount;
-      progress.setAttribute('aria-label', `${item.key} 營收 ${item.amount}`);
+      progress.setAttribute('aria-label', `${item.key} UTC 日界營收 ${item.amount}`);
       wrapper.append(node('strong', '', money(item.amount)), progress, node('span', '', item.key.slice(5)));
       target.appendChild(wrapper);
     });
@@ -492,7 +522,7 @@
       const row = node('article', `idea-admin-row accent-${idea.accent}`);
       const seal = node('span', 'idea-admin-seal', idea.seal);
       const copy = node('div', 'idea-admin-copy');
-      copy.append(node('strong', '', idea.public_title || idea.title), node('small', '', `${idea.primary_vein || '待歸脈'}${idea.secondary_vein ? ` × ${idea.secondary_vein}` : ''}・${idea.workflow_status}`));
+      copy.append(node('strong', '', idea.public_title || idea.title), node('small', '', `${idea.primary_vein || '待歸脈'}${idea.secondary_vein ? ` × ${idea.secondary_vein}` : ''}・${statusLabel(workflowLabels, idea.workflow_status)}`));
       const price = node('div', 'idea-admin-price');
       price.append(node('strong', '', money(idea.price)), node('small', '', idea.price_override === null ? '套用預設價' : '單獨定價'));
       const toggle = node('button', `publish-toggle ${idea.published ? 'on' : ''}`, idea.published ? '已上架' : '已隱藏');
@@ -534,6 +564,7 @@
   }
 
   function renderOrders() {
+    if (!dashboard) return;
     const orders = dashboard?.orders || [];
     const target = document.querySelector('#orders-table');
     clear(target);
@@ -615,7 +646,7 @@
     data.orders.forEach((order) => {
       const row = node('tr');
       const customer = node('td');
-      customer.append(node('strong', '', order.customer_name), node('small', '', `${order.customer_email}・${order.customer_public_id}`), node('small', '', `風險 ${order.risk_level}・可信裝置 ${order.trusted_devices}/2`));
+      customer.append(node('strong', '', order.customer_name), node('small', '', `${order.customer_email}・${order.customer_public_id}`), node('small', '', `風險：${statusLabel(severityLabels, order.risk_level)}・可信裝置 ${order.trusted_devices}/2`));
       const delivery = node('td');
       delivery.appendChild(node('span', `status-pill delivery-${order.delivery_status}`, deliveryLabels[order.delivery_status] || '等待交付'));
       const activation = node('td');
@@ -676,7 +707,8 @@
     const row = node('article', `event-item severity-${item.severity || 'info'}`);
     const copy = node('div');
     const eventDetail = item.path || `風險分數 ${item.risk_score ?? '—'}・${item.customer_public_id || '未綁定客戶'}`;
-    copy.append(node('strong', '', audit ? item.action : item.event_type), node('span', '', audit ? `${item.target}・${item.detail}` : `${item.action_taken}・${eventDetail}`));
+    copy.append(node('strong', '', audit ? item.action : statusLabel(eventLabels, item.event_type)), node('span', '', audit ? `${item.target}・${item.detail}` : `${statusLabel(actionLabels, item.action_taken)}・${eventDetail}`));
+    if (!audit && Object.hasOwn(eventLabels, item.event_type)) copy.appendChild(node('small', 'event-code', `事件代碼：${item.event_type}`));
     row.append(copy, node('small', '', audit ? item.ip : item.ip), node('time', '', dateText(item.created_at)));
     return row;
   }
@@ -717,7 +749,7 @@
       const notificationType = item.dedupe_key.includes('daily-summary') ? '營運摘要' : '即時告警';
       const channelLabel = item.channel === 'email' ? '歷史 Gmail・停止重試' : 'LINE';
       copy.append(
-        node('strong', '', `${notificationType}・${channelLabel}・${item.status}`),
+        node('strong', '', `${notificationType}・${channelLabel}・${statusLabel(notificationLabels, item.status)}`),
         node('span', '', `${item.recipient_masked}・嘗試 ${item.attempts} 次${item.last_error ? `・${item.last_error}` : ''}`)
       );
       row.append(copy, node('time', '', dateText(item.updated_at)));
@@ -736,8 +768,8 @@
       const row = node('article', `event-item severity-${item.level}`);
       const copy = node('div');
       copy.append(
-        node('strong', '', `${item.incident_no}・${item.event_type}`),
-        node('span', '', `${item.customer_public_id || '未綁定客戶'}・分數 ${item.risk_score}・${item.status}`)
+        node('strong', '', `${item.incident_no}・${statusLabel(eventLabels, item.event_type)}`),
+        node('span', '', `${item.customer_public_id || '未綁定客戶'}・分數 ${item.risk_score}・${statusLabel(incidentLabels, item.status)}`)
       );
       const actions = node('span', 'event-actions');
       if (item.status === 'open') {
@@ -853,17 +885,33 @@
 
   async function loadDashboard(message = '') {
     setStatus(message || '正在讀取營運資料…', 'loading');
+    root.dataset.loadState = dashboard ? 'refreshing' : 'loading';
+    document.querySelector('#admin-data-note').textContent = dashboard
+      ? '正在更新；目前仍顯示上次成功同步的快照。'
+      : '資料尚未載入，空白與破折號不代表零筆；本頁為手動同步快照。';
     root.classList.add('is-loading');
     root.setAttribute('aria-busy', 'true');
     refreshDashboard.disabled = true;
     refreshDashboard.setAttribute('aria-busy', 'true');
     try {
-      render(await api(`/admin/api/dashboard?analytics_days=${analyticsDays}`));
-      const syncedAt = new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit', hour12: false});
+      const data = await api(`/admin/api/dashboard?analytics_days=${analyticsDays}`);
+      if (!data || typeof data.metrics !== 'object' || data.metrics === null || Array.isArray(data.metrics)) {
+        throw new Error('目前未取得完整營運資料，請重新載入；若登入已到期，請重新登入。');
+      }
+      render(data);
+      const syncedAt = new Date().toLocaleTimeString('zh-TW', {timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hour12: false});
       setStatus(message || `資料已更新・${syncedAt}`);
+      root.dataset.loadState = 'ready';
+      document.querySelector('#admin-data-note').textContent = '本頁為手動同步快照；事件時間為台北時間（UTC+8），營收日彙總沿用 UTC 日界。需要最新狀態時請重新整理。';
       lastSyncAt = new Date();
       updateSyncFreshness();
-    } catch (error) { showError(error); }
+    } catch (error) {
+      root.dataset.loadState = dashboard ? 'stale' : 'error';
+      document.querySelector('#admin-data-note').textContent = dashboard
+        ? '更新失敗：目前保留上次成功讀取的資料，不代表最新狀態。'
+        : '尚未取得營運資料；請使用上方「重新載入」，不要將空白視為零筆或正常。';
+      showError(error);
+    }
     finally {
       root.classList.remove('is-loading');
       root.removeAttribute('aria-busy');

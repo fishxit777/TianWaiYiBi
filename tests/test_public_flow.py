@@ -511,7 +511,7 @@ def test_unavailable_payment_state_never_pushes_visitors_into_checkout(client, m
     assert "公開收款仍關閉，不會建立扣款" in home
     assert home.count("查看封印線索") >= 1
     assert "公開收款未開放" in detail
-    assert "開放時通知我" in detail
+    assert "登記開放意願" in detail
     assert 'href="/checkout/sealed-twin-tire-safety"' not in detail
 
 

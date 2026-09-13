@@ -3,6 +3,7 @@
 {% block body_class %}policy-page support-page{% endblock %}
 {% block page_scripts_head %}<script src="{{ url_for('static', filename='companions.js', v='chibi-immortal-companions-v23') }}" defer></script>{% endblock %}
 {% block content %}
+<nav class="page-breadcrumb section-shell" aria-label="麵包屑"><a href="{{ url_for('public.home') }}">首頁</a><span aria-hidden="true">／</span><span aria-current="page">私人客服</span></nav>
 <section class="policy-hero section-shell">
   <div class="policy-hero-copy reveal">
     <p class="section-index">仙門引路</p>
@@ -34,14 +35,18 @@
     <h2>正式收款前啟用</h2>
     <p>目前公開收款仍關閉，不會建立正式付費訂單。天外一筆專用客服信箱與私人表單完成後，才會在此顯示入口。</p>
     <div class="support-pending" role="status"><span aria-hidden="true"></span><strong>目前不收款，也不要求聯絡資料</strong></div>
+    <nav class="support-self-help" aria-label="目前可使用的自助服務">
+      <a href="{{ url_for('access.customer_login_page') }}"><strong>已有開通內容</strong><span>前往已購取回，重新驗證登入 <b aria-hidden="true">→</b></span></a>
+      <a href="{{ url_for('public.faq') }}#faq-help"><strong>先了解取回流程</strong><span>查看取回與問題協助的說明 <b aria-hidden="true">→</b></span></a>
+    </nav>
     {% endif %}
   </article>
   <aside class="support-safety reveal delay-1">
     <p class="section-index">安全提醒</p>
-    <h2>可以提供</h2>
-    <ul><li>訂購時使用的 Email</li><li>問題發生的大約時間</li><li>不含機密的錯誤畫面</li><li>希望協助的事項</li></ul>
-    <h2>絕對不要提供</h2>
-    <p>密碼、驗證碼、完整付款資料、Passkey、復原碼、私鑰或任何可直接登入帳號的資料。</p>
+    <div class="support-safe-group"><h2>{{ '可以提供' if support_contact.ready else '可以先自行記下' }}</h2>
+    <ul>{% if support_contact.ready %}<li>訂購時使用的 Email</li>{% endif %}<li>問題發生的大約時間</li><li>不含機密的錯誤畫面</li><li>希望協助的事項</li></ul></div>
+    <div class="support-secret-group"><h2>絕對不要提供</h2>
+    <p>密碼、驗證碼、完整付款資料、Passkey、復原碼、私鑰或任何可直接登入帳號的資料。</p><p class="support-redaction-tip">保留錯誤畫面前，先遮住上述資料及完整付費圖文。</p></div>
   </aside>
 </section>
 {% endblock %}
