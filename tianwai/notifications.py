@@ -708,9 +708,10 @@ def retry_private_alerts(limit=10):
     connection.commit()
     summary_cutoff = (now - timedelta(hours=DAILY_SUMMARY_RETRY_HOURS)).isoformat(timespec="seconds")
     alert_cutoff = (now - timedelta(days=PRIVATE_ALERT_RETRY_DAYS)).isoformat(timespec="seconds")
+    summary_pattern = "%:daily-summary:%"
     eligibility = """
-        ((dedupe_key LIKE '%:daily-summary:%' AND created_at >= ?)
-         OR (dedupe_key NOT LIKE '%:daily-summary:%' AND created_at >= ?))
+        ((dedupe_key LIKE ? AND created_at >= ?)
+         OR (dedupe_key NOT LIKE ? AND created_at >= ?))
     """
     stale = connection.execute(
         f"""
@@ -718,7 +719,7 @@ def retry_private_alerts(limit=10):
         WHERE channel = 'line' AND status IN ('pending', 'failed', 'skipped')
           AND NOT {eligibility}
         """,
-        (summary_cutoff, alert_cutoff),
+        (summary_pattern, summary_cutoff, summary_pattern, alert_cutoff),
     ).fetchone()
     rows = connection.execute(
         f"""
@@ -729,7 +730,7 @@ def retry_private_alerts(limit=10):
         ORDER BY id ASC LIMIT ?
         """,
         (MAX_DELIVERY_ATTEMPTS, now.isoformat(timespec="seconds"), now.isoformat(timespec="seconds"),
-         summary_cutoff, alert_cutoff, 50),
+         summary_pattern, summary_cutoff, summary_pattern, alert_cutoff, 50),
     ).fetchall()
     sent = 0
     processed = 0

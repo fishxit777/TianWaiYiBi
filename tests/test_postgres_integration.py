@@ -208,3 +208,31 @@ def test_real_postgres_two_workers_initialize_empty_database(pg_app, monkeypatch
             assert connection.execute("SELECT COUNT(*) AS n FROM ideas WHERE published = 1").fetchone()["n"] == 13
             assert connection.execute("SELECT COUNT(*) AS n FROM notification_delivery_windows").fetchone()["n"] == 0
         assert application.test_client().get("/healthz").status_code == 200
+
+
+def test_real_postgres_full_daily_summary_route_is_deduplicated(pg_app, monkeypatch):
+    import traceback
+    from pathlib import Path
+    from tianwai import notifications as n
+
+    monkeypatch.setenv("LINE_CHANNEL_ACCESS_TOKEN", "synthetic-pg-summary-token")
+    monkeypatch.setenv("LINE_ADMIN_USER_ID", "U" + "b" * 32)
+    secret = "synthetic-summary-secret-at-least-32-characters"
+    monkeypatch.setenv("NOTIFICATION_CRON_SECRET", secret)
+    monkeypatch.setattr(n.urllib.request, "urlopen", lambda *_a, **_k: pytest.fail("external send forbidden"))
+    sent = []
+    monkeypatch.setattr(n, "send_line_push", lambda message, **_kwargs: (sent.append(message) or "sent", ""))
+    client = pg_app.test_client()
+    for _ in range(2):
+        try:
+            response = client.post(
+                "/internal/notifications/daily-summary", json={"slot": "noon"},
+                headers={"X-Notification-Secret": secret},
+            )
+        except Exception as error:
+            locations = [f"{Path(frame.filename).name}:{frame.lineno}" for frame in traceback.extract_tb(error.__traceback__)
+                         if Path(frame.filename).name in {"notifications.py", "notification_routes.py", "db.py"}]
+            pytest.fail(f"summary_route_error={type(error).__name__}; locations={' > '.join(locations)}", pytrace=False)
+        assert response.status_code == 200
+        assert response.get_json()["channels"]["line"] == "sent"
+    assert len(sent) == 1
