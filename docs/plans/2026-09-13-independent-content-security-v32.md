@@ -52,7 +52,7 @@ Files: `tianwai/notifications.py`, additive queue schema in `tianwai/db.py`, `ti
 
 ## Task 4: Integration and independent review
 
-1. Clear external-service/database environment configuration for all tests; only temporary SQLite and mocked external I/O. Existing production data and local operational DB must remain untouched.
+1. Clear external-service/database environment configuration for all tests; only temporary SQLite or a fresh loopback-only PostgreSQL cluster, with external service I/O mocked. Existing production data and local operational DB must remain untouched.
 2. Run targeted tests, then `python -m pytest -q`, Python compile checks, JavaScript syntax checks, `pip check`, and non-echoing secret scan plus `git diff --check`.
 3. Independently review changes against each acceptance criterion. At most three reported acceptance rounds; repair failures before advancing. Report unresolved boundaries, including deployed proxy-chain/secret-uniqueness checks not performed.
 4. Verify no pricing/checkout/customer-messaging regressions; no WanyuTong tracked files changed by this batch.
