@@ -109,7 +109,7 @@
     <section id="ideas-admin" class="admin-workspace" data-admin-panel="ideas" hidden>
       <div class="workspace-heading"><div><span class="workspace-kicker">SEALED CONCEPT STUDIO</span><h2>盲策製作</h2><p>圖文、流程與售價先備妥。看完完整預覽，再按上架；不需要重新填價或選狀態。</p></div></div>
       <section class="admin-panel release-hub" id="release-hub" aria-labelledby="release-hub-title">
-        <div class="release-hub-top"><div><span class="workspace-kicker">READY TO PUBLISH</span><h3 id="release-hub-title">十三案完整內容包</h3><p class="release-hub-note" id="release-summary">正在核對內容、圖片與私密售價…</p></div><button type="button" id="release-publish-all" class="admin-primary-button release-publish-button" disabled>全部上架（13 案）</button></div>
+        <div class="release-hub-top"><div><span class="workspace-kicker">READY TO PUBLISH</span><h3 id="release-hub-title">十四卷完整內容包</h3><p class="release-hub-note" id="release-summary">正在核對內容、圖片與私密售價…</p></div><button type="button" id="release-publish-all" class="admin-primary-button release-publish-button" disabled>全部上架（14 案）</button></div>
         <p class="release-hub-gate">按「上架」會公開封印線索與本卷售價；完整文字與圖片仍只給已購者。上架不等於開通收款，不會代替尚未完成的營運準備或解除全站付款限制。</p>
         <p class="release-hub-status" id="release-status" role="status" aria-live="polite"></p><button class="admin-quiet-button" id="release-refresh" type="button">重新核對內容包</button>
         <div class="release-cards" id="release-cards"></div>
@@ -128,7 +128,7 @@
           <button class="admin-primary-button" type="submit">更新舊版預設價</button><small id="global-price-help">此欄保留舊版價格設定，不控制新的逐卷準備售價。請到各卷「售價與開放設定」準備價格；這裡不會公開新售價或啟用收款。</small>
         </form>
         <section class="admin-panel catalog-card"><div class="panel-heading"><div><span>SEALED CATALOG</span><h3>封印卷與製作狀態</h3></div><strong id="published-count" class="panel-note">—</strong></div><p class="commerce-catalog-note">線索上架、售價公開與開放購買各自管理。先保存準備售價，再逐卷核對交付；全站金流門檻仍須就緒才能收款。</p>
-          <details class="commerce-import"><summary>匯入十三卷準備售價</summary><form id="commerce-import-form"><p>選取經核對的 JSON 檔，一次保存前十三卷的準備售價。價格只留後台，不公開、不開賣；第十四卷不在本批內。</p><label for="commerce-import-file">準備售價檔案（JSON，最多 16 KB）<input id="commerce-import-file" type="file" accept=".json,application/json" aria-describedby="commerce-import-help" required></label><small id="commerce-import-help">格式為 entries 陣列，每筆包含 slug 與 prepared_price；必須完整涵蓋前十三卷。系統會先完整檢查再一次儲存。</small><button class="admin-primary-button" type="submit">檢查檔案並確認匯入</button><p id="commerce-import-status" class="form-status" role="status" aria-live="polite"></p></form></details>
+          <details class="commerce-import"><summary>匯入十四卷準備售價</summary><form id="commerce-import-form"><p>僅供進階維護：選取經核對的 JSON 檔，一次保存十四卷的準備售價。一般上架不需要匯入；價格只留後台，不公開、不開賣。</p><label for="commerce-import-file">準備售價檔案（JSON，最多 16 KB）<input id="commerce-import-file" type="file" accept=".json,application/json" aria-describedby="commerce-import-help" required></label><small id="commerce-import-help">格式為 entries 陣列，每筆包含 slug 與 prepared_price；必須完整涵蓋十四卷。系統會先完整檢查再一次儲存。</small><button class="admin-primary-button" type="submit">檢查檔案並確認匯入</button><p id="commerce-import-status" class="form-status" role="status" aria-live="polite"></p></form></details>
           <div id="idea-admin-list" class="idea-admin-list"></div></section>
       </div>
       </details>
@@ -275,7 +275,7 @@
       <footer><button type="button" data-close-refund-dialog>取消</button><button class="save-idea" type="submit">確認退款並撤回</button></footer>
     </form>
   </dialog>
-  <script src="{{ url_for('static', filename='admin.js', v='commerce-preparation-v37') }}" defer></script>
-  <script src="{{ url_for('static', filename='v38-release.js', v='complete-packages-v38') }}" defer></script>
+  <script src="{{ url_for('static', filename='admin.js', v='relock-inclusion-v39') }}" defer></script>
+  <script src="{{ url_for('static', filename='v38-release.js', v='relock-inclusion-v39') }}" defer></script>
 </body>
 </html>

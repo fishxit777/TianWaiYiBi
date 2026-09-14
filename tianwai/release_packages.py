@@ -1,4 +1,4 @@
-"""Validated private delivery packages for the first thirteen concept volumes.
+"""Validated private delivery packages and the existing ReLock concept guide.
 
 Editorial packages contain no prices. Prices remain in the private database;
 package readiness never implies that operational payment checks are complete.
@@ -6,10 +6,13 @@ package readiness never implies that operational payment checks are complete.
 
 from urllib.parse import urlsplit
 
+from . import concept_guides
 from .commerce import PRICING_BATCH_SLUGS, commerce_status, valid_prepared_price
 from .ideas import publication_gaps
 from .release_packages_a import PACKAGES_A
 from .release_packages_b import PACKAGES_B
+
+CONCEPT_GUIDE_SLUG = "sealed-concept-v14"
 
 
 _SECTION_RULES = {
@@ -49,6 +52,62 @@ def _source_url(value):
         return parsed.scheme == "https" and bool(parsed.hostname) and not parsed.username and not parsed.password
     except ValueError:
         return False
+
+
+def get_release_concept_guide(slug):
+    """Only the approved existing guide is eligible for this publication flow."""
+    if slug != CONCEPT_GUIDE_SLUG or slug not in PRICING_BATCH_SLUGS:
+        return None
+    guide = concept_guides.get_concept_guide(slug)
+    return guide if isinstance(guide, dict) else None
+
+
+def release_package_metadata(slug):
+    if slug == CONCEPT_GUIDE_SLUG:
+        guide = get_release_concept_guide(slug) or {}
+        return {
+            "format": "concept_guide", "title": guide.get("title", ""),
+            "scope": guide.get("lead", ""), "boundary": guide.get("boundary", ""),
+        }
+    package = get_release_package(slug) or {}
+    return {"format": "research_package", **{field: package.get(field, "") for field in ("title", "scope", "boundary")}}
+
+
+def _guide_structure_gaps(guide, manuscript):
+    """Validate the existing delivery format without inventing worksheet content."""
+    guide = guide or {}
+    gaps = []
+    for field, label in (
+        ("title", "導讀名稱"), ("lead", "導讀範圍"), ("caption", "導讀圖說"),
+        ("state_summary", "狀態轉換說明"), ("boundary", "導讀使用邊界"), ("asset", "導讀素材設定"),
+    ):
+        if not _text(guide.get(field)):
+            gaps.append(label)
+    for field, required, label in (("steps", 7, "七步完整導讀"), ("validation_scenarios", 3, "三種待驗證模擬情境")):
+        items = guide.get(field)
+        if (
+            not _sequence(items) or len(items) != required
+            or any(not isinstance(item, dict) or not all(_text(item.get(key)) for key in ("title", "body")) for item in items)
+            or len({item["title"].strip() for item in items}) != required
+        ):
+            gaps.append(label)
+    sections = {}
+    if _text(manuscript):
+        for block in manuscript.replace("\r\n", "\n").split("\n\n"):
+            title, _, body = block.strip().partition("\n")
+            sections.setdefault(title, []).append(body.strip())
+    mvp_count = 0
+    for number in range(1, 7):
+        prefix = f"Micro-MVP｜步驟 {number}｜"
+        matches = [bodies for title, bodies in sections.items() if title.startswith(prefix) and title[len(prefix):].strip()]
+        if len(matches) == 1 and len(matches[0]) == 1 and matches[0][0]:
+            mvp_count += 1
+    if mvp_count != 6 or sum(title.startswith("Micro-MVP｜步驟 ") for title in sections) != 6:
+        gaps.append("原始內文六步 Micro-MVP")
+    for title in ("模組與圖號對照", "狀態與人工操作", "測試空白紀錄", "限制與未知", "安全與使用邊界"):
+        if len(sections.get(title, ())) != 1 or not sections[title][0]:
+            gaps.append(f"原始內文：{title}")
+    return gaps, mvp_count
 
 
 def release_package_structure_gaps(package):
@@ -104,19 +163,36 @@ def release_package_status(idea, payment_status):
     from .private_content import ASSET_FIELDS, resolve_private_asset
 
     idea = dict(idea)
-    package = get_release_package(idea.get("slug"))
-    gaps = release_package_structure_gaps(package)
+    slug = idea.get("slug")
+    package = get_release_package(slug)
+    guide = get_release_concept_guide(slug)
+    if slug == CONCEPT_GUIDE_SLUG:
+        gaps, mvp_count = _guide_structure_gaps(guide, idea.get("paid_content"))
+    else:
+        gaps = release_package_structure_gaps(package)
     if idea.get("slug") not in PRICING_BATCH_SLUGS:
-        gaps.insert(0, "本次前十三卷範圍")
+        gaps.insert(0, "本次十四卷範圍")
     gaps.extend(publication_gaps(idea))
     if not _text(idea.get("paid_content")) or len(idea["paid_content"].strip()) < 20:
         gaps.append("原始完整內文")
     asset_count = 0
+    asset_paths = []
     for slot, field in ASSET_FIELDS.items():
-        if resolve_private_asset(idea.get(field)) is None:
+        path = resolve_private_asset(idea.get(field))
+        if path is None:
             gaps.append({"hero": "主視覺實際素材", "diagram": "機制圖實際素材", "scene": "情境圖實際素材"}[slot])
         else:
             asset_count += 1
+            asset_paths.append(path)
+    if slug == CONCEPT_GUIDE_SLUG:
+        path = resolve_private_asset((guide or {}).get("asset"))
+        if path is None:
+            gaps.append("完整介紹流程實際素材")
+        else:
+            asset_count += 1
+            asset_paths.append(path)
+        if len(set(asset_paths)) != len(asset_paths):
+            gaps.append("四張不同的交付素材")
     if not valid_prepared_price(idea.get("prepared_price")):
         gaps.append("已確認的逐卷預備價格")
     if idea.get("workflow_status") not in {"ready", "published"}:
@@ -129,6 +205,14 @@ def release_package_status(idea, payment_status):
         for key in (*_SECTION_RULES, "worksheets")
     }
     counts["figures"] = asset_count
+    if slug == CONCEPT_GUIDE_SLUG:
+        guide = guide or {}
+        counts.update({key: 0 for key in (*_SECTION_RULES, "worksheets")})
+        counts.update(
+            flow_steps=len(guide["steps"]) if _sequence(guide.get("steps")) else 0,
+            mvp_steps=mvp_count,
+            tests=len(guide["validation_scenarios"]) if _sequence(guide.get("validation_scenarios")) else 0,
+        )
     return {
         "ready": not gaps,
         "gaps": list(dict.fromkeys(gaps)),

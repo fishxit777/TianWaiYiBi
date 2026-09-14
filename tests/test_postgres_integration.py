@@ -327,7 +327,7 @@ def test_real_postgres_commerce_admin_batch_atomicity_and_order_gate(pg_app):
         assert rows[0]["slug"] == FIRST_SLUG
         before = [dict(row) for row in rows]
         orders_before = connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"]
-    prepared = [{"slug": row["slug"], "prepared_price": 7400 + row["sort_order"]} for row in rows[:13]]
+    prepared = [{"slug": row["slug"], "prepared_price": 7400 + row["sort_order"]} for row in rows]
     invalid = [dict(entry) for entry in prepared]
     invalid[-1]["prepared_price"] = 0
     assert client.post("/admin/api/commerce/prepare", json={"entries": invalid}, headers=headers).status_code == 400
@@ -347,7 +347,7 @@ def test_real_postgres_commerce_admin_batch_atomicity_and_order_gate(pg_app):
     assert client.post(f"/admin/api/ideas/{first_id}/commerce", json=listed, headers=headers).status_code == 200
     assert _post_order(public).status_code == 201
     assert _post_order(public, LAST_SLUG).status_code in (403, 409, 503)
-    # A mixed-state batch must reject atomically, including the twelve preparing rows.
+    # A mixed-state batch must reject atomically, including all preparing rows.
     before_retry = client.get(f"/admin/api/ideas/{first_id}/commerce").get_json()["commerce"]
     with pg_app.app_context():
         before_retry_rows = [dict(row) for row in get_db().execute("SELECT * FROM ideas WHERE published = 1 ORDER BY sort_order").fetchall()]
@@ -357,8 +357,8 @@ def test_real_postgres_commerce_admin_batch_atomicity_and_order_gate(pg_app):
         connection = get_db()
         after = [dict(row) for row in connection.execute("SELECT * FROM ideas WHERE published = 1 ORDER BY sort_order").fetchall()]
         assert after == before_retry_rows
-        assert after[-1] == before[-1]
-        for original, updated in zip(before[:13], after[:13]):
+        assert after[-1]["sale_state"] == "preparing" and after[-1]["release_ready"] == 0
+        for original, updated in zip(before, after):
             for field in ("paid_content", "deliverables", "price_override", "published", "workflow_status"):
                 assert updated[field] == original[field]
         assert connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"] == orders_before + 1
@@ -377,7 +377,7 @@ def _prepare_v38_release_rows(connection):
     rows = connection.execute(
         f"SELECT * FROM ideas WHERE slug IN ({placeholders}) ORDER BY sort_order", PRICING_BATCH_SLUGS,
     ).fetchall()
-    assert len(rows) == 13
+    assert len(rows) == 14
     return [dict(row) for row in rows]
 
 
@@ -387,54 +387,67 @@ def test_real_postgres_v38_single_batch_publication_and_restart_preserve_prepara
     from tianwai.release_packages import get_release_package, release_package_structure_gaps
 
     # Validate the actual final editorial files, never replacement mock packages.
-    assert all(not release_package_structure_gaps(get_release_package(slug)) for slug in PRICING_BATCH_SLUGS)
+    assert all(not release_package_structure_gaps(get_release_package(slug)) for slug in PRICING_BATCH_SLUGS[:13])
+    assert get_release_package(PRICING_BATCH_SLUGS[-1]) is None
     client, csrf = _commerce_admin_client(pg_app)
     headers = {"X-CSRF-Token": csrf}
     with pg_app.app_context():
         connection = get_db()
         prepared = _prepare_v38_release_rows(connection)
-        fourteenth = dict(connection.execute("SELECT * FROM ideas WHERE slug = 'sealed-concept-v14'").fetchone())
         order_count = connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"]
+        orders_before = [dict(row) for row in connection.execute("SELECT * FROM orders ORDER BY id").fetchall()]
         # A real application restart must retain private preparation and never list prices.
         init_db()
         after_restart = connection.execute(
-            "SELECT * FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 13 ORDER BY sort_order"
+            "SELECT * FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 14 ORDER BY sort_order"
         ).fetchall()
         assert [dict(row) for row in after_restart] == prepared
         assert all(row["sale_state"] == "preparing" and row["release_ready"] == 0 for row in after_restart)
     inventory = client.get("/admin/api/release-packages")
     assert inventory.status_code == 200
-    assert inventory.json["counts"]["ready"] == 13
+    assert inventory.json["counts"]["ready"] == 14
+    assert inventory.json["cards"][-1]["package_status"]["counts"]["figures"] == 4
     assert inventory.json["can_publish_all"] is True
     assert "no-store" in inventory.headers["Cache-Control"]
-    first_id = prepared[0]["id"]
+    first_id = prepared[-1]["id"]
     single = client.post(
         f"/admin/api/ideas/{first_id}/publish-package", json={"confirm_publication": True}, headers=headers,
     )
     assert single.status_code == 200
     assert single.json["published_count"] == single.json["changed_count"] == 1
+    with pg_app.app_context():
+        first_thirteen = get_db().execute(
+            "SELECT * FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 13 ORDER BY sort_order"
+        ).fetchall()
+        assert [dict(row) for row in first_thirteen] == prepared[:13]
+    single_again = client.post(
+        f"/admin/api/ideas/{first_id}/publish-package", json={"confirm_publication": True}, headers=headers,
+    )
+    assert single_again.status_code == 200 and single_again.json["changed_count"] == 0
     batch = client.post("/admin/api/release-packages/publish", json={"confirm_publication": True}, headers=headers)
     assert batch.status_code == 200
-    assert batch.json["published_count"] == 13 and batch.json["changed_count"] == 12
+    assert batch.json["published_count"] == 14 and batch.json["changed_count"] == 13
     assert all(state["sale_state"] == "price_listed" for state in batch.json["states"])
     repeated = client.post("/admin/api/release-packages/publish", json={"confirm_publication": True}, headers=headers)
     assert repeated.status_code == 200 and repeated.json["changed_count"] == 0
     with pg_app.app_context():
         connection = get_db()
         published = connection.execute(
-            "SELECT * FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 13 ORDER BY sort_order"
+            "SELECT * FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 14 ORDER BY sort_order"
         ).fetchall()
         for before, after in zip(prepared, published):
             assert after["sale_state"] == "price_listed"
             for field in before.keys() - {"sale_state", "updated_at"}:
                 assert after[field] == before[field]
-        assert dict(connection.execute("SELECT * FROM ideas WHERE slug = 'sealed-concept-v14'").fetchone()) == fourteenth
         assert connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"] == order_count
+        assert [dict(row) for row in connection.execute("SELECT * FROM orders ORDER BY id").fetchall()] == orders_before
     assert all(not idea["can_purchase"] for idea in pg_app.test_client().get("/api/ideas").json["ideas"])
 
 
-@pytest.mark.parametrize("missing", ["scene_image", "prepared_price"])
-def test_real_postgres_v38_missing_last_asset_or_price_blocks_whole_batch(pg_app, missing):
+@pytest.mark.parametrize("missing", ["scene_image", "prepared_price", "introduction", "guide_state"])
+def test_real_postgres_v38_missing_last_asset_or_price_blocks_whole_batch(pg_app, missing, monkeypatch):
+    from copy import deepcopy
+    from tianwai import concept_guides
     from tianwai.db import get_db
 
     client, csrf = _commerce_admin_client(pg_app)
@@ -443,9 +456,17 @@ def test_real_postgres_v38_missing_last_asset_or_price_blocks_whole_batch(pg_app
         connection = get_db()
         rows = _prepare_v38_release_rows(connection)
         last = rows[-1]
-        value = "brand/synthetic-missing-v38.webp" if missing == "scene_image" else None
-        connection.execute(f"UPDATE ideas SET {missing} = ? WHERE id = ?", (value, last["id"]))
-        connection.commit()
+        if missing in {"introduction", "guide_state"}:
+            guide = deepcopy(concept_guides.get_concept_guide(last["slug"]))
+            if missing == "introduction":
+                guide["asset"] = "brand/concepts/synthetic-missing-v39.webp"
+            else:
+                guide["state_summary"] = ""
+            monkeypatch.setitem(concept_guides.CONCEPT_GUIDES, last["slug"], guide)
+        else:
+            value = "brand/synthetic-missing-v38.webp" if missing == "scene_image" else None
+            connection.execute(f"UPDATE ideas SET {missing} = ? WHERE id = ?", (value, last["id"]))
+            connection.commit()
         before = [dict(row) for row in connection.execute("SELECT * FROM ideas ORDER BY id").fetchall()]
     try:
         inventory = client.get("/admin/api/release-packages")
@@ -462,7 +483,8 @@ def test_real_postgres_v38_missing_last_asset_or_price_blocks_whole_batch(pg_app
             assert [dict(row) for row in get_db().execute("SELECT * FROM ideas ORDER BY id").fetchall()] == before
     finally:
         # This cluster is synthetic, but leave its next independent case intact.
-        with pg_app.app_context():
-            connection = get_db()
-            connection.execute(f"UPDATE ideas SET {missing} = ? WHERE id = ?", (last[missing], last["id"]))
-            connection.commit()
+        if missing not in {"introduction", "guide_state"}:
+            with pg_app.app_context():
+                connection = get_db()
+                connection.execute(f"UPDATE ideas SET {missing} = ? WHERE id = ?", (last[missing], last["id"]))
+                connection.commit()

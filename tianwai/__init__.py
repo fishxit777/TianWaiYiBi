@@ -89,7 +89,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "complete-release-packages-v38",
+                "release": "relock-release-inclusion-v39",
             }
         )
 

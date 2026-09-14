@@ -1,0 +1,10 @@
+      {% set manuscript = manuscript_text.replace('\r\n', '\n').replace('\r', '\n') %}
+      {% set headings = ['概念原點', '概念機制', '模組與圖號對照', '狀態與人工操作', '使用者價值與交付範圍', '測試空白紀錄', '限制與未知', '安全與使用邊界'] %}
+      {% for section in manuscript.strip().split('\n\n') if section.strip() %}
+        {% set parts = section.strip().partition('\n') %}
+        <section class="v34-reader-section">
+          {% if parts[0] in headings or parts[0].startswith('Micro-MVP｜步驟 ') %}
+            <h3>{{ parts[0] }}</h3>{% if parts[2] %}<p class="manuscript-copy">{{ parts[2] }}</p>{% endif %}
+          {% else %}<p class="manuscript-copy">{{ section.strip() }}</p>{% endif %}
+        </section>
+      {% endfor %}

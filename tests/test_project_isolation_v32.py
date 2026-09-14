@@ -151,12 +151,13 @@ def test_rendering_research_sources_never_fetches_them(app, client, monkeypatch)
     monkeypatch.setattr(urllib.request, "urlretrieve", forbid_network)
     login_admin(client)
     inventory = client.get("/admin/api/release-packages")
-    assert inventory.status_code == 200 and len(inventory.json["cards"]) == 13
-    assert all(get_release_package(slug)["sources"] for slug in PRICING_BATCH_SLUGS)
+    assert inventory.status_code == 200 and len(inventory.json["cards"]) == 14
+    assert all(get_release_package(slug)["sources"] for slug in PRICING_BATCH_SLUGS[:13])
+    assert get_release_package(PRICING_BATCH_SLUGS[-1]) is None
     for card in inventory.json["cards"]:
         preview = client.get(card["preview_url"])
         assert preview.status_code == 200
-        for citation in get_release_package(card["slug"])["sources"]:
+        for citation in (get_release_package(card["slug"]) or {}).get("sources", ()):
             assert str(escape(citation["url"])) in preview.get_data(as_text=True)
 
 

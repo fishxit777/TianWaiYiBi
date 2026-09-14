@@ -29,7 +29,7 @@ def _synthetic_package():
 def release_catalog(app, monkeypatch):
     from tianwai import admin, release_packages
 
-    packages = {slug: _synthetic_package() for slug in PRICING_BATCH_SLUGS}
+    packages = {slug: _synthetic_package() for slug in PRICING_BATCH_SLUGS[:13]}
     getter = lambda slug: packages.get(slug)
     monkeypatch.setattr(release_packages, "get_release_package", getter)
     monkeypatch.setattr(admin, "get_release_package", getter)
@@ -54,7 +54,7 @@ def _rows(app):
 
 
 def test_actual_editorial_packages_cover_exact_first_thirteen_and_are_structurally_complete():
-    for slug in PRICING_BATCH_SLUGS:
+    for slug in PRICING_BATCH_SLUGS[:13]:
         package = get_release_package(slug)
         assert not release_package_structure_gaps(package), slug
     assert get_release_package("sealed-concept-v14") is None
@@ -104,10 +104,10 @@ def test_release_inventory_requires_admin_and_avoids_customer_tables(app, client
     assert result.headers["Referrer-Policy"] == "no-referrer"
     assert "Cookie" in result.headers["Vary"]
     body = result.json
-    assert len(body["cards"]) == 13
-    assert body["excluded_count"] == 1 and body["counts"]["ready"] == 13
+    assert len(body["cards"]) == 14
+    assert body["excluded_count"] == 0 and body["counts"]["ready"] == 14
     assert body["can_publish_all"] is True
-    assert all(card["package_status"]["counts"]["figures"] == 3 for card in body["cards"])
+    assert [card["package_status"]["counts"]["figures"] for card in body["cards"]] == [3] * 13 + [4]
     assert all(not card["commerce"]["can_purchase"] for card in body["cards"])
     assert all(card["prepared_price"] >= 7821 for card in body["cards"])
     assert not any(re.search(r"\b(?:FROM|JOIN)\s+(?:orders|customers|customer_devices|customer_sessions|activation_codes)\b", sql, re.I) for sql in statements)
@@ -136,7 +136,7 @@ def test_package_status_distinguishes_editorial_readiness_from_payment(app, rele
 @pytest.mark.parametrize("missing", ["prepared_price", "paid_content", "workflow_status", "hero_image", "diagram_image", "scene_image", "package"])
 def test_one_incomplete_volume_blocks_entire_batch_atomically(app, client, release_catalog, missing):
     csrf = login_admin(client)
-    slug = PRICING_BATCH_SLUGS[-1]
+    slug = PRICING_BATCH_SLUGS[12]
     if missing == "package":
         release_catalog["packages"].pop(slug)
     else:
@@ -161,7 +161,7 @@ def test_batch_publication_changes_only_listing_fields_and_is_idempotent(app, cl
     before = _rows(app)
     published = _post(client, csrf)
     assert published.status_code == 200
-    assert published.json["published_count"] == published.json["changed_count"] == 13
+    assert published.json["published_count"] == published.json["changed_count"] == 14
     after = _rows(app)
     changed_fields = {"published", "workflow_status", "sale_state", "updated_at"}
     for old, new in zip(before, after):
@@ -182,11 +182,11 @@ def test_batch_publication_changes_only_listing_fields_and_is_idempotent(app, cl
     assert all(not item["can_purchase"] for item in client.get("/api/ideas").json["ideas"])
 
 
-def test_single_volume_publication_excludes_fourteenth_and_preserves_existing_sale_state(app, client, release_catalog):
+def test_single_volume_publication_rejects_archived_and_preserves_existing_sale_state(app, client, release_catalog):
     csrf = login_admin(client)
     first_id = release_catalog["ids"][PRICING_BATCH_SLUGS[0]]
-    last_id = release_catalog["ids"]["sealed-concept-v14"]
-    assert _post(client, csrf, last_id).status_code == 404
+    archived_id = next(value for slug, value in release_catalog["ids"].items() if slug not in PRICING_BATCH_SLUGS)
+    assert _post(client, csrf, archived_id).status_code == 404
     assert _post(client, csrf, 999999).status_code == 404
     with app.app_context():
         connection = get_db()
@@ -234,7 +234,8 @@ def test_admin_preview_renders_real_content_without_fabricated_order(app, client
     assert set(captured["asset_urls"]) == {"hero", "diagram", "scene"}
     # Exclude the test's own final count query from route-read inspection.
     assert not any(re.search(r"\b(?:FROM|JOIN)\s+(?:orders|customers|customer_devices|customer_sessions)\b", sql, re.I) for sql in statements[:-1])
-    assert client.get(f"/admin/ideas/{release_catalog['ids']['sealed-concept-v14']}/preview").status_code == 404
+    archived_id = next(value for slug, value in release_catalog["ids"].items() if slug not in PRICING_BATCH_SLUGS)
+    assert client.get(f"/admin/ideas/{archived_id}/preview").status_code == 404
 
 
 def test_preview_assets_require_live_admin_auth_and_never_reuse_cache(client, release_catalog):
@@ -254,11 +255,12 @@ def test_preview_assets_require_live_admin_auth_and_never_reuse_cache(client, re
 
 
 @pytest.mark.parametrize("slot", ["introduction", "unknown", "..%2F..%2Fprivate", "hero.webp"])
-def test_preview_asset_slot_allowlist_and_fourteenth_exclusion(client, release_catalog, slot):
+def test_preview_asset_slot_allowlist_and_archived_exclusion(client, release_catalog, slot):
     login_admin(client)
     first_id = release_catalog["ids"][PRICING_BATCH_SLUGS[0]]
     assert client.get(f"/admin/ideas/{first_id}/assets/{slot}").status_code == 404
-    assert client.get(f"/admin/ideas/{release_catalog['ids']['sealed-concept-v14']}/assets/hero").status_code == 404
+    archived_id = next(value for slug, value in release_catalog["ids"].items() if slug not in PRICING_BATCH_SLUGS)
+    assert client.get(f"/admin/ideas/{archived_id}/assets/hero").status_code == 404
 
 
 @pytest.mark.parametrize("identifier", ["brand/../../outside.webp", "C:/private/file.webp", "brand/not-existing.webp"])

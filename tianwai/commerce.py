@@ -10,7 +10,7 @@ from .ideas import publication_gaps
 SALE_STATES = frozenset({"preparing", "price_listed", "for_sale"})
 PRICING_BATCH_SLUGS = (
     "sealed-twin-tire-safety",
-    *(f"sealed-concept-v{number:02d}" for number in range(2, 14)),
+    *(f"sealed-concept-v{number:02d}" for number in range(2, 15)),
 )
 
 

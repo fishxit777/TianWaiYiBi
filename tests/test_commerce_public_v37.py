@@ -26,13 +26,13 @@ def catalog_app(app, tmp_path):
     })
 
 
-def _configure_idea(application, *, state, ready, price=STAGED_PRICE, published=1):
+def _configure_idea(application, *, state, ready, price=STAGED_PRICE, published=1, slug=FIRST_SLUG):
     with application.app_context():
         connection = get_db()
         connection.execute(
             "UPDATE ideas SET prepared_price = ?, sale_state = ?, release_ready = ?, "
             "published = ? WHERE slug = ?",
-            (price, state, int(ready), published, FIRST_SLUG),
+            (price, state, int(ready), published, slug),
         )
         connection.commit()
 
@@ -85,30 +85,31 @@ def test_fresh_catalog_defaults_hide_legacy_price_and_deny_direct_orders(catalog
 @pytest.mark.parametrize("state", ["preparing", "price_listed", "for_sale"])
 @pytest.mark.parametrize("release_ready", [False, True])
 @pytest.mark.parametrize("payment_open", [False, True])
-def test_public_price_and_purchase_matrix(catalog_app, monkeypatch, state, release_ready, payment_open):
-    _configure_idea(catalog_app, state=state, ready=release_ready)
+@pytest.mark.parametrize("slug", [FIRST_SLUG, LAST_SLUG])
+def test_public_price_and_purchase_matrix(catalog_app, monkeypatch, state, release_ready, payment_open, slug):
+    _configure_idea(catalog_app, state=state, ready=release_ready, slug=slug)
     _payment_gate(monkeypatch, payment_open)
     client = catalog_app.test_client()
     visible = state in {"price_listed", "for_sale"}
     purchasable = state == "for_sale" and release_ready and payment_open
 
-    item = _public_idea(client)
+    item = _public_idea(client, slug)
     assert item["sale_state"] == state
     assert item["price_visible"] is visible
     assert item["can_purchase"] is purchasable
     assert ("price" in item) is visible
     if visible:
         assert item["price"] == STAGED_PRICE
-    for path in ("/", "/ideas/" + FIRST_SLUG, "/checkout/" + FIRST_SLUG):
+    for path in ("/", "/ideas/" + slug, "/checkout/" + slug):
         body = client.get(path).get_data(as_text=True)
         assert (str(STAGED_PRICE) in body) is visible
         assert "prepared_price" not in body
         if path.startswith("/checkout/"):
             assert ('id="order-form"' in body) is purchasable
         if path.startswith("/ideas/"):
-            assert ('href="/checkout/' + FIRST_SLUG + '"' in body) is purchasable
+            assert ('href="/checkout/' + slug + '"' in body) is purchasable
 
-    response = _post_order(client)
+    response = _post_order(client, slug)
     if purchasable:
         assert response.status_code == 201
         assert response.get_json()["amount"] == STAGED_PRICE
@@ -158,7 +159,7 @@ def test_unpublished_item_cannot_be_purchased_even_when_other_gates_are_ready(ca
     assert _post_order(client).status_code == 404
 
 
-def test_preparing_first_thirteen_preserves_fourteenth_and_keeps_all_prices_private(catalog_app, monkeypatch):
+def test_preparing_all_fourteen_preserves_archived_and_keeps_all_prices_private(catalog_app, monkeypatch):
     client = catalog_app.test_client()
     csrf = login_admin(client)
     with catalog_app.app_context():
@@ -166,14 +167,18 @@ def test_preparing_first_thirteen_preserves_fourteenth_and_keeps_all_prices_priv
         entries = [
             {"slug": row["slug"], "prepared_price": 7600 + row["sort_order"]}
             for row in connection.execute(
-                "SELECT slug, sort_order FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 13"
+                "SELECT slug, sort_order FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 14 ORDER BY sort_order"
             )
         ]
+        archived_before = dict(connection.execute("SELECT * FROM ideas WHERE slug = 'mvp-sword-cut'").fetchone())
         fourteenth_before = dict(connection.execute("SELECT * FROM ideas WHERE slug = ?", (LAST_SLUG,)).fetchone())
+    assert len(entries) == 14
+    assert entries[-1]["slug"] == LAST_SLUG
     response = client.post(
         "/admin/api/commerce/prepare", json={"entries": entries}, headers={"X-CSRF-Token": csrf}
     )
     assert response.status_code == 200
+    assert response.json["prepared_count"] == 14
     _payment_gate(monkeypatch, True)
     public_client = catalog_app.test_client()
     public_bodies = [public_client.get("/").get_data(as_text=True), public_client.get("/api/ideas").get_data(as_text=True)]
@@ -181,34 +186,51 @@ def test_preparing_first_thirteen_preserves_fourteenth_and_keeps_all_prices_priv
         public_bodies.extend(public_client.get(prefix + entry["slug"]).get_data(as_text=True) for prefix in ("/ideas/", "/checkout/"))
     for entry in entries:
         assert all(str(entry["prepared_price"]) not in body for body in public_bodies)
-    assert _post_order(public_client, LAST_SLUG).status_code in (403, 409, 503)
-    assert _public_idea(public_client, LAST_SLUG)["can_purchase"] is False
+        assert _post_order(public_client, entry["slug"]).status_code in (403, 409, 503)
+        item = _public_idea(public_client, entry["slug"])
+        assert item["can_purchase"] is False
+        assert item["price_visible"] is False
+        assert "price" not in item and "prepared_price" not in item
     with catalog_app.app_context():
         connection = get_db()
-        assert dict(connection.execute("SELECT * FROM ideas WHERE slug = ?", (LAST_SLUG,)).fetchone()) == fourteenth_before
+        assert dict(connection.execute("SELECT * FROM ideas WHERE slug = 'mvp-sword-cut'").fetchone()) == archived_before
+        fourteenth_after = dict(connection.execute("SELECT * FROM ideas WHERE slug = ?", (LAST_SLUG,)).fetchone())
+        assert fourteenth_after["prepared_price"] == entries[-1]["prepared_price"]
+        assert all(
+            fourteenth_after[field] == fourteenth_before[field]
+            for field in fourteenth_before.keys() - {"prepared_price", "updated_at"}
+        )
         assert connection.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 0
 
 
-def test_open_first_thirteen_does_not_open_display_only_fourteenth(catalog_app, monkeypatch):
+@pytest.mark.parametrize("include_fourteenth", [False, True])
+def test_fourteenth_requires_its_own_sale_readiness_when_other_volumes_open(catalog_app, monkeypatch, include_fourteenth):
     with catalog_app.app_context():
         connection = get_db()
         connection.execute(
             "UPDATE ideas SET prepared_price = ?, sale_state = 'for_sale', release_ready = 1 "
-            "WHERE published = 1 AND sort_order BETWEEN 1 AND 13",
-            (STAGED_PRICE,),
+            "WHERE published = 1 AND sort_order BETWEEN 1 AND ?",
+            (STAGED_PRICE, 14 if include_fourteenth else 13),
         )
         connection.commit()
     _payment_gate(monkeypatch, True)
     client = catalog_app.test_client()
     items = client.get("/api/ideas").get_json()["ideas"]
     assert len(items) == 14
-    assert sum(item["can_purchase"] for item in items) == 13
+    assert sum(item["can_purchase"] for item in items) == (14 if include_fourteenth else 13)
     assert client.get("/ideas/" + LAST_SLUG).status_code == 200
-    assert "price" not in _public_idea(client, LAST_SLUG)
-    assert _post_order(client, LAST_SLUG).status_code in (403, 409, 503)
+    last_item = _public_idea(client, LAST_SLUG)
+    last_order = _post_order(client, LAST_SLUG)
+    if include_fourteenth:
+        assert last_item["price"] == STAGED_PRICE
+        assert last_order.status_code == 201
+        assert last_order.json["amount"] == STAGED_PRICE
+    else:
+        assert "price" not in last_item
+        assert last_order.status_code in (403, 409, 503)
     assert _post_order(client, FIRST_SLUG).status_code == 201
     with catalog_app.app_context():
-        assert get_db().execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 1
+        assert get_db().execute("SELECT COUNT(*) FROM orders").fetchone()[0] == (2 if include_fourteenth else 1)
 
 
 def test_staged_price_changes_apply_only_to_new_order_snapshots(app, client):

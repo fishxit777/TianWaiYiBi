@@ -87,13 +87,23 @@ def test_explicit_public_confirmation_and_delivery_checks_cannot_be_skipped(app,
     assert commerce_post(client, csrf, prepared_catalog, prepared_price=None).status_code == 200
 
 
-def test_commerce_cannot_overwrite_content_or_configure_fourteenth(app, client, prepared_catalog):
+def test_commerce_accepts_fourteenth_but_cannot_overwrite_content_or_configure_archived(app, client, prepared_catalog):
     csrf = login_admin(client)
     assert commerce_post(client, csrf, prepared_catalog, title="Unexpected edit").status_code == 400
     with app.app_context():
-        last_id = get_db().execute("SELECT id FROM ideas WHERE slug = 'sealed-concept-v14'").fetchone()["id"]
-    assert commerce_post(client, csrf, last_id).status_code == 409
+        connection = get_db()
+        last_id = connection.execute("SELECT id FROM ideas WHERE slug = 'sealed-concept-v14'").fetchone()["id"]
+        archived_before = dict(connection.execute("SELECT * FROM ideas WHERE slug = 'mvp-sword-cut'").fetchone())
+    accepted = commerce_post(client, csrf, last_id)
+    assert accepted.status_code == 200
+    assert accepted.json["commerce"]["in_pricing_batch"] is True
+    assert accepted.json["commerce"]["prepared_price"] == 4217
+    assert "price" not in accepted.json["commerce"]
+    assert accepted.json["commerce"]["can_purchase"] is False
+    assert commerce_post(client, csrf, archived_before["id"]).status_code == 409
     assert commerce_post(client, csrf, 999999).status_code == 404
+    with app.app_context():
+        assert dict(get_db().execute("SELECT * FROM ideas WHERE id = ?", (archived_before["id"],)).fetchone()) == archived_before
 
 
 def test_batch_is_all_or_nothing_and_contains_no_price_audit(app, client, prepared_catalog):
@@ -102,11 +112,16 @@ def test_batch_is_all_or_nothing_and_contains_no_price_audit(app, client, prepar
         connection = get_db()
         before = [dict(row) for row in connection.execute("SELECT * FROM ideas ORDER BY id")]
     entries = batch_entries()
+    assert PRICING_BATCH_SLUGS == (
+        "sealed-twin-tire-safety",
+        *(f"sealed-concept-v{number:02d}" for number in range(2, 15)),
+    )
+    assert len(entries) == 14
     result = client.post(
         "/admin/api/commerce/prepare", json={"entries": entries}, headers={"X-CSRF-Token": csrf},
     )
     assert result.status_code == 200
-    assert result.json["prepared_count"] == 13
+    assert result.json["prepared_count"] == 14
     with app.app_context():
         connection = get_db()
         after = [dict(row) for row in connection.execute("SELECT * FROM ideas ORDER BY id")]
@@ -132,16 +147,23 @@ def test_batch_is_all_or_nothing_and_contains_no_price_audit(app, client, prepar
     assert remaining["prepared_price"] == entries[-1]["prepared_price"]
 
 
-@pytest.mark.parametrize("mistake", ["missing", "duplicate", "fourteenth", "invalid", "extra_key"])
+@pytest.mark.parametrize("mistake", ["old_thirteen", "extra_fifteenth", "duplicate", "fifteenth", "archived", "invalid", "extra_key"])
 def test_batch_validates_every_entry_before_writing(app, client, prepared_catalog, mistake):
     csrf = login_admin(client)
     entries = batch_entries()
-    if mistake == "missing":
-        entries.pop()
+    assert len(entries) == 14
+    with app.app_context():
+        before = [dict(row) for row in get_db().execute("SELECT * FROM ideas ORDER BY id")]
+    if mistake == "old_thirteen":
+        assert entries.pop()["slug"] == "sealed-concept-v14"
+    elif mistake == "extra_fifteenth":
+        entries.append({"slug": "sealed-concept-v15", "prepared_price": 4231})
     elif mistake == "duplicate":
         entries[-1]["slug"] = entries[0]["slug"]
-    elif mistake == "fourteenth":
-        entries[-1]["slug"] = "sealed-concept-v14"
+    elif mistake == "fifteenth":
+        entries[-1]["slug"] = "sealed-concept-v15"
+    elif mistake == "archived":
+        entries[-1]["slug"] = "mvp-sword-cut"
     elif mistake == "invalid":
         entries[-1]["prepared_price"] = True
     else:
@@ -151,6 +173,7 @@ def test_batch_validates_every_entry_before_writing(app, client, prepared_catalo
     )
     assert result.status_code == 400
     with app.app_context():
+        assert [dict(row) for row in get_db().execute("SELECT * FROM ideas ORDER BY id")] == before
         assert get_db().execute("SELECT COUNT(*) AS n FROM ideas WHERE prepared_price IS NOT NULL").fetchone()["n"] == 0
 
 

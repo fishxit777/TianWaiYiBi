@@ -36,7 +36,8 @@
   }
   function render() {
     target.replaceChildren();
-    summary.textContent = `${catalog.counts.ready} / ${catalog.counts.total} 案圖文與售價已備妥；${catalog.counts.listed} 案已公開售價。第十四案不在本次定價批次。`;
+    summary.textContent = `${catalog.counts.ready} / ${catalog.counts.total} 案圖文與售價已備妥；${catalog.counts.listed} 案已公開售價。`;
+    publishAll.textContent = `全部上架（${catalog.counts.total} 案）`;
     catalog.cards.forEach(card => {
       const row = node('article', 'release-card');
       row.dataset.releaseId = card.id;
@@ -49,7 +50,10 @@
       body.append(node('span', 'release-card-kicker', card.public_title), node('h4', '', card.title));
       body.append(node('p', 'release-card-scope', card.package?.scope || '內容包仍待整理。'));
       const counts = card.package_status?.counts || {};
-      body.append(node('p', 'release-card-facts', `${counts.figures || 0} 張圖・原始完整文字・${counts.flow_steps || 0} 步流程・${counts.mvp_steps || 0} 步 MVP\n${counts.tests || 0} 項測試・${counts.worksheets || 0} 份工作表・交接清單`));
+      const facts = card.package?.format === 'concept_guide'
+        ? `${counts.figures || 0} 張圖・原始完整文字・${counts.flow_steps || 0} 步介紹・${counts.mvp_steps || 0} 步 MVP\n${counts.tests || 0} 種待驗證模擬情境・狀態轉換・測試紀錄`
+        : `${counts.figures || 0} 張圖・原始完整文字・${counts.flow_steps || 0} 步流程・${counts.mvp_steps || 0} 步 MVP\n${counts.tests || 0} 項測試・${counts.worksheets || 0} 份工作表・交接清單`;
+      body.append(node('p', 'release-card-facts', facts));
       body.append(node('strong', 'release-card-price', card.prepared_price ? money(card.prepared_price) : '售價待備妥'));
       const label = isListed(card) ? (card.commerce.can_purchase ? '已上架・可購買' : '已上架・收款尚未開放') : (card.package_status?.ready ? '圖文與售價已備妥・等待你上架' : '尚有缺項・暫不能上架');
       body.append(node('p', 'release-card-state', label));
@@ -81,7 +85,7 @@
     try {
       const result = await api('/admin/api/release-packages');
       if (version !== loadVersion) return;
-      if (!Array.isArray(result.cards) || result.cards.length !== 13 || !result.counts) throw new Error('未取得完整十三案清單，上架已暫停。');
+      if (!Array.isArray(result.cards) || !Number.isInteger(result.counts?.total) || result.counts.total < 1 || result.cards.length !== result.counts.total || new Set(result.cards.map(card => card.id)).size !== result.cards.length) throw new Error('未取得完整卷冊清單，上架已暫停。');
       catalog = result;
       render();
       status.textContent = message || '價格只在後台備妥；按上架前，不會公開新售價。';
@@ -113,7 +117,7 @@
     } finally { busy = false; availability(); }
   }
   publishAll.addEventListener('click', () => {
-    if (!publishAll.disabled) publishPackages('/admin/api/release-packages/publish', '十三案');
+    if (!publishAll.disabled) publishPackages('/admin/api/release-packages/publish', `${catalog.counts.total} 案`);
   });
   refresh.addEventListener('click', () => { if (!busy) load(); });
   load();

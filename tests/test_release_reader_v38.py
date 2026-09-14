@@ -8,11 +8,12 @@ from flask import render_template
 
 from conftest import login_admin
 from tianwai.commerce import PRICING_BATCH_SLUGS
+from tianwai.concept_guides import get_concept_guide
 from tianwai.db import get_db
 from tianwai.release_packages import get_release_package
 
 
-@pytest.mark.parametrize('slug', PRICING_BATCH_SLUGS)
+@pytest.mark.parametrize('slug', PRICING_BATCH_SLUGS[:13])
 def test_each_private_package_has_substantive_content_and_matches_reader(app, client, slug):
     login_admin(client)
     with app.app_context():
@@ -45,11 +46,44 @@ def test_each_private_package_has_substantive_content_and_matches_reader(app, cl
     assert 'release-worksheets' not in public
 
 
+def test_relock_existing_guide_is_shared_without_replacing_its_manuscript(app, client):
+    login_admin(client)
+    slug = 'sealed-concept-v14'
+    guide = get_concept_guide(slug)
+    with app.app_context():
+        idea = dict(get_db().execute('SELECT * FROM ideas WHERE slug = ?', (slug,)).fetchone())
+        with app.test_request_context('/'):
+            reader = render_template('order_access.html', order={**idea, 'idea_id': idea['id'], 'idea_slug': slug},
+                                     access_context={'customer': '合成閱讀者', 'order': '合成閱卷', 'time': '合成時間'},
+                                     concept_guide=guide)
+    preview = client.get(f"/admin/ideas/{idea['id']}/preview")
+    assert preview.status_code == 200
+    preview_text = preview.get_data(as_text=True)
+    for document in (reader, preview_text):
+        for step in guide['steps']:
+            assert step['title'] in document and step['body'] in document
+        for scenario in guide['validation_scenarios']:
+            assert scenario['title'] in document and scenario['body'] in document
+        assert guide['boundary'] in document and guide['state_summary'] in document
+        assert 'v34-reader.css' in document
+        assert 'release-worksheets' not in document
+        assert '/introduction' in document
+        assert 'private_assets/' not in document
+    assert reader.count('class="v34-reader-section"') == 14
+    assert preview_text.count('class="v34-reader-section"') == 14
+    assert '/admin/ideas/' not in reader and '/library/assets/' in reader
+    assert '/library/assets/' not in preview_text
+    assert len(re.findall(r'<img\b', preview_text)) >= 4
+    public = client.get(f'/ideas/{slug}').get_data(as_text=True)
+    assert guide['steps'][0]['body'] not in public
+    assert '/introduction' not in public
+
+
 def test_release_hub_has_no_price_form_in_normal_controls(client):
     login_admin(client)
     html = client.get('/admin').get_data(as_text=True)
     normal = html.split('id="release-hub"', 1)[1].split('<details class="release-maintenance">', 1)[0]
-    assert '全部上架（13 案）' in normal
+    assert '全部上架（14 案）' in normal
     assert '<input' not in normal and '<select' not in normal
     assert 'id="release-cards"' in normal
     assert '<details class="release-maintenance" open' not in html

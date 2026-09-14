@@ -1,0 +1,19 @@
+  {% if concept_guide %}
+  <section class="v34-introduction flow-reader-figure" id="concept-introduction" aria-labelledby="concept-introduction-title">
+    <h2 id="concept-introduction-title">{{ concept_guide['title'] }}</h2>
+    <p class="v34-introduction-lead">{{ concept_guide['lead'] }}</p>
+    <figure class="v34-introduction-figure">
+      <a class="flow-image-link" href="{{ guide_asset_url }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視完整介紹流程圖；不支援時另開分頁"><img src="{{ guide_asset_url }}" alt="{{ guide_title }}完整介紹流程圖" decoding="async"><span>放大檢視 <span aria-hidden="true">↗</span></span></a>
+      <figcaption>{{ concept_guide['caption'] }}</figcaption>
+      <p class="v34-introduction-original"><a href="{{ guide_asset_url }}" target="_blank" rel="noopener">另開原圖檢視細節 ↗</a><span>長圖可使用瀏覽器縮放；下方另附逐步文字。</span></p>
+    </figure>
+    <ol class="v34-introduction-steps">
+      {% for step in concept_guide['steps'] %}<li><h3>{{ step['title'] }}</h3><p>{{ step['body'] }}</p></li>{% endfor %}
+    </ol>
+    {% if concept_guide.get('state_summary') %}<section class="v36-state-summary" aria-labelledby="v36-state-title"><h3 id="v36-state-title">狀態如何轉換</h3><p>{{ concept_guide['state_summary'] }}</p></section>{% endif %}
+    {% if concept_guide.get('validation_scenarios') %}
+    <section class="v36-validation" aria-labelledby="v36-validation-title"><h3 id="v36-validation-title">待驗證情境｜電腦模擬規劃，非實測結果</h3><ul>{% for scenario in concept_guide['validation_scenarios'] %}<li><h4>{{ scenario['title'] }}</h4><p>{{ scenario['body'] }}</p></li>{% endfor %}</ul></section>
+    {% endif %}
+    <aside class="v34-introduction-boundary" aria-label="介紹流程的概念界線"><h3>這份概念的界線</h3><p>{{ concept_guide['boundary'] }}</p></aside>
+  </section>
+  {% endif %}

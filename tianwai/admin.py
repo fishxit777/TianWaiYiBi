@@ -61,7 +61,7 @@ from .recovery import (
 )
 from .turnstile import turnstile_configured, turnstile_site_key, verify_turnstile
 from .ideas import VEINS, classify_idea, publication_gaps
-from .release_packages import get_release_package, release_package_status
+from .release_packages import get_release_concept_guide, get_release_package, release_package_metadata, release_package_status
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -1118,7 +1118,6 @@ def update_price():
 
 def _release_package_card(idea, payment_status):
     idea = dict(idea)
-    package = get_release_package(idea["slug"]) or {}
     status = release_package_status(idea, payment_status)
     return {
         "id": idea["id"],
@@ -1130,7 +1129,7 @@ def _release_package_card(idea, payment_status):
         "workflow_status": idea["workflow_status"],
         "prepared_price": idea["prepared_price"],
         "commerce": status["commerce"],
-        "package": {field: package.get(field, "") for field in ("title", "scope", "boundary")},
+        "package": release_package_metadata(idea["slug"]),
         "package_status": status,
         "preview_url": url_for("admin.preview_release_package", idea_id=idea["id"]),
         "publish_url": url_for("admin.publish_release_package", idea_id=idea["id"]),
@@ -1175,7 +1174,7 @@ def release_packages_catalog():
             "listed": sum(card["commerce"]["price_visible"] for card in cards),
             "blocked": len(PRICING_BATCH_SLUGS) - ready,
         },
-        "excluded_count": 1,
+        "excluded_count": 0,
         "missing_slugs": missing,
         "can_publish_all": ready == len(PRICING_BATCH_SLUGS),
         "publication_mode": "price_listed",
@@ -1191,15 +1190,18 @@ def preview_release_package(idea_id):
 
     idea = get_db().execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
     if idea is None or idea["slug"] not in PRICING_BATCH_SLUGS:
-        return jsonify({"error": "此卷不在本次前十三卷預覽範圍"}), 404
+        return jsonify({"error": "此卷不在本次十四卷預覽範圍"}), 404
+    guide = get_release_concept_guide(idea["slug"])
+    slots = [*ASSET_FIELDS, *(["introduction"] if guide else [])]
     response = make_response(render_template(
         "admin_package_preview.html",
         idea=dict(idea),
         package=get_release_package(idea["slug"]),
+        concept_guide=guide,
         package_status=release_package_status(idea, payment_checkout_status()),
         asset_urls={
             slot: url_for("admin.release_package_asset", idea_id=idea_id, slot=slot)
-            for slot in ASSET_FIELDS
+            for slot in slots
         },
     ))
     return _private_package_headers(response)
@@ -1211,14 +1213,19 @@ def release_package_asset(idea_id, slot):
     from .private_content import ASSET_FIELDS, resolve_private_asset
 
     field = ASSET_FIELDS.get(slot)
-    if field is None:
+    if field is None and slot != "introduction":
         return jsonify({"error": "找不到此預覽素材"}), 404
     idea = get_db().execute(
         "SELECT slug, hero_image, diagram_image, scene_image FROM ideas WHERE id = ?", (idea_id,),
     ).fetchone()
     if idea is None or idea["slug"] not in PRICING_BATCH_SLUGS:
         return jsonify({"error": "找不到此預覽素材"}), 404
-    path = resolve_private_asset(idea[field])
+    if slot == "introduction":
+        guide = get_release_concept_guide(idea["slug"])
+        identifier = guide.get("asset") if guide else None
+    else:
+        identifier = idea[field]
+    path = resolve_private_asset(identifier)
     if path is None:
         return jsonify({"error": "找不到此預覽素材"}), 404
     # Authorization is evaluated before all HEAD/Range/conditional requests.
@@ -1260,7 +1267,7 @@ def _publish_package_rows(connection, rows, payment_status):
         raise
     if changed:
         log_audit(
-            "publish_release_packages", "first_thirteen" if len(rows) > 1 else str(rows[0]["id"]),
+            "publish_release_packages", "fourteen_volumes" if len(rows) > 1 else str(rows[0]["id"]),
             f"published_count={len(rows)};changed_count={changed};prices_not_logged;payment_gate_unchanged",
         )
     return jsonify({"ok": True, "published_count": len(rows), "changed_count": changed, "states": states})
@@ -1286,7 +1293,7 @@ def publish_release_package(idea_id):
     idea = connection.execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
     if idea is None or idea["slug"] not in PRICING_BATCH_SLUGS:
         connection.rollback()
-        return jsonify({"error": "此卷不在本次前十三卷上架範圍"}), 404
+        return jsonify({"error": "此卷不在本次十四卷上架範圍"}), 404
     return _publish_package_rows(connection, [idea], payment_checkout_status())
 
 
@@ -1297,7 +1304,7 @@ def publish_all_release_packages():
     if guard:
         return guard
     if not _package_publication_confirmation():
-        return jsonify({"error": "請明確確認只公開前十三卷線索與售價"}), 400
+        return jsonify({"error": "請明確確認只公開十四卷線索與售價"}), 400
     from .payments import payment_checkout_status
 
     connection = get_db()
@@ -1305,7 +1312,7 @@ def publish_all_release_packages():
     rows = _package_rows(connection)
     if len(rows) != len(PRICING_BATCH_SLUGS):
         connection.rollback()
-        return jsonify({"error": "前十三卷資料未完整，本次未變更任何卷的上架狀態"}), 409
+        return jsonify({"error": "十四卷資料未完整，本次未變更任何卷的上架狀態"}), 409
     return _publish_package_rows(connection, rows, payment_checkout_status())
 
 
@@ -1337,7 +1344,7 @@ def update_idea_commerce(idea_id):
         return jsonify({"error": "找不到想法"}), 404
     if idea["slug"] not in PRICING_BATCH_SLUGS:
         connection.rollback()
-        return jsonify({"error": "此卷不在本次前十三卷銷售準備範圍"}), 409
+        return jsonify({"error": "此卷不在本次十四卷銷售準備範圍"}), 409
     validation = validate_commerce_update(data, idea)
     if validation:
         connection.rollback()
@@ -1365,17 +1372,17 @@ def prepare_commerce_batch():
         return guard
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or set(data) != {"entries"}:
-        return jsonify({"error": "請提供前十三卷的完整價格準備清單"}), 400
+        return jsonify({"error": "請提供十四卷的完整價格準備清單"}), 400
     entries = data["entries"]
     if not isinstance(entries, list) or len(entries) != len(PRICING_BATCH_SLUGS):
-        return jsonify({"error": "價格準備清單必須恰好包含前十三卷"}), 400
+        return jsonify({"error": "價格準備清單必須恰好包含十四卷"}), 400
     normalized = {}
     for entry in entries:
         if not isinstance(entry, dict) or set(entry) != {"slug", "prepared_price"}:
             return jsonify({"error": "每筆準備資料只接受卷號與預備價格"}), 400
         slug = entry["slug"]
         if not isinstance(slug, str) or slug not in PRICING_BATCH_SLUGS or slug in normalized:
-            return jsonify({"error": "清單必須完整包含前十三卷，不可重複或加入其他卷"}), 400
+            return jsonify({"error": "清單必須完整包含十四卷，不可重複或加入其他卷"}), 400
         if not valid_prepared_price(entry["prepared_price"]):
             return jsonify({"error": "每卷預備價格必須是 NT$1 至 NT$100,000 的整數"}), 400
         normalized[slug] = entry["prepared_price"]
@@ -1388,7 +1395,7 @@ def prepare_commerce_batch():
     ).fetchall()
     if len(rows) != len(PRICING_BATCH_SLUGS) or any(row["sale_state"] != "preparing" for row in rows):
         connection.rollback()
-        return jsonify({"error": "前十三卷必須全部存在且維持準備中；本次未變更任何價格"}), 409
+        return jsonify({"error": "十四卷必須全部存在且維持準備中；本次未變更任何價格"}), 409
     try:
         now = utc_now()
         for row in rows:
@@ -1401,7 +1408,7 @@ def prepare_commerce_batch():
     except Exception:
         connection.rollback()
         raise
-    log_audit("prepare_commerce_batch", "first_thirteen_volumes", "prepared;prices_private;release_ready=false")
+    log_audit("prepare_commerce_batch", "fourteen_volumes", "prepared;prices_private;release_ready=false")
     return jsonify({"ok": True, "prepared_count": len(rows), "sale_state": "preparing"})
 
 

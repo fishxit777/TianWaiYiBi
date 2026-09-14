@@ -1160,19 +1160,19 @@
       let payload;
       try { payload = JSON.parse((await file.text()).replace(/^\uFEFF/, '')); }
       catch { throw new Error('檔案不是有效的 JSON，尚未送出或儲存。'); }
-      if (!payload || !Array.isArray(payload.entries) || payload.entries.length !== 13) throw new Error('檔案需包含 entries 陣列，且完整列出前十三卷。');
+      if (!payload || !Array.isArray(payload.entries) || payload.entries.length !== 14) throw new Error('檔案需包含 entries 陣列，且完整列出十四卷。');
       const validEntries = payload.entries.every((entry) => entry && typeof entry.slug === 'string' && entry.slug.length > 0 && entry.slug.length <= 120 && Number.isInteger(entry.prepared_price) && entry.prepared_price > 0 && entry.prepared_price <= 100000);
-      if (!validEntries || new Set(payload.entries.map((entry) => entry.slug)).size !== 13) throw new Error('卷冊識別不可重複，且每卷準備售價需為有效的正整數。');
+      if (!validEntries || new Set(payload.entries.map((entry) => entry.slug)).size !== 14) throw new Error('卷冊識別不可重複，且每卷準備售價需為有效的正整數。');
       const entries = payload.entries.map(({slug, prepared_price}) => ({slug, prepared_price}));
-      importStatus.textContent = '已讀取十三筆準備售價，尚未儲存；請核對確認視窗。';
-      const accepted = await confirmAction({title: '確認匯入十三卷準備售價？', message: `將從「${file.name}」匯入十三筆準備售價。`, impact: '價格只保存於後台；本次不公開售價、不開放購買、不勾選交付核對，也不修改第十四卷或既有訂單。全部資料驗證通過後才會一起儲存。', confirmLabel: '確認保存準備售價'});
+      importStatus.textContent = '已讀取十四筆準備售價，尚未儲存；請核對確認視窗。';
+      const accepted = await confirmAction({title: '確認匯入十四卷準備售價？', message: `將從「${file.name}」匯入十四筆準備售價。`, impact: '價格只保存於後台；本次不公開售價、不開放購買、不勾選交付核對，也不修改既有訂單。全部資料驗證通過後才會一起儲存。', confirmLabel: '確認保存準備售價'});
       if (!accepted) { importStatus.textContent = '已取消匯入，尚未變更任何售價。'; return; }
-      importStatus.textContent = '正在核對並保存十三卷準備售價…';
+      importStatus.textContent = '正在核對並保存十四卷準備售價…';
       const result = await api('/admin/api/commerce/prepare', {method: 'POST', body: JSON.stringify({entries})});
-      if (result.ok !== true || result.prepared_count !== 13) throw new Error('未取得完整匯入結果，請重新登入並核對卷冊狀態；不要重複送出。');
+      if (result.ok !== true || result.prepared_count !== 14) throw new Error('未取得完整匯入結果，請重新登入並核對卷冊狀態；不要重複送出。');
       input.value = '';
-      importStatus.textContent = '十三卷準備售價已保存；維持準備中、價格隱藏、未開賣。第十四卷未變更。';
-      await loadDashboard('十三卷準備售價已匯入，價格只在後台可見。');
+      importStatus.textContent = '十四卷準備售價已保存；維持準備中、價格隱藏、未開賣。';
+      await loadDashboard('十四卷準備售價已匯入，價格只在後台可見。');
     } catch (error) {
       importStatus.textContent = error.message || '匯入失敗，請重新核對檔案。';
       importStatus.classList.add('is-error');

@@ -19,38 +19,16 @@
     <a href="#reading-boundary">使用提醒</a>
   </nav>
   {% if concept_guide %}
-  <section class="v34-introduction flow-reader-figure" id="concept-introduction" aria-labelledby="concept-introduction-title">
-    <h2 id="concept-introduction-title">{{ concept_guide['title'] }}</h2>
-    <p class="v34-introduction-lead">{{ concept_guide['lead'] }}</p>
-    <figure class="v34-introduction-figure">
-      <a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='introduction') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視完整介紹流程圖；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='introduction') }}" alt="{{ order['title'] }}完整介紹流程圖" decoding="async"><span>放大檢視 <span aria-hidden="true">↗</span></span></a>
-      <figcaption>{{ concept_guide['caption'] }}</figcaption>
-      <p class="v34-introduction-original"><a href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='introduction') }}" target="_blank" rel="noopener">另開原圖檢視細節 ↗</a><span>長圖可使用瀏覽器縮放；下方另附逐步文字。</span></p>
-    </figure>
-    <ol class="v34-introduction-steps">
-      {% for step in concept_guide['steps'] %}<li><h3>{{ step['title'] }}</h3><p>{{ step['body'] }}</p></li>{% endfor %}
-    </ol>
-    {% if concept_guide.get('state_summary') %}<section class="v36-state-summary" aria-labelledby="v36-state-title"><h3 id="v36-state-title">狀態如何轉換</h3><p>{{ concept_guide['state_summary'] }}</p></section>{% endif %}
-    {% if concept_guide.get('validation_scenarios') %}
-    <section class="v36-validation" aria-labelledby="v36-validation-title"><h3 id="v36-validation-title">待驗證情境｜電腦模擬規劃，非實測結果</h3><ul>{% for scenario in concept_guide['validation_scenarios'] %}<li><h4>{{ scenario['title'] }}</h4><p>{{ scenario['body'] }}</p></li>{% endfor %}</ul></section>
-    {% endif %}
-    <aside class="v34-introduction-boundary" aria-label="介紹流程的概念界線"><h3>這份概念的界線</h3><p>{{ concept_guide['boundary'] }}</p></aside>
-  </section>
+  {% set guide_title = order['title'] %}
+  {% set guide_asset_url = url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='introduction') %}
+  {% include '_concept_guide_body.html' %}
   {% endif %}
   {% if order['hero_image'] %}<figure class="reveal-concept-hero reveal flow-reader-figure" id="concept-overview"><h2>概念主視覺</h2><a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='hero') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視概念主視覺；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='hero') }}" alt="{{ order['title'] }}概念主視覺"><span>放大檢視 <span aria-hidden="true">↗</span></span></a><figcaption>{{ order['hero_caption'] or '概念視覺・不代表已完成實作驗證' }}</figcaption></figure>{% endif %}
   <article class="manuscript reveal delay-1" id="concept-text" aria-labelledby="concept-text-title">
     <div class="manuscript-edge" aria-hidden="true"></div><h2 id="concept-text-title">完整概念文字</h2>
     {% if order['idea_slug'] == 'sealed-concept-v14' %}
-      {% set manuscript = order['paid_content'].replace('\r\n', '\n').replace('\r', '\n') %}
-      {% set headings = ['概念原點', '概念機制', '模組與圖號對照', '狀態與人工操作', '使用者價值與交付範圍', '測試空白紀錄', '限制與未知', '安全與使用邊界'] %}
-      {% for section in manuscript.strip().split('\n\n') if section.strip() %}
-        {% set parts = section.strip().partition('\n') %}
-        <section class="v34-reader-section">
-          {% if parts[0] in headings or parts[0].startswith('Micro-MVP｜步驟 ') %}
-            <h3>{{ parts[0] }}</h3>{% if parts[2] %}<p class="manuscript-copy">{{ parts[2] }}</p>{% endif %}
-          {% else %}<p class="manuscript-copy">{{ section.strip() }}</p>{% endif %}
-        </section>
-      {% endfor %}
+      {% set manuscript_text = order['paid_content'] %}
+      {% include '_relock_manuscript_body.html' %}
     {% else %}<p class="manuscript-copy">{{ order['paid_content'] }}</p>{% endif %}
     <footer><span>本卷內容</span><strong>{{ order['deliverables'] }}</strong></footer>
   </article>
