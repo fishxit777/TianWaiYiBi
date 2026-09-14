@@ -87,7 +87,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "relock-sealed-concept-v34",
+                "release": "relock-3d-introduction-v35",
             }
         )
 

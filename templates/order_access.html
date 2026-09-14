@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ order['title'] }}｜已拆封概念卷{% endblock %}
 {% block body_class %}access-page revealed-scroll flow-page accent-{{ order['accent'] }}{% if order['idea_slug'] == 'sealed-concept-v14' %} volume-v34{% endif %}{% endblock %}
-{% block page_scripts_head %}{% if order['idea_slug'] == 'sealed-concept-v14' %}<link rel="stylesheet" href="{{ url_for('static', filename='v34-reader.css') }}">{% endif %}{% endblock %}
+{% block page_scripts_head %}{% if order['idea_slug'] == 'sealed-concept-v14' %}<link rel="stylesheet" href="{{ url_for('static', filename='v34-reader.css', v='3d-introduction-v35') }}">{% endif %}{% endblock %}
 {% block content %}
 <section class="access-shell section-shell">
   <div class="access-watermark" aria-hidden="true">{% for _ in range(12) %}<span>{{ access_context.customer }}・{{ access_context.order }}・{{ access_context.time }}</span>{% endfor %}</div>
@@ -9,12 +9,28 @@
   <header class="access-header reveal"><span class="access-seal"><img src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt=""></span><div><p class="section-index">封印已解・完整概念卷</p><h1>{{ order['title'] }}</h1><p>{{ order['primary_vein'] }}{% if order['secondary_vein'] %} × {{ order['secondary_vein'] }}{% endif %}・{{ order['discipline'] }}</p><span class="maturity-chip">{{ order['maturity'] }}</span></div></header>
   <nav class="flow-reader-nav" aria-label="本卷閱讀導覽">
     <strong>本卷目錄</strong>
+    {% if concept_guide %}<a href="#concept-introduction">{{ concept_guide['title'] }}</a>{% endif %}
     {% if order['hero_image'] %}<a href="#concept-overview">概念主視覺</a>{% endif %}
     <a href="#concept-text">完整文字</a>
     {% if order['diagram_image'] %}<a href="#concept-diagram">機制圖解</a>{% endif %}
     {% if order['scene_image'] %}<a href="#concept-scene">使用情境</a>{% endif %}
     <a href="#reading-boundary">使用提醒</a>
   </nav>
+  {% if concept_guide %}
+  <section class="v34-introduction flow-reader-figure" id="concept-introduction" aria-labelledby="concept-introduction-title">
+    <h2 id="concept-introduction-title">{{ concept_guide['title'] }}</h2>
+    <p class="v34-introduction-lead">{{ concept_guide['lead'] }}</p>
+    <figure class="v34-introduction-figure">
+      <a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='introduction') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視完整介紹流程圖；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='introduction') }}" alt="{{ order['title'] }}完整介紹流程圖" decoding="async"><span>放大檢視 <span aria-hidden="true">↗</span></span></a>
+      <figcaption>{{ concept_guide['caption'] }}</figcaption>
+      <p class="v34-introduction-original"><a href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='introduction') }}" target="_blank" rel="noopener">另開原圖檢視細節 ↗</a><span>長圖可使用瀏覽器縮放；下方另附逐步文字。</span></p>
+    </figure>
+    <ol class="v34-introduction-steps">
+      {% for step in concept_guide['steps'] %}<li><h3>{{ step['title'] }}</h3><p>{{ step['body'] }}</p></li>{% endfor %}
+    </ol>
+    <aside class="v34-introduction-boundary" aria-label="介紹流程的概念界線"><h3>這份概念的界線</h3><p>{{ concept_guide['boundary'] }}</p></aside>
+  </section>
+  {% endif %}
   {% if order['hero_image'] %}<figure class="reveal-concept-hero reveal flow-reader-figure" id="concept-overview"><h2>概念主視覺</h2><a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='hero') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視概念主視覺；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='hero') }}" alt="{{ order['title'] }}概念主視覺"><span>放大檢視 <span aria-hidden="true">↗</span></span></a><figcaption>{{ order['hero_caption'] or '概念視覺・不代表已完成實作驗證' }}</figcaption></figure>{% endif %}
   <article class="manuscript reveal delay-1" id="concept-text" aria-labelledby="concept-text-title">
     <div class="manuscript-edge" aria-hidden="true"></div><h2 id="concept-text-title">完整概念文字</h2>

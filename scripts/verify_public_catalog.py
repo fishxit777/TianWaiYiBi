@@ -12,6 +12,7 @@ from urllib.request import Request, urlopen
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tianwai.db import BLINDBOX_SEEDS
+from tianwai.concept_guides import CONCEPT_GUIDES, supplemental_asset_identifiers
 
 
 def fetch(base: str, path: str, method: str = "GET") -> tuple[int, str]:
@@ -49,10 +50,11 @@ def verify(base: str) -> dict[str, int]:
             for key in ("hero_image", "diagram_image", "scene_image")
         ]
         asset_paths += [path.replace("v31-", "v30-") for path in asset_paths if "/v31-" in path]
+        asset_paths += ["/static/" + path for path in supplemental_asset_identifiers()]
         assets = list(pool.map(lambda path: fetch(base, path, "HEAD"), asset_paths))
         # Public API deliberately omits internal idea IDs. These are anonymous
         # route probes; positive per-volume authorization is verified locally.
-        private_paths = [f"/library/assets/1/{slot}" for slot in ("hero", "diagram", "scene")]
+        private_paths = [f"/library/assets/1/{slot}" for slot in ("hero", "diagram", "scene", "introduction")]
         private_assets = list(pool.map(lambda path: fetch(base, path, "HEAD"), private_paths))
         retired = list(
             pool.map(
@@ -62,9 +64,10 @@ def verify(base: str) -> dict[str, int]:
         )
 
     public_text = home + public_api
+    all_public_text = public_text + "".join(body for _, body in details + checkouts)
     return {
         "health_http": health_status,
-        "health_current_release": int(json.loads(health or "{}").get("release") == "relock-sealed-concept-v34"),
+        "health_current_release": int(json.loads(health or "{}").get("release") == "relock-3d-introduction-v35"),
         "home_http": home_status,
         "api_http": api_status,
         "api_ideas": len(public_ideas),
@@ -81,7 +84,12 @@ def verify(base: str) -> dict[str, int]:
         "checkout_forms": sum('id="order-form"' in body for _, body in checkouts),
         "home_checkout_links": home.count('href="/checkout/'),
         "payment_closed": int("公開收款仍關閉" in home),
-        "paid_asset_path_leaks": sum(path in (public_text + "".join(body for _, body in details + checkouts)) for path in asset_paths),
+        "paid_asset_path_leaks": sum(path.removeprefix("/static/") in all_public_text for path in asset_paths),
+        "private_introduction_leaks": sum(
+            text in all_public_text
+            for guide in CONCEPT_GUIDES.values()
+            for text in (guide["lead"], guide["caption"], *(step["body"] for step in guide["steps"]))
+        ),
         "retired_paid_assets_404": sum(status == 404 for status, _ in assets),
         "private_asset_slots_404": sum(status == 404 for status, _ in private_assets),
         "retired_routes_404": sum(status == 404 for status, _ in retired),
@@ -110,8 +118,9 @@ def main() -> None:
         "home_checkout_links": 0,
         "payment_closed": 1,
         "paid_asset_path_leaks": 0,
-        "retired_paid_assets_404": 78,
-        "private_asset_slots_404": 3,
+        "private_introduction_leaks": 0,
+        "retired_paid_assets_404": 79,
+        "private_asset_slots_404": 4,
         "retired_routes_404": 4,
     }
     if results != expected:

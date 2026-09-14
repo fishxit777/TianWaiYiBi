@@ -21,6 +21,76 @@
   overflow-wrap: anywhere;
 }
 .public-site.volume-v34 .v34-reader-section .manuscript-copy { margin: 0; }
+.public-site.volume-v34 .v34-introduction { color: #263f38; overflow-wrap: anywhere; }
+.public-site.volume-v34 .v34-introduction-lead {
+  margin: 0 0 24px;
+  font-size: 18px;
+  line-height: 1.85;
+}
+.public-site.volume-v34 .v34-introduction-figure { margin: 0 0 28px; }
+.public-site.volume-v34 .v34-introduction-figure img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+.public-site.volume-v34 .v34-introduction-figure figcaption {
+  margin-top: 12px;
+  color: #4b6058;
+  font-size: 15px;
+  line-height: 1.8;
+}
+.public-site.volume-v34 .v34-introduction-steps {
+  display: grid;
+  gap: 22px;
+  margin: 0 0 28px;
+  padding-left: 1.8em;
+  font-size: 17px;
+  line-height: 1.85;
+}
+.public-site.volume-v34 .v34-introduction-original {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.8;
+}
+.public-site.volume-v34 .v34-introduction-original a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #315b50;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.public-site.volume-v34 .v34-introduction-steps li { min-width: 0; padding-left: 8px; }
+.public-site.volume-v34 .v34-introduction-steps li::marker { color: #315b50; font-weight: 700; }
+.public-site.volume-v34 .v34-introduction :is(.v34-introduction-steps, .v34-introduction-boundary) h3 {
+  margin: 0 0 6px;
+  color: #315b50;
+  font-size: 18px;
+  line-height: 1.7;
+}
+.public-site.volume-v34 .v34-introduction :is(.v34-introduction-steps, .v34-introduction-boundary) p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.85;
+}
+.public-site.volume-v34 .v34-introduction-boundary {
+  padding: 20px 24px;
+  border: 1px solid #c8d8cb;
+  border-radius: 10px;
+  background: #f1f6ef;
+}
 @media (max-width: 640px) {
   .public-site.volume-v34 .v34-reader-section { margin-top: 24px; padding-top: 22px; }
+  .public-site.volume-v34 .v34-introduction-lead { font-size: 17px; }
+  .public-site.volume-v34 .v34-introduction-steps { padding-left: 1.6em; }
+  .public-site.volume-v34 .v34-introduction-steps li { padding-left: 3px; }
+  .public-site.volume-v34 .v34-introduction-boundary { padding: 18px; }
 }

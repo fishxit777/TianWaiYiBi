@@ -6,6 +6,7 @@ from pathlib import Path
 from flask import Blueprint, current_app, jsonify, request, send_file
 
 from .access import current_customer_session
+from .concept_guides import get_concept_guide
 from .db import get_db
 
 
@@ -56,14 +57,14 @@ def deny_public_paid_assets():
 @private_content_bp.get("/library/assets/<int:idea_id>/<slot>")
 def paid_asset(idea_id, slot):
     field = ASSET_FIELDS.get(slot)
-    if field is None:
+    if field is None and slot != "introduction":
         return _not_found()
     customer = current_customer_session()
     if customer is None:
         return _not_found()
     row = get_db().execute(
         """
-        SELECT ideas.hero_image, ideas.diagram_image, ideas.scene_image
+        SELECT ideas.slug, ideas.hero_image, ideas.diagram_image, ideas.scene_image
         FROM ideas
         WHERE ideas.id = ? AND EXISTS (
             SELECT 1 FROM orders
@@ -72,7 +73,14 @@ def paid_asset(idea_id, slot):
         """,
         (idea_id, customer["customer_email"]),
     ).fetchone()
-    path = resolve_private_asset(row[field]) if row else None
+    if row is None:
+        return _not_found()
+    if slot == "introduction":
+        guide = get_concept_guide(row["slug"])
+        identifier = guide["asset"] if guide else None
+    else:
+        identifier = row[field]
+    path = resolve_private_asset(identifier)
     if path is None:
         return _not_found()
     # Authorize before every response, including HEAD / conditional / Range requests.

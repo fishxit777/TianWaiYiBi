@@ -6,6 +6,7 @@ from functools import wraps
 
 from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
 
+from .concept_guides import get_concept_guide
 from .db import get_db, utc_now
 from .mailer import send_email
 from .security import (
@@ -851,6 +852,7 @@ def order_content(order_no):
     return render_template(
         "order_access.html",
         order=order,
+        concept_guide=get_concept_guide(order["idea_slug"]),
         access_context={
             "customer": customer_session["customer_public_id"],
             "device": customer_session["device_public_id"] or "DEV-UNKNOWN",

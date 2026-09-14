@@ -8,7 +8,7 @@ from pathlib import Path
 from flask import current_app, g
 
 from .v30_catalog import V30_BLINDBOX_SEEDS
-from .v34_catalog import V34_BLINDBOX_SEEDS
+from .v34_catalog import V34_BLINDBOX_SEEDS, V35_RELOCK_COPY_UPDATES
 
 
 def database_backend(database_url=None):
@@ -321,6 +321,14 @@ def seed_database(connection):
                     """,
                     (*desired_visuals, now, idea["slug"]),
                 )
+    # Correct only exact original copy; independently edited fields stay intact.
+    for field, previous, current in V35_RELOCK_COPY_UPDATES:
+        if field not in {"paid_content", "deliverables"}:
+            raise ValueError("Unsupported concept copy field")
+        connection.execute(
+            f"UPDATE ideas SET {field} = ?, updated_at = ? WHERE slug = ? AND {field} = ?",
+            (current, now, "sealed-concept-v14", previous),
+        )
     connection.commit()
 
 

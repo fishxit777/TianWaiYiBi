@@ -5,7 +5,7 @@ illustrations are served exclusively through the existing authorized library.
 """
 
 
-_RELOCK_PAID_CONTENT = """概念原點
+_RELOCK_PAID_CONTENT_V34 = """概念原點
 ReLock｜二次移動鎖，研究的是疑似碰撞發生後，系統如何重新檢視下一次行駛請求，而非宣稱能防止所有碰撞。第一次事件之後，駕駛可能驚慌、誤踩或無法確認周圍狀況；但一律禁止移動也可能帶來新的危險。因此，本卷把「事件判讀」與「移動授權」拆開，先在電腦裡驗證規則是否一致、例外是否可追查。這是尚未完成原型、尚未取得實測結果的概念方案，不是現成車用產品。
 
 概念機制
@@ -49,6 +49,25 @@ Micro-MVP｜步驟 6｜重播、評分與整理
 """
 
 
+_RELOCK_PAID_CONTENT = _RELOCK_PAID_CONTENT_V34.replace(
+    "圖一為現代電腦模擬工作台主視覺",
+    "先讀新增的「完整介紹流程｜3D 概念圖解」：正常行駛、疑似事件、資料與事件評估、再次移動請求、獨立授權條件及結果分支，"
+    "用一張現代車輛情境長圖理解概念；條件不足或未知保留限制，成立才研究重新授權，另列條件慢移的待驗證例外。"
+    "這張圖介紹構想，不代表真車功能已實作。接下來保留原三張圖：圖一為現代電腦模擬工作台主視覺",
+).replace(
+    "交付為三張圖與本篇方案文字",
+    "交付為四張圖（一張完整3D介紹流程圖，加上原有三張概念／模擬規劃圖）、逐步介紹與本篇方案文字",
+)
+_RELOCK_DELIVERABLES_V34 = "完整概念文字｜現代主視覺｜模組資料流圖｜工作台情境圖｜六步 Micro-MVP｜測試空白紀錄｜限制與使用邊界"
+_RELOCK_DELIVERABLES = "完整3D介紹流程圖｜逐步介紹解說｜" + _RELOCK_DELIVERABLES_V34
+
+# Upgrade only exact original copy. Preserve any independently edited field.
+V35_RELOCK_COPY_UPDATES = (
+    ("paid_content", _RELOCK_PAID_CONTENT_V34, _RELOCK_PAID_CONTENT),
+    ("deliverables", _RELOCK_DELIVERABLES_V34, _RELOCK_DELIVERABLES),
+)
+
+
 V34_BLINDBOX_SEEDS = [
     {
         "slug": "sealed-concept-v14",
@@ -66,7 +85,7 @@ V34_BLINDBOX_SEEDS = [
         "summary": "第一次意外之後，尚未釐清的下一步，會不會帶來第二次傷害？",
         "teaser": "適合交通安全研究、模擬工具與人因團隊；本卷從事件後的兩難切入，附完整圖文、六步電腦模擬規劃與測試紀錄範本。原型尚未完成，不提供真車控制裝置。",
         "paid_content": _RELOCK_PAID_CONTENT,
-        "deliverables": "完整概念文字｜現代主視覺｜模組資料流圖｜工作台情境圖｜六步 Micro-MVP｜測試空白紀錄｜限制與使用邊界",
+        "deliverables": _RELOCK_DELIVERABLES,
         "tags": "交通安全,事故後風險,電腦模擬,人因研究,尚未驗證",
         "accent": "jade",
         "hero_image": "brand/concepts/v34-14-hero.webp",
