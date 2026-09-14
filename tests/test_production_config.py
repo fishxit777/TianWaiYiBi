@@ -25,7 +25,9 @@ def test_ecpay_production_mode_requires_explicit_live_confirmation(client, monke
     response = client.get("/checkout/sealed-twin-tire-safety")
 
     assert response.status_code == 200
-    assert "正式付款尚未開放" in response.get_data(as_text=True)
+    body = response.get_data(as_text=True)
+    assert "售價已公開，尚未開放購買" in body
+    assert 'id="order-form"' not in body
 
 
 def test_ecpay_complete_production_config_reports_intentional_public_closure(app, monkeypatch):

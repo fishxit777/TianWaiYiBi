@@ -398,6 +398,13 @@ def migrate_database(connection):
         "diagram_caption": "TEXT NOT NULL DEFAULT ''",
         "scene_caption": "TEXT NOT NULL DEFAULT ''",
         "classification_confidence": "INTEGER NOT NULL DEFAULT 0",
+        "prepared_price": (
+            "INTEGER CHECK (prepared_price IS NULL OR prepared_price BETWEEN 1 AND 100000)"
+            if getattr(connection, "backend", "sqlite") == "postgresql"
+            else "INTEGER CHECK (prepared_price IS NULL OR (typeof(prepared_price) = 'integer' AND prepared_price BETWEEN 1 AND 100000))"
+        ),
+        "sale_state": "TEXT NOT NULL DEFAULT 'preparing' CHECK (sale_state IN ('preparing', 'price_listed', 'for_sale'))",
+        "release_ready": "INTEGER NOT NULL DEFAULT 0 CHECK (release_ready IN (0, 1))",
     }
     for column, definition in idea_migrations.items():
         if column not in idea_columns:

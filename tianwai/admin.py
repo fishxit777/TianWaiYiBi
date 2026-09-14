@@ -10,6 +10,14 @@ from flask import Blueprint, jsonify, make_response, redirect, render_template, 
 from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRegistrationResponse
 
 from .analytics import ALLOWED_WINDOWS, build_demand_radar, trusted_analytics_start
+from .commerce import (
+    PRICING_BATCH_SLUGS,
+    commerce_status,
+    lock_commerce,
+    private_commerce_payload,
+    valid_prepared_price,
+    validate_commerce_update,
+)
 from .db import get_db, get_setting_int, utc_now
 from .mailer import email_delivery_ready
 from .notifications import line_admin_delivery_ready
@@ -725,6 +733,7 @@ def dashboard_data():
                     "published": bool(row["published"]),
                     "price_override": row["price_override"],
                     "price": int(row["price_override"] if row["price_override"] is not None else global_price),
+                    "commerce": commerce_status(row, checkout_status, private=True),
                 }
                 for row in ideas
             ],
@@ -1106,6 +1115,102 @@ def update_price():
     return jsonify({"ok": True, "price": price})
 
 
+@admin_bp.get("/api/ideas/<int:idea_id>/commerce")
+@admin_required
+def idea_commerce(idea_id):
+    from .payments import payment_checkout_status
+
+    idea = get_db().execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
+    if idea is None:
+        return jsonify({"error": "找不到想法"}), 404
+    return jsonify(private_commerce_payload(idea, payment_checkout_status()))
+
+
+@admin_bp.post("/api/ideas/<int:idea_id>/commerce")
+@admin_required
+def update_idea_commerce(idea_id):
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    from .payments import payment_checkout_status
+
+    data = request.get_json(silent=True)
+    connection = get_db()
+    lock_commerce(connection)
+    idea = connection.execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
+    if idea is None:
+        connection.rollback()
+        return jsonify({"error": "找不到想法"}), 404
+    if idea["slug"] not in PRICING_BATCH_SLUGS:
+        connection.rollback()
+        return jsonify({"error": "此卷不在本次前十三卷銷售準備範圍"}), 409
+    validation = validate_commerce_update(data, idea)
+    if validation:
+        connection.rollback()
+        error, status = validation
+        return jsonify({"error": error}), status
+    connection.execute(
+        "UPDATE ideas SET prepared_price = ?, sale_state = ?, release_ready = ?, updated_at = ? WHERE id = ?",
+        (data["prepared_price"], data["sale_state"], int(data["release_ready"]), utc_now(), idea_id),
+    )
+    connection.commit()
+    # Keep all numeric price values out of audit trails and notifications.
+    log_audit(
+        "update_idea_commerce", str(idea_id),
+        f"state={data['sale_state']};release_ready={data['release_ready']}",
+    )
+    updated = connection.execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
+    return jsonify(private_commerce_payload(updated, payment_checkout_status()))
+
+
+@admin_bp.post("/api/commerce/prepare")
+@admin_required
+def prepare_commerce_batch():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {"entries"}:
+        return jsonify({"error": "請提供前十三卷的完整價格準備清單"}), 400
+    entries = data["entries"]
+    if not isinstance(entries, list) or len(entries) != len(PRICING_BATCH_SLUGS):
+        return jsonify({"error": "價格準備清單必須恰好包含前十三卷"}), 400
+    normalized = {}
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != {"slug", "prepared_price"}:
+            return jsonify({"error": "每筆準備資料只接受卷號與預備價格"}), 400
+        slug = entry["slug"]
+        if not isinstance(slug, str) or slug not in PRICING_BATCH_SLUGS or slug in normalized:
+            return jsonify({"error": "清單必須完整包含前十三卷，不可重複或加入其他卷"}), 400
+        if not valid_prepared_price(entry["prepared_price"]):
+            return jsonify({"error": "每卷預備價格必須是 NT$1 至 NT$100,000 的整數"}), 400
+        normalized[slug] = entry["prepared_price"]
+    connection = get_db()
+    lock_commerce(connection)
+    placeholders = ",".join("?" for _ in PRICING_BATCH_SLUGS)
+    rows = connection.execute(
+        f"SELECT id, slug, sale_state FROM ideas WHERE slug IN ({placeholders})",
+        PRICING_BATCH_SLUGS,
+    ).fetchall()
+    if len(rows) != len(PRICING_BATCH_SLUGS) or any(row["sale_state"] != "preparing" for row in rows):
+        connection.rollback()
+        return jsonify({"error": "前十三卷必須全部存在且維持準備中；本次未變更任何價格"}), 409
+    try:
+        now = utc_now()
+        for row in rows:
+            connection.execute(
+                "UPDATE ideas SET prepared_price = ?, release_ready = 0, updated_at = ? "
+                "WHERE id = ? AND sale_state = 'preparing'",
+                (normalized[row["slug"]], now, row["id"]),
+            )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    log_audit("prepare_commerce_batch", "first_thirteen_volumes", "prepared;prices_private;release_ready=false")
+    return jsonify({"ok": True, "prepared_count": len(rows), "sale_state": "preparing"})
+
+
 @admin_bp.post("/api/ideas/<int:idea_id>/publish")
 @admin_required
 def update_publish(idea_id):
@@ -1117,17 +1222,23 @@ def update_publish(idea_id):
     if not isinstance(published, bool):
         return jsonify({"error": "published 必須是布林值"}), 400
     connection = get_db()
+    lock_commerce(connection)
     idea = connection.execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
     if idea is None:
+        connection.rollback()
         return jsonify({"error": "找不到想法"}), 404
     if published:
         if idea["workflow_status"] not in {"ready", "published"}:
+            connection.rollback()
             return jsonify({"error": "請先將工作狀態設為 ready 並完成內容檢查"}), 409
         gaps = publication_gaps(dict(idea))
         if gaps:
+            connection.rollback()
             return jsonify({"error": "發布前仍缺少：" + "、".join(gaps)}), 409
     cursor = connection.execute(
-        "UPDATE ideas SET published = ?, workflow_status = ?, updated_at = ? WHERE id = ?",
+        "UPDATE ideas SET published = ?, workflow_status = ?, release_ready = 0, "
+        "sale_state = CASE WHEN sale_state = 'for_sale' THEN 'price_listed' ELSE sale_state END, "
+        "updated_at = ? WHERE id = ?",
         (1 if published else 0, "published" if published else "ready", utc_now(), idea_id),
     )
     connection.commit()
@@ -1245,6 +1356,7 @@ def update_idea(idea_id):
             return jsonify({"error": "單品價格需介於 NT$1 與 NT$100,000"}), 400
 
     connection = get_db()
+    lock_commerce(connection)
     cursor = connection.execute(
         """
         UPDATE ideas SET
@@ -1253,7 +1365,9 @@ def update_idea(idea_id):
             workflow_status = ?, raw_idea = ?, summary = ?, teaser = ?,
             paid_content = ?, deliverables = ?, tags = ?, accent = ?, sort_order = ?,
             hero_image = ?, diagram_image = ?, scene_image = ?,
-            price_override = ?, updated_at = ?
+            price_override = ?, release_ready = 0,
+            sale_state = CASE WHEN sale_state = 'for_sale' THEN 'price_listed' ELSE sale_state END,
+            updated_at = ?
         WHERE id = ?
         """,
         (

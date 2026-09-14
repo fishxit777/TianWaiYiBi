@@ -105,7 +105,8 @@ def test_detail_introduces_the_concept_before_decoration_and_keeps_payment_close
     assert "登記開放意願" in body
     assert "也不會另行通知" in body
     assert "開放時通知我" not in body
-    assert "公開收款未開放" in body
+    assert "售價已公開，尚未開放購買" in body
+    assert "NT$199" in body
     assert 'href="/checkout/' not in body
 
 

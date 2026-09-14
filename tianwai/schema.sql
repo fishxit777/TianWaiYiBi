@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS ideas (
     sort_order INTEGER NOT NULL DEFAULT 0,
     published INTEGER NOT NULL DEFAULT 1 CHECK (published IN (0, 1)),
     price_override INTEGER CHECK (price_override IS NULL OR price_override >= 0),
+    prepared_price INTEGER CHECK (prepared_price IS NULL OR (typeof(prepared_price) = 'integer' AND prepared_price BETWEEN 1 AND 100000)),
+    sale_state TEXT NOT NULL DEFAULT 'preparing' CHECK (sale_state IN ('preparing', 'price_listed', 'for_sale')),
+    release_ready INTEGER NOT NULL DEFAULT 0 CHECK (release_ready IN (0, 1)),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );

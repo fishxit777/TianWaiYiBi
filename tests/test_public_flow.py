@@ -487,7 +487,7 @@ def test_logo_review_is_not_a_public_route(client):
     assert response.status_code == 404
 
 
-def test_idea_detail_uses_global_price(client):
+def test_idea_detail_uses_explicit_prepared_price(client):
     response = client.get("/ideas/sealed-twin-tire-safety")
 
     assert response.status_code == 200
@@ -510,7 +510,8 @@ def test_unavailable_payment_state_never_pushes_visitors_into_checkout(client, m
 
     assert "公開收款仍關閉，不會建立扣款" in home
     assert home.count("查看封印線索") >= 1
-    assert "公開收款未開放" in detail
+    assert "售價已公開，尚未開放購買" in detail
+    assert "NT$199" in detail
     assert "登記開放意願" in detail
     assert 'href="/checkout/sealed-twin-tire-safety"' not in detail
 

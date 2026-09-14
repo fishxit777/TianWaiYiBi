@@ -14,7 +14,7 @@
     <dl>
       <div><dt>內容</dt><dd>{{ idea['deliverables'] }}</dd></div>
       <div><dt>授權</dt><dd>非專屬實作使用・服務存續期間可取回</dd></div>
-      <div><dt>付款方式</dt><dd>{{ payment_status['label'] }}</dd></div>
+      {% if commerce.can_purchase %}<div><dt>付款方式</dt><dd>{{ payment_status['label'] }}</dd></div>{% endif %}
     </dl>
     <nav class="checkout-policy-links" aria-label="付款前政策">
       <a href="{{ url_for('public.policies') }}#terms">購買與使用條款</a>
@@ -23,10 +23,10 @@
       <a href="{{ url_for('public.policies') }}#disclaimer">風險與責任邊界</a>
     </nav>
   </div>
-  <div class="checkout-card reveal delay-1">
+  <div class="checkout-card reveal delay-1" data-sale-state="{{ commerce.sale_state }}">
     <img class="checkout-brand-mark" src="{{ url_for('static', filename='brand/logo-transparent-512.png') }}" alt="" width="64" height="64">
-    <div class="checkout-price"><span>本次解鎖</span><strong>NT${{ price }}</strong></div>
-    {% if payment_status['ready'] %}
+    <div class="checkout-price"><span>{{ '本卷價格' if commerce.price_visible else '目前狀態' }}</span><strong>{{ 'NT$' ~ commerce.price if commerce.price_visible else '準備中' }}</strong></div>
+    {% if commerce.can_purchase %}
     <form id="order-form" data-idea-slug="{{ idea['slug'] }}" novalidate>
       <label>你的稱呼<input name="customer_name" type="text" minlength="2" maxlength="80" autocomplete="name" required placeholder="例：雲遊旅人"></label>
       <label>收件 Email<input name="customer_email" type="email" maxlength="254" autocomplete="email" required placeholder="you@example.com"></label>
@@ -39,7 +39,7 @@
           <p class="plain-kicker">付款前重要說明</p>
           <h2 id="purchase-notice-title">請確認付款與開通方式</h2>
           <ul>
-            <li>本次金額為 <strong>NT${{ price }}</strong>，付款成功後才會開通內容。</li>
+            <li>本次金額為 <strong>NT${{ commerce.price }}</strong>，付款成功後才會開通內容。</li>
             <li>系統會寄送專屬開通連結與一次性 12 位開通碼到你填寫的 Email。</li>
             <li>開通碼有效 10 分鐘，成功使用後立即失效。已付款的購買權限不會因此消失。</li>
             <li>日後重新登入時，系統會另寄登入碼；登入碼 10 分鐘後自動失效，可重新申請。</li>
@@ -60,8 +60,8 @@
     </form>
     {% else %}
     <div class="payment-unavailable" role="status">
-      <strong>正式付款尚未開放</strong>
-      <p>目前僅供查看購買前線索，尚未開放建立訂單或扣款。是否開放將以本頁狀態為準。</p>
+      <strong>{{ '售價已公開，尚未開放購買' if commerce.price_visible else '正式付款尚未開放' }}</strong>
+      <p>{% if commerce.price_visible %}本卷目前僅公開售價，尚未開放建立訂單或扣款。{% else %}本卷的售價與交付仍在準備中，尚未開放建立訂單或扣款。{% endif %}可返回本卷查看線索並登記匿名開放意願。</p>
       <a class="button button-ghost button-wide" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}">返回本卷，繼續看線索</a>
     </div>
     {% endif %}

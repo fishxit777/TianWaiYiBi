@@ -13,6 +13,11 @@
   const refundForm = document.querySelector('#payment-refund-form');
   const confirmDialog = document.querySelector('#admin-confirm-dialog');
   const confirmForm = document.querySelector('#admin-confirm-form');
+  const commerceDialog = document.querySelector('#commerce-dialog');
+  const commerceForm = document.querySelector('#commerce-form');
+  const commerceSave = document.querySelector('#commerce-save');
+  const commerceStatus = document.querySelector('#commerce-status');
+  const saleStateLabels = {preparing: '準備中', price_listed: '公開售價，未開賣', for_sale: '開放購買'};
   const workspaceTitles = {
     overview: '今日總覽', orders: '交易訂單', ideas: '盲策製作',
     customers: '客戶開通', integrations: '系統串接', security: '安全稽核'
@@ -46,6 +51,11 @@
   let lastSyncAt = null;
   let editorSnapshot = '';
   let confirmResolver = null;
+  let commerceIdea = null;
+  let savedCommerce = null;
+  let commerceSnapshot = '';
+  let commerceBusy = false;
+  let commerceLoadVersion = 0;
 
   const clear = (element) => { while (element?.firstChild) element.removeChild(element.firstChild); };
   const node = (tag, className, text) => {
@@ -514,17 +524,143 @@
     document.querySelector('#idea-public-title').focus();
   }
 
+  function commerceValues() {
+    const rawPrice = document.querySelector('#commerce-prepared-price').value.trim();
+    return {
+      prepared_price: rawPrice === '' ? null : Number(rawPrice),
+      sale_state: commerceForm.querySelector('[name="commerce-sale-state"]:checked')?.value || 'preparing',
+      release_ready: document.querySelector('#commerce-release-ready').checked
+    };
+  }
+
+  function updateCommercePreview() {
+    if (!savedCommerce) return false;
+    const draft = commerceValues();
+    const dirty = JSON.stringify(draft) !== commerceSnapshot;
+    document.querySelector('#commerce-dirty').hidden = !dirty;
+    commerceDialog.dataset.dirty = String(dirty);
+    const hasPrice = Number.isInteger(draft.prepared_price) && draft.prepared_price > 0;
+    document.querySelector('#commerce-prepared-price').required = draft.sale_state !== 'preparing';
+    document.querySelector('#commerce-release-ready').required = draft.sale_state === 'for_sale';
+    document.querySelector('#commerce-preview-price').textContent = draft.sale_state === 'preparing'
+      ? '準備中・售價不公開'
+      : (hasPrice ? money(draft.prepared_price) : '需先填入有效售價');
+    let effect = '公開頁保留線索與匿名開放意願，不顯示準備售價。';
+    if (draft.sale_state === 'price_listed') effect = '訪客會看到售價，仍無法建立訂單；匿名開放意願保持可用。';
+    if (draft.sale_state === 'for_sale') {
+      effect = !draft.release_ready
+        ? '尚未完成人工核對，不能儲存為開放購買。'
+        : (savedCommerce.publication_gaps?.length
+          ? '仍有交付或發布缺口，請先處理上方待核對事項。'
+          : (savedCommerce.global_checkout_enabled && savedCommerce.payment_ready
+            ? '儲存並確認後，符合公開條件的本卷會出現購買入口並可建立訂單。'
+            : '本卷會公開售價；全站金流門檻尚未就緒，訪客仍不能建立訂單。'));
+    }
+    document.querySelector('#commerce-preview-state').textContent = effect;
+    commerceSave.textContent = draft.sale_state === 'preparing' ? '儲存準備設定' : '檢查並確認公開設定';
+    return dirty;
+  }
+
+  function fillCommerceResult(result) {
+    savedCommerce = result.commerce;
+    const preview = result.preview || {};
+    const inBatch = savedCommerce.in_pricing_batch === true;
+    const hasPrice = savedCommerce.prepared_price !== null && savedCommerce.prepared_price !== undefined;
+    document.querySelector('#commerce-content').hidden = false;
+    document.querySelector('#commerce-batch-notice').hidden = inBatch;
+    document.querySelector('#commerce-settings').disabled = !inBatch;
+    document.querySelector('#commerce-saved-price').textContent = hasPrice ? money(savedCommerce.prepared_price) : '尚未準備';
+    document.querySelector('#commerce-saved-state').textContent = statusLabel(saleStateLabels, savedCommerce.sale_state);
+    document.querySelector('#commerce-public-state').textContent = !commerceIdea.published
+      ? '卷面尚未公開'
+      : (savedCommerce.price_visible
+        ? `${money(savedCommerce.price)}・${savedCommerce.can_purchase ? '可購買' : '尚未開放購買'}`
+        : '準備中・售價尚未公開');
+    document.querySelector('#commerce-global-gate').textContent = savedCommerce.global_checkout_enabled && savedCommerce.payment_ready
+      ? '全站金流門檻已就緒；仍須本卷開放購買、交付核對完成且線索已公開。'
+      : '全站收款門檻未開放或尚未就緒。目前即使逐卷公開售價，也不能建立一般購買訂單。';
+    const deliverables = document.querySelector('#commerce-deliverables');
+    clear(deliverables);
+    const items = Array.isArray(preview.deliverables) ? preview.deliverables : String(preview.deliverables || '').split('｜');
+    items.filter((item) => String(item).trim()).forEach((item) => deliverables.appendChild(node('li', '', item)));
+    if (!deliverables.children.length) deliverables.appendChild(node('li', '', '尚未取得交付清單，請先補齊內容並人工核對。'));
+    document.querySelector('#commerce-maturity').textContent = `成熟度：${preview.maturity || '待核對'}`;
+    document.querySelector('#commerce-limitations').textContent = Array.isArray(preview.limitations)
+      ? preview.limitations.join('\n\n')
+      : (preview.limitations || '請人工核對本卷完整內容中的限制與未知；尚未自動確認。');
+    const gaps = document.querySelector('#commerce-publication-gaps');
+    clear(gaps);
+    (savedCommerce.publication_gaps || []).forEach((gap) => gaps.appendChild(node('li', '', gap)));
+    if (!gaps.children.length) gaps.appendChild(node('li', '', '未發現自動完整性缺口，仍須人工核對交付及營運準備。'));
+    document.querySelector('#commerce-prepared-price').value = savedCommerce.prepared_price ?? '';
+    const state = Object.hasOwn(saleStateLabels, savedCommerce.sale_state) ? savedCommerce.sale_state : 'preparing';
+    commerceForm.querySelector(`[name="commerce-sale-state"][value="${state}"]`).checked = true;
+    document.querySelector('#commerce-release-ready').checked = savedCommerce.release_ready === true;
+    commerceSnapshot = JSON.stringify(commerceValues());
+    commerceSave.disabled = !inBatch;
+    updateCommercePreview();
+  }
+
+  async function openCommerceDialog(idea) {
+    const loadVersion = ++commerceLoadVersion;
+    commerceIdea = idea;
+    savedCommerce = null;
+    commerceSnapshot = '';
+    commerceForm.reset();
+    commerceDialog.dataset.dirty = 'false';
+    document.querySelector('#commerce-volume-title').textContent = idea.public_title || idea.title;
+    document.querySelector('#commerce-content').hidden = true;
+    document.querySelector('#commerce-batch-notice').hidden = true;
+    commerceSave.disabled = true;
+    commerceStatus.textContent = '正在讀取本卷的私有售價與交付摘要…';
+    commerceStatus.classList.remove('is-error');
+    commerceDialog.showModal();
+    commerceDialog.querySelector('[data-close-commerce-dialog]').focus();
+    try {
+      const result = await api(`/admin/api/ideas/${idea.id}/commerce`);
+      if (!commerceDialog.open || commerceLoadVersion !== loadVersion) return;
+      if (!result.commerce || typeof result.commerce !== 'object') throw new Error('未取得本卷售價設定，請關閉後重新開啟。');
+      fillCommerceResult(result);
+      commerceStatus.textContent = '已載入私有設定；目前尚未做任何變更。';
+    } catch (error) {
+      if (!commerceDialog.open || commerceLoadVersion !== loadVersion) return;
+      commerceStatus.textContent = error.message || '讀取失敗，請關閉後重新開啟。';
+      commerceStatus.classList.add('is-error');
+    }
+  }
+
+  async function requestCommerceClose() {
+    if (commerceBusy) return;
+    if (updateCommercePreview()) {
+      const accepted = await confirmAction({title: '捨棄售價設定變更？', message: '這卷有尚未儲存的售價或狀態。', impact: '返回後將丟棄本次變更；已保存的售價與公開狀態不受影響。', confirmLabel: '捨棄變更', tone: 'danger'});
+      if (!accepted) return;
+    }
+    commerceDialog.dataset.dirty = 'false';
+    commerceLoadVersion += 1;
+    commerceDialog.close();
+  }
+
   function renderIdeas(ideas) {
     const target = document.querySelector('#idea-admin-list');
     clear(target);
     document.querySelector('#published-count').textContent = `${ideas.filter((idea) => idea.published).length} / ${ideas.length} 已上架`;
     ideas.forEach((idea) => {
       const row = node('article', `idea-admin-row accent-${idea.accent}`);
+      row.dataset.ideaId = idea.id;
       const seal = node('span', 'idea-admin-seal', idea.seal);
       const copy = node('div', 'idea-admin-copy');
       copy.append(node('strong', '', idea.public_title || idea.title), node('small', '', `${idea.primary_vein || '待歸脈'}${idea.secondary_vein ? ` × ${idea.secondary_vein}` : ''}・${statusLabel(workflowLabels, idea.workflow_status)}`));
       const price = node('div', 'idea-admin-price');
-      price.append(node('strong', '', money(idea.price)), node('small', '', idea.price_override === null ? '套用預設價' : '單獨定價'));
+      const commerce = idea.commerce;
+      if (!commerce) {
+        price.append(node('strong', '', '售價狀態待同步'), node('small', '', '開啟設定以重新核對'));
+      } else if (!commerce.in_pricing_batch) {
+        price.append(node('strong', 'commerce-unpriced', '尚未納入本批定價'), node('small', '', '保持準備中'));
+      } else {
+        const prepared = commerce.prepared_price !== null && commerce.prepared_price !== undefined;
+        price.append(node('strong', '', prepared ? money(commerce.prepared_price) : '尚未準備售價'), node('small', '', `準備售價・${statusLabel(saleStateLabels, commerce.sale_state)}`));
+        price.append(node('small', 'commerce-card-public-state', commerce.price_visible ? (commerce.can_purchase ? '訪客可購買' : '售價已公開・不能購買') : '價格僅後台可見'));
+      }
       const toggle = node('button', `publish-toggle ${idea.published ? 'on' : ''}`, idea.published ? '已上架' : '已隱藏');
       toggle.type = 'button';
       toggle.setAttribute('aria-pressed', String(idea.published));
@@ -533,7 +669,7 @@
         const accepted = await confirmAction({
           title: nextPublished ? '確認公開這卷盲策？' : '確認暫停公開這卷盲策？',
           message: `${idea.public_title || idea.title}目前為${idea.published ? '公開' : '隱藏'}狀態。`,
-          impact: nextPublished ? '公開後訪客只會看到封印線索；拆封內容仍受付款權限保護。' : '隱藏後官網將不再顯示，但既有訂單與已購權限不會被刪除。',
+          impact: nextPublished ? '公開後訪客可看到封印線索；已設定公開的售價也會顯示。此次會重設交付核對，原開放購買者退回公開售價，須重新核對後再開賣；拆封內容仍受付款權限保護。' : '隱藏後官網將不再顯示，交付核對會重設，原開放購買者退回公開售價；既有訂單與已購權限不會被刪除。',
           confirmLabel: nextPublished ? '確認公開' : '確認隱藏',
           tone: nextPublished ? 'default' : 'danger'
         });
@@ -547,8 +683,13 @@
       const edit = node('button', 'edit-idea', '編輯內容');
       edit.type = 'button';
       edit.addEventListener('click', () => openIdeaEditor(idea));
+      const configureCommerce = node('button', 'edit-commerce', '售價與開放設定');
+      configureCommerce.type = 'button';
+      configureCommerce.dataset.commerceIdea = idea.id;
+      configureCommerce.setAttribute('aria-label', `${idea.public_title || idea.title}：售價與開放設定`);
+      configureCommerce.addEventListener('click', () => openCommerceDialog(idea));
       const actions = node('div', 'idea-admin-actions');
-      actions.append(edit, toggle);
+      actions.append(configureCommerce, edit, toggle);
       row.append(seal, copy, price, actions);
       target.appendChild(row);
     });
@@ -983,23 +1124,59 @@
   });
   document.querySelector('#price-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!event.currentTarget.reportValidity()) return;
     const price = Number(document.querySelector('#global-price').value);
     const previous = Number(dashboard?.global_price || 0);
-    if (price === previous) { setStatus('預設價格沒有變更。'); return; }
+    if (price === previous) { setStatus('舊版預設價格沒有變更。'); return; }
     const accepted = await confirmAction({
-      title: '確認更新全站預設價格？',
-      message: `預設價格將由 ${money(previous)} 調整為 ${money(price)}。`,
-      impact: '只影響沒有單獨定價的仙策；既有訂單與已付款金額不會回溯修改。',
-      confirmLabel: '更新預設價格'
+      title: '確認更新舊版預設價格？',
+      message: `舊版預設價格將由 ${money(previous)} 調整為 ${money(price)}。`,
+      impact: '不控制新的逐卷準備售價，不會開放收款；既有訂單與已付款金額也不會回溯修改。',
+      confirmLabel: '更新舊版預設價'
     });
     if (!accepted) return;
     const submit = event.currentTarget.querySelector('button[type="submit"]');
     submit.disabled = true;
     try {
       await api('/admin/api/settings/price', {method: 'POST', body: JSON.stringify({price})});
-      await loadDashboard(`全站預設價格已更新為 ${money(price)}。`);
+      await loadDashboard(`舊版預設價格已更新為 ${money(price)}，逐卷準備售價不變。`);
     } catch (error) { showError(error); }
     finally { submit.disabled = false; }
+  });
+  document.querySelector('#commerce-import-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+    const input = document.querySelector('#commerce-import-file');
+    const file = input.files?.[0];
+    const importStatus = document.querySelector('#commerce-import-status');
+    const submit = form.querySelector('button[type="submit"]');
+    importStatus.classList.remove('is-error');
+    submit.disabled = true;
+    input.disabled = true;
+    try {
+      if (!file || !/\.json$/i.test(file.name)) throw new Error('請選擇 JSON 準備售價檔案。');
+      if (file.size > 16 * 1024) throw new Error('檔案超過 16 KB，請檢查是否選錯檔案。');
+      let payload;
+      try { payload = JSON.parse((await file.text()).replace(/^\uFEFF/, '')); }
+      catch { throw new Error('檔案不是有效的 JSON，尚未送出或儲存。'); }
+      if (!payload || !Array.isArray(payload.entries) || payload.entries.length !== 13) throw new Error('檔案需包含 entries 陣列，且完整列出前十三卷。');
+      const validEntries = payload.entries.every((entry) => entry && typeof entry.slug === 'string' && entry.slug.length > 0 && entry.slug.length <= 120 && Number.isInteger(entry.prepared_price) && entry.prepared_price > 0 && entry.prepared_price <= 100000);
+      if (!validEntries || new Set(payload.entries.map((entry) => entry.slug)).size !== 13) throw new Error('卷冊識別不可重複，且每卷準備售價需為有效的正整數。');
+      const entries = payload.entries.map(({slug, prepared_price}) => ({slug, prepared_price}));
+      importStatus.textContent = '已讀取十三筆準備售價，尚未儲存；請核對確認視窗。';
+      const accepted = await confirmAction({title: '確認匯入十三卷準備售價？', message: `將從「${file.name}」匯入十三筆準備售價。`, impact: '價格只保存於後台；本次不公開售價、不開放購買、不勾選交付核對，也不修改第十四卷或既有訂單。全部資料驗證通過後才會一起儲存。', confirmLabel: '確認保存準備售價'});
+      if (!accepted) { importStatus.textContent = '已取消匯入，尚未變更任何售價。'; return; }
+      importStatus.textContent = '正在核對並保存十三卷準備售價…';
+      const result = await api('/admin/api/commerce/prepare', {method: 'POST', body: JSON.stringify({entries})});
+      if (result.ok !== true || result.prepared_count !== 13) throw new Error('未取得完整匯入結果，請重新登入並核對卷冊狀態；不要重複送出。');
+      input.value = '';
+      importStatus.textContent = '十三卷準備售價已保存；維持準備中、價格隱藏、未開賣。第十四卷未變更。';
+      await loadDashboard('十三卷準備售價已匯入，價格只在後台可見。');
+    } catch (error) {
+      importStatus.textContent = error.message || '匯入失敗，請重新核對檔案。';
+      importStatus.classList.add('is-error');
+    } finally { submit.disabled = false; input.disabled = false; }
   });
   document.querySelector('#security-test').addEventListener('click', async () => {
     const accepted = await confirmAction({
@@ -1101,6 +1278,66 @@
     }
   });
   document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', requestEditorClose));
+  document.querySelectorAll('[data-close-commerce-dialog]').forEach((button) => button.addEventListener('click', requestCommerceClose));
+  commerceDialog.addEventListener('click', (event) => { if (event.target === commerceDialog) requestCommerceClose(); });
+  commerceDialog.addEventListener('cancel', (event) => { event.preventDefault(); requestCommerceClose(); });
+  commerceForm.addEventListener('input', updateCommercePreview);
+  commerceForm.addEventListener('change', updateCommercePreview);
+  window.addEventListener('beforeunload', (event) => {
+    if (commerceDialog.open && (commerceBusy || updateCommercePreview())) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  });
+  commerceForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (commerceBusy || !savedCommerce?.in_pricing_batch || !commerceForm.reportValidity()) return;
+    if (!updateCommercePreview()) { commerceStatus.textContent = '設定沒有變更。'; return; }
+    const draft = commerceValues();
+    const needsPublication = draft.sale_state !== 'preparing';
+    commerceBusy = true;
+    commerceSave.disabled = true;
+    commerceStatus.classList.remove('is-error');
+    try {
+      if (needsPublication) {
+        const effect = draft.sale_state === 'price_listed'
+          ? '公開頁會顯示售價，但不會出現購買入口，也不能建立訂單。'
+          : (savedCommerce.global_checkout_enabled && savedCommerce.payment_ready
+            ? '本卷符合公開與交付條件時，訪客可建立一般購買訂單。請確認實際交付與營運準備已完成。'
+            : '本卷會公開售價。全站金流門檻目前尚未就緒，仍不能建立一般訂單；日後全站門檻開啟後，符合條件的本卷即可接受購買。');
+        const accepted = await confirmAction({
+          title: draft.sale_state === 'price_listed' ? '確認公開本卷售價？' : '確認將本卷設為開放購買？',
+          message: `${commerceIdea.public_title || commerceIdea.title}將保存為「${saleStateLabels[draft.sale_state]}」，單卷售價 ${money(draft.prepared_price)}。`,
+          impact: `${effect} 既有訂單成交價不變。`,
+          confirmLabel: draft.sale_state === 'price_listed' ? '確認公開售價' : '確認開放設定',
+          tone: draft.sale_state === 'for_sale' ? 'danger' : 'default'
+        });
+        if (!accepted) return;
+      } else if (savedCommerce.sale_state !== 'preparing') {
+        const accepted = await confirmAction({title: '確認退回準備中？', message: `${commerceIdea.public_title || commerceIdea.title}將隱藏售價並停止新購買。`, impact: '既有訂單與已購權限不受影響；準備售價保留在後台。', confirmLabel: '確認退回準備中', tone: 'danger'});
+        if (!accepted) return;
+      }
+      commerceStatus.textContent = '正在儲存本卷設定…';
+      document.querySelector('#commerce-settings').disabled = true;
+      const result = await api(`/admin/api/ideas/${commerceIdea.id}/commerce`, {
+        method: 'POST', body: JSON.stringify({...draft, confirm_publication: needsPublication})
+      });
+      if (!result.commerce || typeof result.commerce !== 'object') throw new Error('未取得儲存後狀態，請關閉並重新開啟核對；不要重複送出。');
+      fillCommerceResult(result);
+      const message = result.commerce.sale_state === 'preparing'
+        ? '準備設定已儲存；價格仍只在後台可見，沒有公開售價或開放收款。'
+        : (result.commerce.can_purchase ? '本卷已保存為開放購買，公開頁現在可建立訂單。' : '設定已儲存；目前本卷尚未開放建立訂單。');
+      commerceStatus.textContent = message;
+      await loadDashboard(message);
+    } catch (error) {
+      commerceStatus.textContent = error.message || '儲存失敗，請檢查設定後再試。';
+      commerceStatus.classList.add('is-error');
+    } finally {
+      commerceBusy = false;
+      document.querySelector('#commerce-settings').disabled = !savedCommerce?.in_pricing_batch;
+      commerceSave.disabled = !savedCommerce?.in_pricing_batch;
+    }
+  });
   editor.addEventListener('click', (event) => { if (event.target === editor) requestEditorClose(); });
   editor.addEventListener('cancel', (event) => { event.preventDefault(); requestEditorClose(); });
   editorForm.addEventListener('input', updateEditorDirtyState);
@@ -1131,7 +1368,7 @@
       await api(`/admin/api/ideas/${ideaId}`, {method: 'POST', body: JSON.stringify(payload)});
       editor.dataset.dirty = 'false';
       editor.close();
-      await loadDashboard('仙策內容已儲存並寫入稽核紀錄。');
+      await loadDashboard('仙策內容已儲存；交付核對已重設，原開放購買的卷會退回公開售價，請重新核對後再開賣。');
     } catch (error) { editorStatus.textContent = error.message || '儲存失敗'; }
     finally { saveButton.disabled = false; }
   });

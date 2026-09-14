@@ -121,7 +121,9 @@ def test_verification_order_uses_ecpay_minimum_credit_amount_without_opening_pub
     assert b"verification-hash-iv" not in first_redirect.data
 
     public_checkout = client.get("/checkout/sealed-twin-tire-safety")
-    assert "正式付款尚未開放" in public_checkout.get_data(as_text=True)
+    public_body = public_checkout.get_data(as_text=True)
+    assert "售價已公開，尚未開放購買" in public_body
+    assert 'id="order-form"' not in public_body
 
     public_csrf = set_public_csrf(client, "public-sales-stay-closed")
     public_order = client.post(

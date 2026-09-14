@@ -48,6 +48,17 @@ def app(tmp_path, monkeypatch):
             "ANALYTICS_TRUSTED_AFTER": "2000-01-01T00:00:00+00:00",
         }
     )
+    # Legacy transaction/security suites deliberately exercise synthetic sales.
+    # Startup/launch-default tests must create a separate fresh application;
+    # production seeds remain preparing with no staged price or release approval.
+    from tianwai.db import get_db
+
+    with application.app_context():
+        connection = get_db()
+        connection.execute(
+            "UPDATE ideas SET prepared_price = 199, sale_state = 'for_sale', release_ready = 1"
+        )
+        connection.commit()
     yield application
 
 

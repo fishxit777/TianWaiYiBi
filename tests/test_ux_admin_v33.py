@@ -73,18 +73,25 @@ def test_editor_has_accessible_name_and_instructions(dashboard_markup):
 
 
 def test_editor_groups_public_paid_and_internal_without_losing_fields(dashboard_markup):
-    groups = [attrs.get("data-editor-scope") for tag, attrs in dashboard_markup.elements if tag == "fieldset"]
+    # This contract belongs to the content editor, not the separate V37
+    # commerce dialog, which legitimately has its own fieldsets and legends.
+    elements = dashboard_markup.elements
+    editor_start = next(index for index, (_, attrs) in enumerate(elements) if attrs.get("id") == "idea-editor")
+    editor_end = next(index for index in range(editor_start + 1, len(elements)) if elements[index][0] == "dialog")
+    editor_elements = elements[editor_start:editor_end]
+    groups = [attrs.get("data-editor-scope") for tag, attrs in editor_elements if tag == "fieldset"]
     assert groups == ["public", "paid", "internal"]
     ids = [attrs.get("id") for _, attrs in dashboard_markup.elements if attrs.get("id")]
     assert len(ids) == len(set(ids))
+    editor_ids = {attrs.get("id") for _, attrs in editor_elements if attrs.get("id")}
     expected_fields = {
         "id", "public-title", "title", "role", "seal", "accent", "sort-order", "price-override",
         "discipline", "primary-vein", "secondary-vein", "topic", "maturity", "workflow-status",
         "raw-idea", "summary", "teaser", "paid-content", "deliverables", "tags", "hero-image",
         "diagram-image", "scene-image",
     }
-    assert all("idea-" + field in ids for field in expected_fields)
-    assert len([tag for tag, _ in dashboard_markup.elements if tag == "legend"]) == 3
+    assert all("idea-" + field in editor_ids for field in expected_fields)
+    assert len([tag for tag, _ in editor_elements if tag == "legend"]) == 3
     assert '.catalog-card { grid-column: 1 / -1; min-width: 0; }' in STYLE
 
 

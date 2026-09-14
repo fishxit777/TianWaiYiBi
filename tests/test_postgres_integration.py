@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier, Lock
@@ -26,7 +27,18 @@ def pg_app(monkeypatch):
 
     from tianwai import create_app
 
-    return create_app({"TESTING": True})
+    application = create_app({"TESTING": True})
+    # Each case shares only this disposable loopback database; commerce tests
+    # must never inherit the public sale state from a previous case.
+    from tianwai.db import get_db
+
+    with application.app_context():
+        connection = get_db()
+        connection.execute(
+            "UPDATE ideas SET prepared_price = NULL, sale_state = 'preparing', release_ready = 0"
+        )
+        connection.commit()
+    return application
 
 
 def test_real_postgres_schema_seed_insert_and_row_mapping(pg_app):
@@ -236,3 +248,117 @@ def test_real_postgres_full_daily_summary_route_is_deduplicated(pg_app, monkeypa
         assert response.status_code == 200
         assert response.get_json()["channels"]["line"] == "sent"
     assert len(sent) == 1
+
+
+def _commerce_admin_client(application):
+    from conftest import set_public_csrf
+
+    client = application.test_client()
+    response = client.post("/admin/login", data={
+        "username": "integration-admin",
+        "password": "integration-password-not-for-production",
+        "csrf_token": set_public_csrf(client),
+    })
+    assert response.status_code == 302
+    dashboard = client.get("/admin")
+    assert dashboard.status_code == 200
+    return client, re.search(rb'<meta name="admin-csrf" content="([^"]+)"', dashboard.data).group(1).decode()
+
+
+def test_real_postgres_commerce_columns_defaults_and_restart_preservation(pg_app):
+    from tianwai.db import get_db, init_db, utc_now
+
+    with pg_app.app_context():
+        connection = get_db()
+        columns = {
+            row["column_name"]: dict(row)
+            for row in connection.execute(
+                "SELECT column_name, column_default, is_nullable FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = 'ideas' "
+                "AND column_name IN ('prepared_price', 'sale_state', 'release_ready')"
+            ).fetchall()
+        }
+        assert set(columns) == {"prepared_price", "sale_state", "release_ready"}
+        assert columns["prepared_price"]["column_default"] is None
+        assert columns["prepared_price"]["is_nullable"] == "YES"
+        assert "preparing" in columns["sale_state"]["column_default"]
+        assert columns["release_ready"]["column_default"] == "0"
+        slug = "synthetic-commerce-default-" + uuid.uuid4().hex
+        inserted = connection.execute(
+            "INSERT INTO ideas (slug, title, role, seal, discipline, summary, teaser, paid_content, "
+            "deliverables, tags, accent, published, created_at, updated_at) "
+            "VALUES (?, 'synthetic', 'synthetic', 'synthetic', 'synthetic', 'synthetic', 'synthetic', "
+            "'synthetic', 'synthetic', 'synthetic', 'gold', 0, ?, ?)",
+            (slug, utc_now(), utc_now()),
+        )
+        # The adapter reads connection-level LASTVAL(); startup seeds advance
+        # that sequence state even for INSERT ... ON CONFLICT DO NOTHING.
+        inserted_id = inserted.lastrowid
+        connection.commit()
+        default = connection.execute(
+            "SELECT prepared_price, sale_state, release_ready FROM ideas WHERE id = ?", (inserted_id,)
+        ).fetchone()
+        assert dict(default) == {"prepared_price": None, "sale_state": "preparing", "release_ready": 0}
+        connection.execute(
+            "UPDATE ideas SET prepared_price = 7381, sale_state = 'price_listed' WHERE id = ?",
+            (inserted_id,),
+        )
+        connection.commit()
+        init_db()
+        preserved = connection.execute(
+            "SELECT prepared_price, sale_state, release_ready, published FROM ideas WHERE id = ?",
+            (inserted_id,),
+        ).fetchone()
+        assert dict(preserved) == {"prepared_price": 7381, "sale_state": "price_listed", "release_ready": 0, "published": 0}
+
+
+def test_real_postgres_commerce_admin_batch_atomicity_and_order_gate(pg_app):
+    from test_commerce_public_v37 import FIRST_SLUG, LAST_SLUG, _post_order
+    from tianwai.db import get_db
+
+    client, csrf = _commerce_admin_client(pg_app)
+    headers = {"X-CSRF-Token": csrf}
+    with pg_app.app_context():
+        connection = get_db()
+        rows = connection.execute(
+            "SELECT * FROM ideas WHERE published = 1 ORDER BY sort_order"
+        ).fetchall()
+        first_id = rows[0]["id"]
+        assert rows[0]["slug"] == FIRST_SLUG
+        before = [dict(row) for row in rows]
+        orders_before = connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"]
+    prepared = [{"slug": row["slug"], "prepared_price": 7400 + row["sort_order"]} for row in rows[:13]]
+    invalid = [dict(entry) for entry in prepared]
+    invalid[-1]["prepared_price"] = 0
+    assert client.post("/admin/api/commerce/prepare", json={"entries": invalid}, headers=headers).status_code == 400
+    with pg_app.app_context():
+        assert [dict(row) for row in get_db().execute("SELECT * FROM ideas WHERE published = 1 ORDER BY sort_order").fetchall()] == before
+    assert client.post("/admin/api/commerce/prepare", json={"entries": prepared}, headers=headers).status_code == 200
+    detail = client.get(f"/admin/api/ideas/{first_id}/commerce")
+    assert detail.status_code == 200
+    assert detail.get_json()["commerce"]["prepared_price"] == prepared[0]["prepared_price"]
+    public = pg_app.test_client()
+    assert all("price" not in item for item in public.get("/api/ideas").get_json()["ideas"])
+    assert _post_order(public).status_code in (403, 409, 503)
+    listed = {"prepared_price": prepared[0]["prepared_price"], "sale_state": "price_listed", "release_ready": False, "confirm_publication": True}
+    assert client.post(f"/admin/api/ideas/{first_id}/commerce", json=listed, headers=headers).status_code == 200
+    assert _post_order(public).status_code in (403, 409, 503)
+    listed.update(sale_state="for_sale", release_ready=True)
+    assert client.post(f"/admin/api/ideas/{first_id}/commerce", json=listed, headers=headers).status_code == 200
+    assert _post_order(public).status_code == 201
+    assert _post_order(public, LAST_SLUG).status_code in (403, 409, 503)
+    # A mixed-state batch must reject atomically, including the twelve preparing rows.
+    before_retry = client.get(f"/admin/api/ideas/{first_id}/commerce").get_json()["commerce"]
+    with pg_app.app_context():
+        before_retry_rows = [dict(row) for row in get_db().execute("SELECT * FROM ideas WHERE published = 1 ORDER BY sort_order").fetchall()]
+    assert client.post("/admin/api/commerce/prepare", json={"entries": prepared}, headers=headers).status_code == 409
+    assert client.get(f"/admin/api/ideas/{first_id}/commerce").get_json()["commerce"] == before_retry
+    with pg_app.app_context():
+        connection = get_db()
+        after = [dict(row) for row in connection.execute("SELECT * FROM ideas WHERE published = 1 ORDER BY sort_order").fetchall()]
+        assert after == before_retry_rows
+        assert after[-1] == before[-1]
+        for original, updated in zip(before[:13], after[:13]):
+            for field in ("paid_content", "deliverables", "price_override", "published", "workflow_status"):
+                assert updated[field] == original[field]
+        assert connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"] == orders_before + 1

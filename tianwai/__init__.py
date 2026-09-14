@@ -87,7 +87,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "relock-3d-storyboard-v36",
+                "release": "staged-catalog-sales-v37",
             }
         )
 

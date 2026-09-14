@@ -12,8 +12,10 @@ from .analytics import (
     record_event,
     validate_public_event,
 )
-from .db import get_db, get_setting_int, utc_now
-from .payments import checkout_url_for, payment_checkout_status
+from .commerce import commerce_status, lock_commerce, public_idea
+from .db import get_db, utc_now
+from . import payments
+from .payments import checkout_url_for
 from .security import (
     derive_access_token,
     derive_activation_token,
@@ -29,16 +31,14 @@ TAIPEI_TIMEZONE = timezone(timedelta(hours=8))
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
+def payment_checkout_status():
+    return payments.payment_checkout_status()
+
+
 def _published_ideas():
     return get_db().execute(
         "SELECT * FROM ideas WHERE published = 1 ORDER BY sort_order, id"
     ).fetchall()
-
-
-def _idea_price(idea):
-    if idea["price_override"] is not None:
-        return int(idea["price_override"])
-    return get_setting_int("idea_price", 199)
 
 
 def _public_support_contact():
@@ -67,10 +67,13 @@ def _public_support_contact():
 
 @public_bp.get("/")
 def home():
-    ideas = _published_ideas()
-    price = get_setting_int("idea_price", 199)
+    payment_status = payment_checkout_status()
+    ideas = [public_idea(idea, payment_status) for idea in _published_ideas()]
     record_event("page_view", dedupe_scope=datetime.now(timezone.utc).date().isoformat())
-    return render_template("home.html", ideas=ideas, global_price=price)
+    return render_template(
+        "home.html", ideas=ideas, payment_status=payment_status,
+        commerce_by_slug={idea["slug"]: idea["commerce"] for idea in ideas},
+    )
 
 
 @public_bp.get("/faq")
@@ -115,7 +118,14 @@ def idea_detail(slug):
         idea_id=idea["id"],
         dedupe_scope=public_event_dedupe_scope("view_idea"),
     )
-    return render_template("idea_detail.html", idea=idea, price=_idea_price(idea))
+    payment_status = payment_checkout_status()
+    visible_idea = public_idea(idea, payment_status)
+    commerce = visible_idea["commerce"]
+    context = {"price": commerce["price"]} if commerce["price_visible"] else {}
+    return render_template(
+        "idea_detail.html", idea=visible_idea, commerce=commerce,
+        payment_status=payment_status, **context,
+    )
 
 
 @public_bp.get("/checkout/<slug>")
@@ -125,16 +135,22 @@ def checkout(slug):
     ).fetchone()
     if idea is None:
         return render_template("message.html", title="無法結帳", message="此想法目前未開放。"), 404
-    record_event(
-        "checkout_opened",
-        idea_id=idea["id"],
-        dedupe_scope=public_event_dedupe_scope("checkout_opened"),
-    )
+    payment_status = payment_checkout_status()
+    visible_idea = public_idea(idea, payment_status)
+    commerce = visible_idea["commerce"]
+    if commerce["can_purchase"]:
+        record_event(
+            "checkout_opened",
+            idea_id=idea["id"],
+            dedupe_scope=public_event_dedupe_scope("checkout_opened"),
+        )
+    context = {"price": commerce["price"]} if commerce["price_visible"] else {}
     return render_template(
         "checkout.html",
-        idea=idea,
-        price=_idea_price(idea),
-        payment_status=payment_checkout_status(),
+        idea=visible_idea,
+        commerce=commerce,
+        payment_status=payment_status,
+        **context,
     )
 
 
@@ -155,23 +171,30 @@ def create_order():
         return jsonify({"error": "請輸入至少 2 個字的稱呼"}), 400
     if not purchase_notice_consent or not digital_content_consent:
         return jsonify({"error": "請先閱讀並同意付款、開通與數位內容說明"}), 400
-    idea = get_db().execute(
+    connection = get_db()
+    lock_commerce(connection)
+    idea = connection.execute(
         "SELECT * FROM ideas WHERE slug = ? AND published = 1", (slug,)
     ).fetchone()
     if idea is None:
+        connection.rollback()
         return jsonify({"error": "此想法目前未開放"}), 404
 
     payment_status = payment_checkout_status()
+    commerce = commerce_status(idea, payment_status)
     if not payment_status["ready"]:
+        connection.rollback()
         return jsonify({"error": "正式付款尚未開放，目前不會建立扣款"}), 503
+    if not commerce["can_purchase"]:
+        connection.rollback()
+        return jsonify({"error": "此卷尚未開放購買，目前不會建立訂單或扣款"}), 409
 
     local_now = datetime.now(TAIPEI_TIMEZONE)
     order_no = f"TWYB{local_now.strftime('%Y%m%d')}{secrets.token_hex(4).upper()}"
     payment_token = secrets.token_urlsafe(32)
     access_token = derive_access_token(payment_token)
     activation_token = derive_activation_token(order_no)
-    amount = _idea_price(idea)
-    connection = get_db()
+    amount = commerce["price"]
     analytics_sid = ensure_analytics_session()
     cursor = connection.execute(
         """
@@ -240,6 +263,7 @@ def order_access(access_token):
 @public_bp.get("/api/ideas")
 def ideas_api():
     ideas = _published_ideas()
+    payment_status = payment_checkout_status()
     return jsonify(
         {
             "ideas": [
@@ -252,7 +276,7 @@ def ideas_api():
                     "summary": item["summary"],
                     "maturity": item["maturity"],
                     "tags": item["tags"].split(","),
-                    "price": _idea_price(item),
+                    **commerce_status(item, payment_status),
                 }
                 for item in ideas
             ]

@@ -27,7 +27,7 @@
       <a class="button button-primary" href="#ideas"><span>查看封印卷</span><small>先讀線索</small></a>
       <a class="text-link" href="#how">先懂拆封規則 <span aria-hidden="true">↓</span></a>
     </div>
-    <p class="availability-ribbon {{ 'is-open' if payment_status.ready else 'is-preview' }}"><span aria-hidden="true"></span>{% if payment_status.ready %}<strong>正式開放</strong> 付款後立即揭示完整圖文{% else %}<strong>展示中</strong> 公開收款仍關閉，不會建立扣款{% endif %}</p>
+    <p class="availability-ribbon {{ 'is-open' if payment_status.ready else 'is-preview' }}"><span aria-hidden="true"></span>{% if payment_status.ready %}<strong>逐卷開放</strong> 售價與購買狀態以各卷頁面為準{% else %}<strong>展示中</strong> 公開收款仍關閉，不會建立扣款{% endif %}</p>
   </div>
   <aside class="sealed-scroll-visual celestial-casket reveal delay-1" aria-label="一件由仙門禁制封存、尚未拆封的原創概念卷匣">
     <div class="casket-stage" aria-hidden="true">
@@ -69,11 +69,13 @@
   <div class="idea-grid blindbox-grid">
     {% for idea in ideas %}
     {% set card_companion = companion_by_vein.get(idea['primary_vein'], companion_by_vein['守護脈']) %}
+    {% set commerce = commerce_by_slug[idea['slug']] %}
     <article class="idea-card sealed-card accent-{{ idea['accent'] }} reveal" data-tags="{{ idea['primary_vein'] }},{{ idea['secondary_vein'] }},{{ idea['tags'] }}">
       <a class="idea-card-link" href="{{ url_for('public.idea_detail', slug=idea['slug']) }}" aria-label="查看{{ idea['public_title'] }}的封印線索">
         <div class="sealed-card-art">{{ concept_scroll(idea['seal'], 'card', idea['slug']) }}<em>封印未解</em></div>
         <span class="companion-cameo" aria-hidden="true"><img src="{{ url_for('static', filename='brand/companions/chibi-' ~ card_companion[0] ~ '-v23.webp') }}" alt="" width="480" height="720" loading="lazy"><b>{{ card_companion[1] }}正在看守此卷</b></span>
-        <div class="idea-card-top"><span class="idea-number">VOL. {{ '%02d'|format(idea['sort_order']) }}</span><span class="maturity-chip">{{ idea['maturity'] }}</span></div><p class="idea-role">{{ idea['primary_vein'] }}</p><h3>{{ idea['public_title'] }}</h3><p class="idea-discipline">{{ idea['discipline'] }}</p><p class="idea-summary">{{ idea['summary'] }}</p><div class="idea-tags" aria-label="公開線索">{% for tag in idea['tags'].split(',')[:3] %}<span>{{ tag }}</span>{% endfor %}</div><footer><span>{% if payment_status.ready %}NT${{ idea['price_override'] if idea['price_override'] is not none else global_price }}{% else %}尚未收款{% endif %}</span><strong>查看封印線索 <span aria-hidden="true">→</span></strong></footer>
+        <div class="idea-card-top"><span class="idea-number">VOL. {{ '%02d'|format(idea['sort_order']) }}</span><span class="maturity-chip">{{ idea['maturity'] }}</span></div><p class="idea-role">{{ idea['primary_vein'] }}</p><h3>{{ idea['public_title'] }}</h3><p class="idea-discipline">{{ idea['discipline'] }}</p><p class="idea-summary">{{ idea['summary'] }}</p><div class="idea-tags" aria-label="公開線索">{% for tag in idea['tags'].split(',')[:3] %}<span>{{ tag }}</span>{% endfor %}</div>
+        <footer class="commerce-card-footer" data-sale-state="{{ commerce.sale_state }}"><span class="commerce-card-price">{% if commerce.price_visible %}NT${{ commerce.price }}<small>{{ '開放購買' if commerce.can_purchase else '尚未開放購買' }}</small>{% else %}準備中<small>售價尚未公開</small>{% endif %}</span><strong>查看封印線索 <span aria-hidden="true">→</span></strong></footer>
       </a>
     </article>
     {% endfor %}
