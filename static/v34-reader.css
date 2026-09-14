@@ -1,0 +1,26 @@
+/* Only the new volume; existing manuscripts keep their V33 presentation. */
+.public-site.volume-v34 .maturity-chip {
+  color: #315b50;
+  background: #e4efe9;
+  border-color: #9db9ac;
+  line-height: 1.65;
+  white-space: normal;
+}
+.public-site.volume-v34 .v34-reader-section {
+  position: relative;
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid #d8dfd4;
+}
+.public-site.volume-v34 .v34-reader-section h3 {
+  margin: 0 0 12px;
+  color: #315b50;
+  font-size: clamp(19px, 2.2vw, 23px);
+  font-weight: 700;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.public-site.volume-v34 .v34-reader-section .manuscript-copy { margin: 0; }
+@media (max-width: 640px) {
+  .public-site.volume-v34 .v34-reader-section { margin-top: 24px; padding-top: 22px; }
+}

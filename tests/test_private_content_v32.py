@@ -23,7 +23,9 @@ def paid_reader(client, app):
 
 
 def test_all_current_and_retired_assets_are_private(app, client):
-    assert len(LEGACY_ASSETS) == 75
+    assert len(LEGACY_ASSETS) == 78
+    assert sum("/v34-14-" not in path for path in LEGACY_ASSETS) == 75
+    assert sum("/v34-14-" in path for path in LEGACY_ASSETS) == 3
     private_root = Path(app.config["PRIVATE_ASSET_ROOT"])
     for asset in LEGACY_ASSETS:
         assert (private_root / asset).is_file()

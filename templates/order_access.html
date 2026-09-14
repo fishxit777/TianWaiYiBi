@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ order['title'] }}｜已拆封概念卷{% endblock %}
-{% block body_class %}access-page revealed-scroll flow-page accent-{{ order['accent'] }}{% endblock %}
+{% block body_class %}access-page revealed-scroll flow-page accent-{{ order['accent'] }}{% if order['idea_slug'] == 'sealed-concept-v14' %} volume-v34{% endif %}{% endblock %}
+{% block page_scripts_head %}{% if order['idea_slug'] == 'sealed-concept-v14' %}<link rel="stylesheet" href="{{ url_for('static', filename='v34-reader.css') }}">{% endif %}{% endblock %}
 {% block content %}
 <section class="access-shell section-shell">
   <div class="access-watermark" aria-hidden="true">{% for _ in range(12) %}<span>{{ access_context.customer }}・{{ access_context.order }}・{{ access_context.time }}</span>{% endfor %}</div>
@@ -15,7 +16,16 @@
     <a href="#reading-boundary">使用提醒</a>
   </nav>
   {% if order['hero_image'] %}<figure class="reveal-concept-hero reveal flow-reader-figure" id="concept-overview"><h2>概念主視覺</h2><a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='hero') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視概念主視覺；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='hero') }}" alt="{{ order['title'] }}概念主視覺"><span>放大檢視 <span aria-hidden="true">↗</span></span></a><figcaption>{{ order['hero_caption'] or '概念視覺・不代表已完成實作驗證' }}</figcaption></figure>{% endif %}
-  <article class="manuscript reveal delay-1" id="concept-text" aria-labelledby="concept-text-title"><div class="manuscript-edge" aria-hidden="true"></div><h2 id="concept-text-title">完整概念文字</h2><p class="manuscript-copy">{{ order['paid_content'] }}</p><footer><span>本卷內容</span><strong>{{ order['deliverables'] }}</strong></footer></article>
+  <article class="manuscript reveal delay-1" id="concept-text" aria-labelledby="concept-text-title">
+    <div class="manuscript-edge" aria-hidden="true"></div><h2 id="concept-text-title">完整概念文字</h2>
+    {% if order['idea_slug'] == 'sealed-concept-v14' %}
+      {% for section in order['paid_content'].strip().split('\n\n') %}
+        {% set parts = section.partition('\n') %}
+        <section class="v34-reader-section"><h3>{{ parts[0] }}</h3>{% if parts[2] %}<p class="manuscript-copy">{{ parts[2] }}</p>{% endif %}</section>
+      {% endfor %}
+    {% else %}<p class="manuscript-copy">{{ order['paid_content'] }}</p>{% endif %}
+    <footer><span>本卷內容</span><strong>{{ order['deliverables'] }}</strong></footer>
+  </article>
   <div class="reveal-visual-grid flow-reader-visuals">
     {% if order['diagram_image'] %}<figure class="flow-reader-figure" id="concept-diagram"><h2>機制圖解</h2><a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='diagram') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視概念機制示意圖；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='diagram') }}" alt="概念機制示意圖" loading="lazy" decoding="async"><span>放大檢視 <span aria-hidden="true">↗</span></span></a><figcaption>{{ order['diagram_caption'] or '機制示意・仍須依實際場域驗證' }}</figcaption></figure>{% endif %}
     {% if order['scene_image'] %}<figure class="flow-reader-figure" id="concept-scene"><h2>使用情境</h2><a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='scene') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視概念使用情境圖；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='scene') }}" alt="概念使用情境圖" loading="lazy" decoding="async"><span>放大檢視 <span aria-hidden="true">↗</span></span></a><figcaption>{{ order['scene_caption'] or '使用情境・不代表已完成實地驗證' }}</figcaption></figure>{% endif %}

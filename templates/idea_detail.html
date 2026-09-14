@@ -12,7 +12,7 @@
     <nav class="page-topic-nav" aria-label="本卷閱讀導覽"><a href="#concept-clues">問題線索</a><a href="#concept-deliverables">交付內容</a><a href="#concept-next-step">{{ '購買與使用' if payment_status.ready else '登記開放意願' }}</a></nav>
   </header>
   <div class="blind-detail-grid">
-    <div class="blind-preview reveal"><div class="blind-preview-image" aria-hidden="true"></div>{{ concept_scroll(idea['seal'], 'preview') }}<p>完整視覺已封印</p></div>
+    <div class="blind-preview reveal"><div class="blind-preview-image" aria-hidden="true"></div>{{ concept_scroll(idea['seal'], 'preview', idea['slug']) }}<p>完整視覺已封印</p></div>
     <div class="detail-copy reveal delay-1" data-analytics-idea="{{ idea['slug'] }}">
       <section id="concept-clues" class="detail-information-section" aria-labelledby="concept-clues-title">
         <h2 id="concept-clues-title">先看問題，再判斷價值</h2>

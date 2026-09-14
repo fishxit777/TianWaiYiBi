@@ -87,7 +87,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "experience-polish-v33",
+                "release": "relock-sealed-concept-v34",
             }
         )
 

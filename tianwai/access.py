@@ -834,7 +834,7 @@ def order_content(order_no):
     email = customer_session["customer_email"] if customer_session else ""
     order = get_db().execute(
         """
-        SELECT orders.*, ideas.title, ideas.role, ideas.discipline, ideas.primary_vein,
+        SELECT orders.*, ideas.slug AS idea_slug, ideas.title, ideas.role, ideas.discipline, ideas.primary_vein,
                ideas.secondary_vein, ideas.maturity, ideas.paid_content,
                ideas.deliverables, ideas.accent, ideas.hero_image,
                ideas.diagram_image, ideas.scene_image, ideas.hero_caption,

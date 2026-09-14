@@ -126,7 +126,7 @@ def test_all_thirteen_public_volumes_share_the_readable_section_structure(client
         for tag, attrs in home.tags
         if tag == "a" and attrs.get("href", "").startswith("/ideas/")
     }
-    assert len(paths) == 13
+    assert len(paths) == 14
     for path in sorted(paths):
         response = client.get(path)
         assert response.status_code == 200

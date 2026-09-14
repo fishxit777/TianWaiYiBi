@@ -25,15 +25,19 @@
 </figure>
 {%- endmacro %}
 
-{% macro concept_scroll(glyph, placement) -%}
+{% macro concept_scroll(glyph, placement, slug='') -%}
 <span class="celestial-scroll-mark concept-scroll-mark concept-scroll-{{ placement }}" aria-hidden="true">
   <span class="scroll-art">
     <svg class="scroll-motif" viewBox="0 0 72 64" focusable="false">
+      {% if slug == 'sealed-concept-v14' %}
+      <path d="M36 8 57 15v13c0 13-8.4 23.3-21 29-12.6-5.7-21-16-21-29V15L36 8Z" class="motif-ward"/><path d="m26 31 7 7 14-16"/>
+      {% else %}
       <circle cx="25" cy="34" r="12"/><circle cx="47" cy="34" r="12"/><circle cx="25" cy="34" r="5"/><circle cx="47" cy="34" r="5"/>
       <path d="M36 8 57 15v13c0 13-8.4 23.3-21 29-12.6-5.7-21-16-21-29V15L36 8Z" class="motif-ward"/><path d="M14 29c6-9 14-14 22-14s16 5 22 14" class="motif-aura"/>
+      {% endif %}
     </svg>
   </span>
-  <span class="scroll-copy"><b>{{ glyph }}</b><small>雙輪護陣</small></span>
+  <span class="scroll-copy"><b>{{ glyph }}</b><small>{{ '觀險守程' if slug == 'sealed-concept-v14' else '雙輪護陣' }}</small></span>
   <span class="scroll-wax">封</span>
 </span>
 {%- endmacro %}

@@ -40,8 +40,8 @@ def test_real_postgres_schema_seed_insert_and_row_mapping(pg_app):
         published = connection.execute(
             "SELECT public_title, sort_order FROM ideas WHERE published = 1 ORDER BY sort_order"
         ).fetchall()
-        assert len(published) == 13
-        assert [row["sort_order"] for row in published] == list(range(1, 14))
+        assert len(published) == 14
+        assert [row["sort_order"] for row in published] == list(range(1, 15))
         assert all(row["public_title"].startswith("封印盲策・第") for row in published)
         cursor = connection.execute(
             "INSERT INTO audit_logs (action, target, detail, ip, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -205,7 +205,7 @@ def test_real_postgres_two_workers_initialize_empty_database(pg_app, monkeypatch
     for application in applications:
         with application.app_context():
             connection = db.get_db()
-            assert connection.execute("SELECT COUNT(*) AS n FROM ideas WHERE published = 1").fetchone()["n"] == 13
+            assert connection.execute("SELECT COUNT(*) AS n FROM ideas WHERE published = 1").fetchone()["n"] == 14
             assert connection.execute("SELECT COUNT(*) AS n FROM notification_delivery_windows").fetchone()["n"] == 0
         assert application.test_client().get("/healthz").status_code == 200
 

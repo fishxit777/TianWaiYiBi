@@ -8,6 +8,7 @@ from pathlib import Path
 from flask import current_app, g
 
 from .v30_catalog import V30_BLINDBOX_SEEDS
+from .v34_catalog import V34_BLINDBOX_SEEDS
 
 
 def database_backend(database_url=None):
@@ -243,7 +244,7 @@ BLINDBOX_SEEDS = [
         "classification_confidence": 94,
         "sort_order": 1,
     }
-] + V30_BLINDBOX_SEEDS
+] + V30_BLINDBOX_SEEDS + V34_BLINDBOX_SEEDS
 
 
 def seed_database(connection):

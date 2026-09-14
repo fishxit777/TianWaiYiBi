@@ -45,7 +45,7 @@ def test_home_presents_the_sealed_blind_strategy_catalog(client):
     assert "blindbox-twin-tire-hero-v1.webp" not in body
     assert 'id="idea-result-count"' in body
     assert 'aria-pressed="true">全部' in body
-    assert body.count('class="idea-card sealed-card') == 13
+    assert body.count('class="idea-card sealed-card') == 14
     for vein in ("守護脈", "造物脈", "靈機脈", "破局脈", "人間脈", "傳音脈"):
         assert vein in body
     assert body.count("vein-scroll-mark") == 6

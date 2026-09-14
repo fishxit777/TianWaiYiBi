@@ -19,7 +19,7 @@ def test_classifier_recognizes_software_automation():
     assert result["secondary_vein"] == "破局脈"
 
 
-def test_thirteen_sealed_scrolls_are_published_in_volume_order(app):
+def test_fourteen_sealed_scrolls_are_published_in_volume_order(app):
     with app.app_context():
         rows = get_db().execute(
             """
@@ -31,9 +31,9 @@ def test_thirteen_sealed_scrolls_are_published_in_volume_order(app):
         ).fetchall()
 
     published = [row for row in rows if row["published"] == 1]
-    assert len(published) == 13
-    assert [row["sort_order"] for row in published] == list(range(1, 14))
-    assert len({row["slug"] for row in published}) == 13
+    assert len(published) == 14
+    assert [row["sort_order"] for row in published] == list(range(1, 15))
+    assert len({row["slug"] for row in published}) == 14
     assert published[0]["slug"] == "sealed-twin-tire-safety"
     assert published[0]["public_title"] == "封印盲策・第壹卷"
     assert published[0]["primary_vein"] == "守護脈"
@@ -43,7 +43,7 @@ def test_thirteen_sealed_scrolls_are_published_in_volume_order(app):
         "封印盲策・第肆卷", "封印盲策・第伍卷", "封印盲策・第陸卷",
         "封印盲策・第柒卷", "封印盲策・第捌卷", "封印盲策・第玖卷",
         "封印盲策・第拾卷", "封印盲策・第拾壹卷", "封印盲策・第拾貳卷",
-        "封印盲策・第拾參卷",
+        "封印盲策・第拾參卷", "封印盲策・第拾肆卷",
     ]
     for row in published[1:]:
         assert row["slug"].startswith("sealed-concept-v")
@@ -62,10 +62,12 @@ def test_every_new_volume_has_three_compact_webp_assets(app):
         ).fetchall()
 
     paths = [private_root / row[key] for row in rows for key in ("hero_image", "diagram_image", "scene_image")]
-    assert len(paths) == 36
-    assert len({path.name for path in paths}) == 36
+    assert len(paths) == 39
+    assert len({path.name for path in paths}) == 39
+    assert sum(path.name.startswith("v31-") for path in paths) == 36
+    assert sum(path.name.startswith("v34-14-") for path in paths) == 3
     for path in paths:
-        assert path.name.startswith("v31-")
+        assert path.name.startswith(("v31-", "v34-14-"))
         assert path.is_file(), path
         assert path.read_bytes()[:4] == b"RIFF"
         assert path.stat().st_size < 700_000
@@ -103,12 +105,12 @@ def test_revealed_visuals_have_volume_specific_engineering_captions(app):
             """
         ).fetchall()
 
-    assert len(rows) == 12
+    assert len(rows) == 13
     captions = []
     for row in rows:
         assert all(row[key].strip() for key in ("hero_caption", "diagram_caption", "scene_caption"))
         captions.extend(row[key] for key in ("hero_caption", "diagram_caption", "scene_caption"))
-    assert len(set(captions)) == 36
+    assert len(set(captions)) == 39
 
 
 def test_v31_catalog_no_longer_references_ancient_v30_visuals():
