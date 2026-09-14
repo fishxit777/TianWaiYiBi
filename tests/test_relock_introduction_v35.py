@@ -1,4 +1,4 @@
-"""V35 introduction delivery and authorization regression checks.
+"""V35 delivery authorization and V36 storyboard introduction regressions.
 
 Checkout, payment, access and revocation use only the isolated test database,
 mock payment provider and local outbox. No production customer data is used.
@@ -17,7 +17,7 @@ from tianwai.db import BLINDBOX_SEEDS, get_db, init_db, utc_now
 
 
 SLUG = "sealed-concept-v14"
-INTRODUCTION = "brand/concepts/v35-14-introduction.webp"
+INTRODUCTION = "brand/concepts/v36-14-introduction.webp"
 OLD_SLOTS = ("hero", "diagram", "scene")
 OLD_SLUGS = tuple(seed["slug"] for seed in BLINDBOX_SEEDS if seed["slug"] != SLUG)
 REQUEST_HEADERS = (
@@ -45,10 +45,13 @@ def _guide():
 
 
 def _private_guide_text(guide):
-    yield from (guide["title"], guide["lead"], guide["caption"], guide["boundary"])
+    yield from (guide["title"], guide["lead"], guide["caption"], guide["state_summary"], guide["boundary"])
     for step in guide["steps"]:
         yield step["title"]
         yield step["body"]
+    for scenario in guide["validation_scenarios"]:
+        yield scenario["title"]
+        yield scenario["body"]
 
 
 def _assert_denied(response):
@@ -70,6 +73,7 @@ def test_introduction_registry_is_pure_complete_and_limited_to_volume_14():
     # These calls intentionally run without a Flask app/request context or DB.
     from tianwai.concept_guides import (
         CONCEPT_GUIDES,
+        RETIRED_GUIDE_ASSETS,
         get_concept_guide,
         supplemental_asset_identifiers,
     )
@@ -78,13 +82,20 @@ def test_introduction_registry_is_pure_complete_and_limited_to_volume_14():
     guide = get_concept_guide(SLUG)
     assert isinstance(guide, dict)
     assert guide["asset"] == INTRODUCTION
-    for key in ("title", "lead", "caption", "boundary"):
+    for key in ("title", "lead", "caption", "state_summary", "boundary"):
         assert isinstance(guide[key], str) and guide[key].strip()
-    assert isinstance(guide["steps"], (list, tuple)) and len(guide["steps"]) >= 2
+    assert isinstance(guide["steps"], tuple) and len(guide["steps"]) == 7
     for step in guide["steps"]:
         assert isinstance(step, dict)
         assert isinstance(step["title"], str) and step["title"].strip()
         assert isinstance(step["body"], str) and step["body"].strip()
+    scenarios = guide["validation_scenarios"]
+    assert isinstance(scenarios, tuple) and len(scenarios) == 3
+    for scenario in scenarios:
+        assert set(scenario) == {"title", "body"}
+        assert "待驗證模擬情境" in scenario["title"]
+        assert isinstance(scenario["body"], str) and scenario["body"].strip()
+    assert RETIRED_GUIDE_ASSETS == ("brand/concepts/v35-14-introduction.webp",)
     identifiers = supplemental_asset_identifiers()
     assert isinstance(identifiers, (list, tuple))
     assert tuple(identifiers) == (INTRODUCTION,)
@@ -103,13 +114,36 @@ def test_introduction_does_not_replace_existing_art_or_add_schema(app):
     assert not any("introduction" in column or "guide" in column for column in columns)
 
 
+def test_v36_storyboard_keeps_uncertainty_and_research_exceptions_explicit():
+    guide = _guide()
+    assert tuple(step["title"].split("：", 1)[0] for step in guide["steps"]) == (
+        "正常行駛", "疑似碰撞", "資料品質與事件判讀", "維持事件後移動限制",
+        "駕駛再次請求", "獨立重新授權檢查", "重新授權後持續觀察",
+    )
+    assert "保留為未知" in guide["steps"][2]["body"]
+    assert "不表示車輛會自動停下" in guide["steps"][3]["body"]
+    assert "不是解鎖條件" in guide["steps"][4]["body"]
+    assert "判讀結果不能自行解鎖" in guide["steps"][5]["body"]
+    assert "未知，回到維持限制" in guide["state_summary"]
+    assert "新事件也必須回到事件評估" in guide["state_summary"]
+    assert "不是必經狀態或預設放行" in guide["state_summary"]
+    assert not any("條件慢移" in step["title"] for step in guide["steps"])
+    assert "不是主流程的必經步驟或安全保證" in guide["boundary"]
+    assert "不代表已能辨識人體" in guide["validation_scenarios"][0]["body"]
+    assert "不能因場景標為紙箱就預先判定安全" in guide["validation_scenarios"][1]["body"]
+    assert "尚無實測成功或不誤判的證據" in guide["validation_scenarios"][2]["body"]
+    copy = "".join(_private_guide_text(guide))
+    for unsupported in ("94%", "5%", "5 km/h", "自動停止", "安全慢移"):
+        assert unsupported not in copy
+
+
 def test_introduction_is_a_real_compact_portrait_private_webp(app):
     asset = Path(app.config["PRIVATE_ASSET_ROOT"]) / INTRODUCTION
-    assert asset.is_file(), "V35 introduction image generation is not yet complete"
+    assert asset.is_file(), "V36 introduction image generation is not yet complete"
     assert not (Path(app.static_folder) / INTRODUCTION).exists()
     data = asset.read_bytes()
     assert 0 < len(data) <= 2_000_000
-    assert _webp_dimensions(data) == (2048, 3072)
+    assert _webp_dimensions(data) == (2048, 2560)
 
 
 def test_introduction_never_leaks_into_public_catalog_or_checkout(client):
@@ -129,7 +163,12 @@ def test_introduction_never_leaks_into_public_catalog_or_checkout(client):
         assert 'id="concept-introduction"' not in body
         # A generic short heading may also appear publicly; the substantive
         # introduction copy must only be exposed after the buyer is authorized.
-        for text in (guide["lead"], guide["caption"], *(step["body"] for step in guide["steps"])):
+        for text in (
+            guide["lead"], guide["caption"], guide["state_summary"], guide["boundary"],
+            *(step["body"] for step in guide["steps"]),
+            *(scenario["body"] for scenario in guide["validation_scenarios"]),
+            *(scenario["title"] for scenario in guide["validation_scenarios"]),
+        ):
             assert text not in body
 
 
@@ -164,7 +203,7 @@ def test_anonymous_introduction_get_head_range_and_conditionals_are_denied(app, 
 def test_correct_buyer_reads_complete_introduction_bytes_without_reusable_cache(introduction_reader, app):
     client, _order_no, idea = introduction_reader
     expected = Path(app.config["PRIVATE_ASSET_ROOT"]) / INTRODUCTION
-    assert expected.is_file(), "V35 introduction image generation is not yet complete"
+    assert expected.is_file(), "V36 introduction image generation is not yet complete"
     expected_bytes = expected.read_bytes()
     expected_hash = hashlib.sha256(expected_bytes).digest()
     for method in ("GET", "HEAD"):

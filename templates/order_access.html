@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ order['title'] }}｜已拆封概念卷{% endblock %}
 {% block body_class %}access-page revealed-scroll flow-page accent-{{ order['accent'] }}{% if order['idea_slug'] == 'sealed-concept-v14' %} volume-v34{% endif %}{% endblock %}
-{% block page_scripts_head %}{% if order['idea_slug'] == 'sealed-concept-v14' %}<link rel="stylesheet" href="{{ url_for('static', filename='v34-reader.css', v='3d-introduction-v35') }}">{% endif %}{% endblock %}
+{% block page_scripts_head %}{% if order['idea_slug'] == 'sealed-concept-v14' %}<link rel="stylesheet" href="{{ url_for('static', filename='v34-reader.css', v='3d-storyboard-v36') }}">{% endif %}{% endblock %}
 {% block content %}
 <section class="access-shell section-shell">
   <div class="access-watermark" aria-hidden="true">{% for _ in range(12) %}<span>{{ access_context.customer }}・{{ access_context.order }}・{{ access_context.time }}</span>{% endfor %}</div>
@@ -28,6 +28,10 @@
     <ol class="v34-introduction-steps">
       {% for step in concept_guide['steps'] %}<li><h3>{{ step['title'] }}</h3><p>{{ step['body'] }}</p></li>{% endfor %}
     </ol>
+    {% if concept_guide.get('state_summary') %}<section class="v36-state-summary" aria-labelledby="v36-state-title"><h3 id="v36-state-title">狀態如何轉換</h3><p>{{ concept_guide['state_summary'] }}</p></section>{% endif %}
+    {% if concept_guide.get('validation_scenarios') %}
+    <section class="v36-validation" aria-labelledby="v36-validation-title"><h3 id="v36-validation-title">待驗證情境｜電腦模擬規劃，非實測結果</h3><ul>{% for scenario in concept_guide['validation_scenarios'] %}<li><h4>{{ scenario['title'] }}</h4><p>{{ scenario['body'] }}</p></li>{% endfor %}</ul></section>
+    {% endif %}
     <aside class="v34-introduction-boundary" aria-label="介紹流程的概念界線"><h3>這份概念的界線</h3><p>{{ concept_guide['boundary'] }}</p></aside>
   </section>
   {% endif %}

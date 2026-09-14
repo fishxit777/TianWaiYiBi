@@ -87,10 +87,29 @@
   border-radius: 10px;
   background: #f1f6ef;
 }
+.public-site.volume-v34 :is(.v36-state-summary, .v36-validation) {
+  margin: 0 0 28px;
+  padding: 20px 24px;
+  border: 1px solid #c8d8cb;
+  border-radius: 10px;
+  background: #f6f9f4;
+  font-size: 17px;
+  line-height: 1.85;
+}
+.public-site.volume-v34 :is(.v36-state-summary, .v36-validation) :is(h3, h4) {
+  margin: 0 0 8px;
+  color: #315b50;
+  font-size: 18px;
+  line-height: 1.7;
+}
+.public-site.volume-v34 :is(.v36-state-summary, .v36-validation) p { margin: 0; }
+.public-site.volume-v34 .v36-validation ul { margin: 0; padding-left: 1.3em; }
+.public-site.volume-v34 .v36-validation li + li { margin-top: 18px; }
 @media (max-width: 640px) {
   .public-site.volume-v34 .v34-reader-section { margin-top: 24px; padding-top: 22px; }
   .public-site.volume-v34 .v34-introduction-lead { font-size: 17px; }
   .public-site.volume-v34 .v34-introduction-steps { padding-left: 1.6em; }
   .public-site.volume-v34 .v34-introduction-steps li { padding-left: 3px; }
   .public-site.volume-v34 .v34-introduction-boundary { padding: 18px; }
+  .public-site.volume-v34 :is(.v36-state-summary, .v36-validation) { padding: 18px; }
 }

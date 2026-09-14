@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tianwai.db import BLINDBOX_SEEDS
-from tianwai.concept_guides import CONCEPT_GUIDES, supplemental_asset_identifiers
+from tianwai.concept_guides import CONCEPT_GUIDES, RETIRED_GUIDE_ASSETS, supplemental_asset_identifiers
 
 
 def fetch(base: str, path: str, method: str = "GET") -> tuple[int, str]:
@@ -51,6 +51,7 @@ def verify(base: str) -> dict[str, int]:
         ]
         asset_paths += [path.replace("v31-", "v30-") for path in asset_paths if "/v31-" in path]
         asset_paths += ["/static/" + path for path in supplemental_asset_identifiers()]
+        asset_paths += ["/static/" + path for path in RETIRED_GUIDE_ASSETS]
         assets = list(pool.map(lambda path: fetch(base, path, "HEAD"), asset_paths))
         # Public API deliberately omits internal idea IDs. These are anonymous
         # route probes; positive per-volume authorization is verified locally.
@@ -67,7 +68,7 @@ def verify(base: str) -> dict[str, int]:
     all_public_text = public_text + "".join(body for _, body in details + checkouts)
     return {
         "health_http": health_status,
-        "health_current_release": int(json.loads(health or "{}").get("release") == "relock-3d-introduction-v35"),
+        "health_current_release": int(json.loads(health or "{}").get("release") == "relock-3d-storyboard-v36"),
         "home_http": home_status,
         "api_http": api_status,
         "api_ideas": len(public_ideas),
@@ -88,7 +89,7 @@ def verify(base: str) -> dict[str, int]:
         "private_introduction_leaks": sum(
             text in all_public_text
             for guide in CONCEPT_GUIDES.values()
-            for text in (guide["lead"], guide["caption"], *(step["body"] for step in guide["steps"]))
+            for text in (guide["lead"], guide["caption"], guide["state_summary"], guide["boundary"], *(step["body"] for step in guide["steps"]), *(text for scenario in guide["validation_scenarios"] for text in (scenario["title"], scenario["body"])))
         ),
         "retired_paid_assets_404": sum(status == 404 for status, _ in assets),
         "private_asset_slots_404": sum(status == 404 for status, _ in private_assets),
@@ -119,7 +120,7 @@ def main() -> None:
         "payment_closed": 1,
         "paid_asset_path_leaks": 0,
         "private_introduction_leaks": 0,
-        "retired_paid_assets_404": 79,
+        "retired_paid_assets_404": 80,
         "private_asset_slots_404": 4,
         "retired_routes_404": 4,
     }

@@ -6,11 +6,11 @@ import pytest
 from conftest import set_public_csrf
 from test_customer_access import _pay_and_get_activation
 from tianwai.db import BLINDBOX_SEEDS, get_db, utc_now
-from tianwai.concept_guides import supplemental_asset_identifiers
+from tianwai.concept_guides import RETIRED_GUIDE_ASSETS, supplemental_asset_identifiers
 
 
 CURRENT_ASSETS = [idea[key] for idea in BLINDBOX_SEEDS for key in ("hero_image", "diagram_image", "scene_image")] + list(supplemental_asset_identifiers())
-LEGACY_ASSETS = CURRENT_ASSETS + [path.replace("v31-", "v30-") for path in CURRENT_ASSETS if "/v31-" in path]
+LEGACY_ASSETS = CURRENT_ASSETS + [path.replace("v31-", "v30-") for path in CURRENT_ASSETS if "/v31-" in path] + list(RETIRED_GUIDE_ASSETS)
 
 
 @pytest.fixture
@@ -24,10 +24,11 @@ def paid_reader(client, app):
 
 
 def test_all_current_and_retired_assets_are_private(app, client):
-    assert len(LEGACY_ASSETS) == 79
-    assert sum("/v34-14-" not in path and "/v35-14-" not in path for path in LEGACY_ASSETS) == 75
+    assert len(LEGACY_ASSETS) == 80
+    assert sum(not any(prefix in path for prefix in ("/v34-14-", "/v35-14-", "/v36-14-")) for path in LEGACY_ASSETS) == 75
     assert sum("/v34-14-" in path for path in LEGACY_ASSETS) == 3
     assert sum("/v35-14-" in path for path in LEGACY_ASSETS) == 1
+    assert sum("/v36-14-" in path for path in LEGACY_ASSETS) == 1
     private_root = Path(app.config["PRIVATE_ASSET_ROOT"])
     for asset in LEGACY_ASSETS:
         assert (private_root / asset).is_file()
