@@ -225,6 +225,29 @@ def test_v14_cannot_be_read_using_only_a_previous_volume_entitlement(app, client
         assert not response.data.startswith(b"RIFF")
 
 
+@pytest.mark.parametrize("separator", ("\n\n", "\r\n\r\n", "\n\n\n\n\n"))
+def test_v14_edited_paragraphs_keep_text_and_do_not_become_headings(v14_reader, app, separator):
+    client, order_no, _ = v14_reader
+    newline = "\r\n" if "\r" in separator else "\n"
+    paragraphs = [
+        "概念原點" + newline + "合成段落甲。",
+        "這是補充正文，不是新標題。",
+        "概念機制" + newline + '合成段落乙，保留跳脫 <script>alert("fixture")</script>。',
+    ]
+    with app.app_context():
+        connection = get_db()
+        connection.execute("UPDATE ideas SET paid_content = ? WHERE slug = ?", (separator.join(paragraphs), SLUG))
+        connection.commit()
+    body = client.get("/library/orders/" + order_no).get_data(as_text=True)
+    headings = re.findall(r'<section class="v34-reader-section">\s*<h3>(.*?)</h3>', body, re.S)
+    assert headings == ["概念原點", "概念機制"]
+    assert '<p class="manuscript-copy">這是補充正文，不是新標題。</p>' in body
+    assert "合成段落甲。" in body
+    assert '保留跳脫 <script>' not in body
+    assert '保留跳脫 &lt;script&gt;' in body
+    assert all(line in html.unescape(body) for paragraph in paragraphs for line in paragraph.splitlines())
+
+
 @pytest.mark.parametrize("status", ("pending", "cancelled", "refunded"))
 def test_v14_removed_entitlement_immediately_blocks_content_and_all_images(v14_reader, app, status):
     client, order_no, idea = v14_reader
