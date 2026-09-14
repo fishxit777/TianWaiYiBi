@@ -37,9 +37,15 @@ GUI 另驗證無效匯入拒絕、取消不保存、完整十三筆保存、已�
 
 ## 正式部署與私密價格匯入
 
-待部署驗證。部署前版本為 `relock-3d-storyboard-v36`，Git 基準 `c482988`。上線前後要驗證 healthz、14 卷公共目錄／詳情／關閉結帳、CSS／JS 與 main／origin；不得只以 push 成功宣稱上線。
+實作 `4abe456` 已 commit／push；GitHub 對應 Render deployment 為 `main - tianwai-yibi`、`success`。正式 healthz 為 `status=ok`、`release=staged-catalog-sales-v37`。部署前版本為 V36、Git 基準 `c482988`。已核對實作 main／origin/main／遠端 main 一致，後續純文件提交再核對同步。
 
-十三筆真實價格尚未寫入正式資料庫。已從本機唯一價格表產生僅含 slug／prepared_price 的忽略 JSON，檢查13筆、順序、範圍、來源目標欄及 XIV 排除。正式登入後透過新增的私密批次入口匯入，再逐卷讀回核對；不公開售價、不勾人工就緒、不開全站金流。
+正式 1440px 與 390px 首卷頁無水平溢位及破圖，準備中狀態區無售價及結帳入口；390px 已目視核對正常換行與按鈕。未送出匿名意願。匿名私密設定 GET 回 404 且 no-store，沒有準備價格欄位。
+
+正式公共 API 的14卷全為 preparing、price_visible=false、can_purchase=false，價格與準備價格欄位均不存在。首頁＋14詳情＋14關閉結帳共29頁均200，0售價文字、0建立訂單表單、0結帳連結、0私有concept素材引用；V37 CSS SHA與本機一致。HTTP檢查使用 monitor-bot UA，這些測試流量不當作真人或需求證據，未POST任何資料。
+
+十三筆真實價格尚未寫入正式資料庫，管理入口仍在本人登入頁。已从本機唯一價格表產生僅含 slug／prepared_price 的忽略 JSON，檢查13筆、順序、範圍、來源目標欄及 XIV 排除。正式登入後透過新增的私密批次入口匯入，再逐卷讀回核對；不公開售價、不勾人工就緒、不開全站金流。此登入是待使用者配合的步驟，未以開通後台保護的方式繞過。
+
+Python compileall、JavaScript 語法、pip check、git diff --check 通過；25 份異動文字檔機密掃描0項，新增程式／文件中已核准售價常數掃描0項（Git hash 不算內容）。SQL 新增欄位差異已獨立檢視，沒有寫入價格或憑證。
 
 ## 後續開放方式
 
