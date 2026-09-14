@@ -362,3 +362,107 @@ def test_real_postgres_commerce_admin_batch_atomicity_and_order_gate(pg_app):
             for field in ("paid_content", "deliverables", "price_override", "published", "workflow_status"):
                 assert updated[field] == original[field]
         assert connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"] == orders_before + 1
+
+
+def _prepare_v38_release_rows(connection):
+    from tianwai.commerce import PRICING_BATCH_SLUGS
+
+    for index, slug in enumerate(PRICING_BATCH_SLUGS):
+        connection.execute(
+            "UPDATE ideas SET prepared_price = ?, sale_state = 'preparing', release_ready = 0 WHERE slug = ?",
+            (9131 + index, slug),
+        )
+    connection.commit()
+    placeholders = ",".join("?" for _ in PRICING_BATCH_SLUGS)
+    rows = connection.execute(
+        f"SELECT * FROM ideas WHERE slug IN ({placeholders}) ORDER BY sort_order", PRICING_BATCH_SLUGS,
+    ).fetchall()
+    assert len(rows) == 13
+    return [dict(row) for row in rows]
+
+
+def test_real_postgres_v38_single_batch_publication_and_restart_preserve_preparation(pg_app):
+    from tianwai.commerce import PRICING_BATCH_SLUGS
+    from tianwai.db import get_db, init_db
+    from tianwai.release_packages import get_release_package, release_package_structure_gaps
+
+    # Validate the actual final editorial files, never replacement mock packages.
+    assert all(not release_package_structure_gaps(get_release_package(slug)) for slug in PRICING_BATCH_SLUGS)
+    client, csrf = _commerce_admin_client(pg_app)
+    headers = {"X-CSRF-Token": csrf}
+    with pg_app.app_context():
+        connection = get_db()
+        prepared = _prepare_v38_release_rows(connection)
+        fourteenth = dict(connection.execute("SELECT * FROM ideas WHERE slug = 'sealed-concept-v14'").fetchone())
+        order_count = connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"]
+        # A real application restart must retain private preparation and never list prices.
+        init_db()
+        after_restart = connection.execute(
+            "SELECT * FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 13 ORDER BY sort_order"
+        ).fetchall()
+        assert [dict(row) for row in after_restart] == prepared
+        assert all(row["sale_state"] == "preparing" and row["release_ready"] == 0 for row in after_restart)
+    inventory = client.get("/admin/api/release-packages")
+    assert inventory.status_code == 200
+    assert inventory.json["counts"]["ready"] == 13
+    assert inventory.json["can_publish_all"] is True
+    assert "no-store" in inventory.headers["Cache-Control"]
+    first_id = prepared[0]["id"]
+    single = client.post(
+        f"/admin/api/ideas/{first_id}/publish-package", json={"confirm_publication": True}, headers=headers,
+    )
+    assert single.status_code == 200
+    assert single.json["published_count"] == single.json["changed_count"] == 1
+    batch = client.post("/admin/api/release-packages/publish", json={"confirm_publication": True}, headers=headers)
+    assert batch.status_code == 200
+    assert batch.json["published_count"] == 13 and batch.json["changed_count"] == 12
+    assert all(state["sale_state"] == "price_listed" for state in batch.json["states"])
+    repeated = client.post("/admin/api/release-packages/publish", json={"confirm_publication": True}, headers=headers)
+    assert repeated.status_code == 200 and repeated.json["changed_count"] == 0
+    with pg_app.app_context():
+        connection = get_db()
+        published = connection.execute(
+            "SELECT * FROM ideas WHERE published = 1 AND sort_order BETWEEN 1 AND 13 ORDER BY sort_order"
+        ).fetchall()
+        for before, after in zip(prepared, published):
+            assert after["sale_state"] == "price_listed"
+            for field in before.keys() - {"sale_state", "updated_at"}:
+                assert after[field] == before[field]
+        assert dict(connection.execute("SELECT * FROM ideas WHERE slug = 'sealed-concept-v14'").fetchone()) == fourteenth
+        assert connection.execute("SELECT COUNT(*) AS n FROM orders").fetchone()["n"] == order_count
+    assert all(not idea["can_purchase"] for idea in pg_app.test_client().get("/api/ideas").json["ideas"])
+
+
+@pytest.mark.parametrize("missing", ["scene_image", "prepared_price"])
+def test_real_postgres_v38_missing_last_asset_or_price_blocks_whole_batch(pg_app, missing):
+    from tianwai.db import get_db
+
+    client, csrf = _commerce_admin_client(pg_app)
+    headers = {"X-CSRF-Token": csrf}
+    with pg_app.app_context():
+        connection = get_db()
+        rows = _prepare_v38_release_rows(connection)
+        last = rows[-1]
+        value = "brand/synthetic-missing-v38.webp" if missing == "scene_image" else None
+        connection.execute(f"UPDATE ideas SET {missing} = ? WHERE id = ?", (value, last["id"]))
+        connection.commit()
+        before = [dict(row) for row in connection.execute("SELECT * FROM ideas ORDER BY id").fetchall()]
+    try:
+        inventory = client.get("/admin/api/release-packages")
+        assert inventory.status_code == 200
+        assert inventory.json["counts"]["blocked"] == 1 and inventory.json["can_publish_all"] is False
+        batch = client.post("/admin/api/release-packages/publish", json={"confirm_publication": True}, headers=headers)
+        assert batch.status_code == 409
+        assert batch.json["gaps"][-1]["id"] == last["id"]
+        single = client.post(
+            f"/admin/api/ideas/{last['id']}/publish-package", json={"confirm_publication": True}, headers=headers,
+        )
+        assert single.status_code == 409
+        with pg_app.app_context():
+            assert [dict(row) for row in get_db().execute("SELECT * FROM ideas ORDER BY id").fetchall()] == before
+    finally:
+        # This cluster is synthetic, but leave its next independent case intact.
+        with pg_app.app_context():
+            connection = get_db()
+            connection.execute(f"UPDATE ideas SET {missing} = ? WHERE id = ?", (last[missing], last["id"]))
+            connection.commit()

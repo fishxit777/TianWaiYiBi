@@ -3,6 +3,7 @@
 {% block body_class %}access-page revealed-scroll flow-page accent-{{ order['accent'] }}{% if order['idea_slug'] == 'sealed-concept-v14' %} volume-v34{% endif %}{% endblock %}
 {% block page_scripts_head %}{% if order['idea_slug'] == 'sealed-concept-v14' %}<link rel="stylesheet" href="{{ url_for('static', filename='v34-reader.css', v='3d-storyboard-v36') }}">{% endif %}{% endblock %}
 {% block content %}
+{% set package = get_release_package(order['idea_slug']) %}
 <section class="access-shell section-shell">
   <div class="access-watermark" aria-hidden="true">{% for _ in range(12) %}<span>{{ access_context.customer }}・{{ access_context.order }}・{{ access_context.time }}</span>{% endfor %}</div>
   <a class="back-link flow-reader-back" href="{{ url_for('access.customer_library') }}">← 返回已購內容</a>
@@ -14,6 +15,7 @@
     <a href="#concept-text">完整文字</a>
     {% if order['diagram_image'] %}<a href="#concept-diagram">機制圖解</a>{% endif %}
     {% if order['scene_image'] %}<a href="#concept-scene">使用情境</a>{% endif %}
+    {% if package %}<a href="#release-flow">完整流程與工作表</a>{% endif %}
     <a href="#reading-boundary">使用提醒</a>
   </nav>
   {% if concept_guide %}
@@ -56,6 +58,7 @@
     {% if order['diagram_image'] %}<figure class="flow-reader-figure" id="concept-diagram"><h2>機制圖解</h2><a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='diagram') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視概念機制示意圖；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='diagram') }}" alt="概念機制示意圖" loading="lazy" decoding="async"><span>放大檢視 <span aria-hidden="true">↗</span></span></a><figcaption>{{ order['diagram_caption'] or '機制示意・仍須依實際場域驗證' }}</figcaption></figure>{% endif %}
     {% if order['scene_image'] %}<figure class="flow-reader-figure" id="concept-scene"><h2>使用情境</h2><a class="flow-image-link" href="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='scene') }}" target="_blank" rel="noopener" data-flow-image aria-label="放大檢視概念使用情境圖；不支援時另開分頁"><img src="{{ url_for('private_content.paid_asset', idea_id=order['idea_id'], slot='scene') }}" alt="概念使用情境圖" loading="lazy" decoding="async"><span>放大檢視 <span aria-hidden="true">↗</span></span></a><figcaption>{{ order['scene_caption'] or '使用情境・不代表已完成實地驗證' }}</figcaption></figure>{% endif %}
   </div>
+  {% include '_release_package_body.html' %}
   <aside class="access-reminder reveal delay-2" id="reading-boundary"><h2>閱讀與使用提醒</h2><strong>購買權限已保留。</strong><p>本卷為原創概念閱讀內容，圖像是產品方向、模組關係與使用場景示意，不是可直接投產的 CAD、施工圖、認證文件，也不是工程、安全、醫療、法規、專利或獲利保證。此頁含個人化識別浮水印，請勿分享帳號、畫面、開通連結或驗證碼。</p><div class="access-actions"><a class="button button-ghost" href="{{ url_for('access.customer_library') }}">返回已購內容</a><form action="{{ url_for('access.customer_logout') }}" method="post" data-flow-form data-pending-label="正在登出…"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-ghost" type="submit">登出此裝置</button><p class="flow-submit-status" data-flow-submit-status role="status"></p></form></div></aside>
   <dialog class="flow-image-dialog" data-flow-image-dialog aria-labelledby="flow-image-title"><header><h2 id="flow-image-title">概念圖放大檢視</h2><button class="button button-ghost" type="button" data-flow-image-close>關閉大圖</button></header><p>可在裝置上放大檢視；按 Esc 或「關閉大圖」返回原閱讀位置。</p><p data-flow-image-status role="status" aria-live="polite"></p><div class="flow-image-viewport"><img alt="" data-flow-image-preview></div></dialog>
 </section>

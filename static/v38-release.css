@@ -1,0 +1,89 @@
+/* Scoped, readable presentation for private concept packages and owner release controls. */
+.release-preview-shell { padding-block: 48px 90px; max-width: 1120px; }
+.release-eyebrow { color: #386277; font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+.release-preview-header, .release-original, .release-preview-figures figure { background: #fcfefd; border: 1px solid #cadbd4; padding: clamp(20px,4vw,42px); border-radius: 12px; margin: 24px 0; }
+.release-preview-header h1 { font-size: clamp(25px,4vw,42px); line-height: 1.5; overflow-wrap: anywhere; }
+.release-preview-header p, .release-original p { font-size: 17px; line-height: 1.95; color: #344e58; }
+.release-original p { white-space: pre-line; }
+.release-preview-status { display: flex; flex-wrap: wrap; gap: 12px 28px; padding: 16px; background: #e8f2eb; color: #285943; }
+.release-preview-figures { min-width: 0; }
+.release-preview-figures figure { scroll-margin-top: 130px; }
+.release-preview-figures img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.release-preview-figures figcaption { margin-top: 18px; color: #3d5965; font-size: 15px; line-height: 1.9; }
+.release-document { margin: 36px 0; border: 1px solid #bdd2df; border-radius: 14px; background: #fbfdff; color: #243f4e; overflow: hidden; text-align: left; }
+.release-document-header { padding: clamp(22px,4vw,44px); background: linear-gradient(120deg,#e8f3f9,#f9fcfd); border-bottom: 1px solid #c6dbe6; }
+.release-document h2 { margin: 0 0 18px; font-size: clamp(21px,2.5vw,29px); line-height: 1.55; color: #193e56; letter-spacing: .01em; }
+.release-document h3 { color: #234d65; font-size: 19px; line-height: 1.65; margin: 0 0 10px; }
+.release-document p { font-size: 16px; line-height: 1.95; color: #3c5765; }
+.release-boundary { padding: 16px 20px; border-left: 4px solid #bd9456; background: #fff9ec; margin-top: 24px; }
+.release-boundary strong { color: #785324; }
+.release-boundary p { margin: 6px 0 0; }
+.release-document-nav { display: flex; flex-wrap: wrap; gap: 9px; padding: 18px; background: #edf4f5; border: 1px solid #cbdcdf; border-radius: 9px; margin: 20px 0; }
+.release-document .release-document-nav { margin: 0; border-width: 0 0 1px; border-radius: 0; }
+.release-document-nav a { padding: 10px 13px; background: #fff; border: 1px solid #b9ced9; border-radius: 6px; color: #254e63; font-size: 14px; font-weight: 700; min-height: 44px; }
+.release-section { padding: clamp(22px,4vw,40px); border-bottom: 1px solid #d8e5ec; scroll-margin-top: 125px; min-width: 0; }
+.release-section:last-child { border: 0; }
+.release-flow { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 0; }
+.release-flow > li { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 18px; position: relative; padding: 0 0 32px; }
+.release-flow > li:not(:last-child)::before { content: ''; position: absolute; width: 2px; left: 23px; top: 44px; bottom: 0; background: #bed8e7; }
+.release-step-number { position: relative; width: 46px; height: 46px; display: grid; place-items: center; background: #225c7b; color: #fff; border-radius: 11px; font-weight: 700; font-size: 18px; }
+.release-document dl { display: grid; grid-template-columns: minmax(90px,.25fr) minmax(0,1fr); gap: 8px 16px; margin: 16px 0 0; padding: 15px; border-radius: 8px; background: #edf4f8; font-size: 14px; line-height: 1.85; }
+.release-document dt { font-weight: 700; color: #245876; }
+.release-document dd { margin: 0; color: #3c5765; }
+.release-figure-notes, .release-mvp { display: grid; gap: 16px; }
+.release-figure-notes section, .release-mvp li { padding: 20px; border: 1px solid #ccdee8; border-radius: 10px; background: #fff; }
+.release-mvp { list-style: none; padding: 0; margin: 22px 0 0; }
+.release-table-scroll { overflow: auto; max-width: 100%; border: 1px solid #c5d9e5; border-radius: 8px; margin-top: 18px; overscroll-behavior-inline: contain; }
+.release-table-scroll table { border-collapse: collapse; width: 100%; min-width: 660px; table-layout: fixed; font-size: 14px; line-height: 1.85; }
+.release-table-scroll th, .release-table-scroll td { padding: 14px 16px; vertical-align: top; text-align: left; border-bottom: 1px solid #d6e3eb; overflow-wrap: anywhere; }
+.release-table-scroll thead th { background: #e3eff6; color: #244f69; font-weight: 700; }
+.release-table-scroll tbody th { background: #f1f6f9; font-weight: 600; color: #2b4f61; }
+.release-table-scroll tbody tr:nth-child(even) td { background: #f5f9fb; }
+.release-worksheet + .release-worksheet { margin-top: 32px; }
+.release-sources li { margin: 18px 0; }
+.release-sources a { color: #1c648d; text-decoration: underline; text-underline-offset: 3px; }
+.release-sources p { margin: 6px 0; font-size: 14px; }
+.release-preview-end { font-size: 14px; color: #526759; }
+.release-document :is(a, [tabindex]):focus-visible, .release-hub :is(a,button):focus-visible { outline: 3px solid #9e6a2d; outline-offset: 3px; }
+.admin-ops-page .release-hub { margin-bottom: 24px; }
+.admin-ops-page .release-hub-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; }
+.admin-ops-page .release-hub-top h3 { margin: 8px 0; font-size: 24px; }
+.admin-ops-page .release-hub-note { color: #51664f; font-size: 14px; line-height: 1.9; max-width: 850px; }
+.admin-ops-page .release-hub-gate { padding: 13px 17px; margin: 18px 0; border-left: 4px solid #b7914c; color: #6d572d; background: #fffaeb; font-size: 13px; line-height: 1.85; }
+.admin-ops-page .release-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.admin-ops-page .release-card { border: 1px solid #cad8c8; background: #fcfff9; border-radius: 12px; min-width: 0; overflow: hidden; }
+.admin-ops-page .release-card-cover { display: block; width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #edf3f1; }
+.admin-ops-page .release-card-body { padding: 20px; }
+.admin-ops-page .release-card h4 { margin: 8px 0 10px; font-size: 19px; line-height: 1.6; color: #294b3a; }
+.admin-ops-page .release-card-kicker { color: #6b7258; font-size: 12px; }
+.admin-ops-page .release-card-scope { font-size: 13px; line-height: 1.85; color: #566855; }
+.admin-ops-page .release-card-facts { font-size: 13px; line-height: 1.9; color: #3f5f4c; padding: 12px 0; border-block: 1px solid #dce6d6; margin: 16px 0; white-space: pre-line; }
+.admin-ops-page .release-card-price { font-size: 25px; font-weight: 700; color: #365b40; }
+.admin-ops-page .release-card-state { font-size: 13px; line-height: 1.8; margin: 7px 0 15px; color: #5b6b51; }
+.admin-ops-page .release-card-actions { display: flex; gap: 12px; }
+.admin-ops-page .release-card-actions > * { flex: 1; text-align: center; padding: 12px 14px; min-height: 46px; font-size: 14px; font-weight: 600; border-radius: 7px; }
+.admin-ops-page .release-preview-link { background: #eef5e9; color: #355342; border: 1px solid #b6ccb2; }
+.admin-ops-page .release-publish-button { background: #376346; color: #fff; border: 1px solid #376346; cursor: pointer; }
+.admin-ops-page .release-publish-button:disabled { background: #e4eade; color: #65765d; border-color: #c4d3ba; cursor: default; }
+.admin-ops-page .release-gaps { color: #874b36; font-size: 13px; line-height: 1.8; padding-left: 20px; }
+.admin-ops-page .release-maintenance { border: 1px solid #ccd8c3; border-radius: 10px; padding: 18px; background: #f5f8ee; }
+.admin-ops-page .release-maintenance > summary { cursor: pointer; font-size: 14px; color: #54634c; padding: 8px 0; }
+.admin-ops-page .release-maintenance > .admin-grid { margin-top: 20px; }
+.admin-ops-page .release-hub-status { font-size: 14px; line-height: 1.8; color: #375c45; }
+.admin-ops-page .release-hub-status.is-error { color: #9a3c2c; }
+.admin-ops-page #release-refresh { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 16px; margin: 0 0 20px; border: 1px solid #b6ccb2; border-radius: 7px; background: #eef5e9; color: #355342; font: inherit; font-size: 14px; cursor: pointer; }
+.admin-ops-page #release-refresh:disabled { opacity: .6; cursor: wait; }
+@media(max-width:700px) {
+  .admin-ops-page .release-cards { grid-template-columns: minmax(0,1fr); }
+  .admin-ops-page .release-hub-top { align-items: stretch; }
+  .admin-ops-page .release-hub-top > button { width: 100%; }
+  .release-preview-shell { padding-block: 28px 60px; }
+  .release-flow > li { grid-template-columns: 34px minmax(0,1fr); gap: 12px; }
+  .release-step-number { width: 34px; height: 38px; font-size: 15px; }
+  .release-flow > li:not(:last-child)::before { left: 16px; top: 38px; }
+  .release-document dl { grid-template-columns: minmax(0,1fr); gap: 4px; padding: 12px; }
+  .release-document dd + dt { margin-top: 10px; }
+  .release-document h3 { font-size: 18px; }
+  .release-document p { font-size: 16px; }
+  .release-section { padding: 23px 17px; }
+}

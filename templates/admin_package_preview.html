@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}{{ idea['public_title'] }}｜完整內容包預覽{% endblock %}
+{% block body_class %}access-page revealed-scroll flow-page release-preview-page accent-{{ idea['accent'] }}{% endblock %}
+{% block page_scripts_head %}<meta name="robots" content="noindex, nofollow, noarchive">{% endblock %}
+{% block content %}
+<section class="section-shell release-preview-shell">
+  <a class="back-link" href="{{ url_for('admin.dashboard') }}#ideas">← 返回上架管理</a>
+  <header class="release-preview-header"><p class="release-eyebrow">管理員專用・不建立訂單・不公開內容</p><h1>{{ idea['title'] }}</h1><p>{{ idea['public_title'] }}・{{ idea['maturity'] }}</p>
+    <div class="release-preview-status"><strong>{{ '圖文包已備妥' if package_status['ready'] else '內容包仍有待補項目' }}</strong><span>準備售價：{% if idea['prepared_price'] %}NT${{ '{:,}'.format(idea['prepared_price']) }}{% else %}尚未備妥{% endif %}（僅後台）</span></div>
+    {% if package_status['gaps'] %}<ul>{% for gap in package_status['gaps'] %}<li>{{ gap }}</li>{% endfor %}</ul>{% endif %}
+    <p>本頁顯示本卷實際交付的原文、三張圖及完整研究包。尚未實測的結果保持待驗證；上架只公開封印線索與售價，不能解除收款或買家權限限制。</p>
+  </header>
+  <nav class="release-document-nav" aria-label="內容預覽目錄"><a href="#preview-original">原始完整概念</a><a href="#concept-overview">主視覺</a><a href="#concept-diagram">機制圖</a><a href="#concept-scene">情境圖</a><a href="#release-flow">完整流程與工作表</a></nav>
+  <section class="release-original" id="preview-original"><h2>原始完整概念</h2><p>{{ idea['paid_content'] }}</p></section>
+  <div class="release-preview-figures">
+    {% for slot,title,anchor,caption_field in [('hero','概念主視覺','concept-overview','hero_caption'),('diagram','機制圖解','concept-diagram','diagram_caption'),('scene','使用情境','concept-scene','scene_caption')] %}
+    <figure id="{{ anchor }}"><h2>{{ title }}</h2><a href="{{ asset_urls[slot] }}" target="_blank" rel="noopener"><img src="{{ asset_urls[slot] }}" alt="{{ idea['title'] }}・{{ title }}" loading="lazy" decoding="async"></a><figcaption>{{ package['figure_notes'][slot] if package else (idea[caption_field] or '概念示意，未完成實作驗證') }}</figcaption></figure>
+    {% endfor %}
+  </div>
+  {% include '_release_package_body.html' %}
+  <p class="release-preview-end">管理員完整預覽・與買家閱讀包共用內容來源，沒有建立付款或買家權限。</p>
+  <a class="button button-ghost" href="{{ url_for('admin.dashboard') }}#ideas">返回上架管理</a>
+</section>
+{% endblock %}

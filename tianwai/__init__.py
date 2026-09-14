@@ -74,10 +74,12 @@ def create_app(test_config=None):
     @app.context_processor
     def inject_globals():
         from .payments import payment_checkout_status
+        from .release_packages import get_release_package
 
         return {
             "csrf_token": get_public_csrf_token,
             "payment_status": payment_checkout_status(),
+            "get_release_package": get_release_package,
         }
 
     @app.get("/healthz")
@@ -87,7 +89,7 @@ def create_app(test_config=None):
             {
                 "status": "ok",
                 "service": "tianwai-yibi-xiance",
-                "release": "staged-catalog-sales-v37",
+                "release": "complete-release-packages-v38",
             }
         )
 

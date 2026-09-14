@@ -1,0 +1,48 @@
+{# Shared by authenticated owner previews and the existing paid reader only. #}
+{% if package %}
+<article class="release-document" aria-label="完整實作研究閱讀包">
+  <header class="release-document-header">
+    <p class="release-eyebrow">CONCEPT → RESEARCH → HANDOFF</p>
+    <h2>{{ package['title'] }}</h2>
+    <p>{{ package['scope'] }}</p>
+    <aside class="release-boundary"><strong>交付界線</strong><p>{{ package['boundary'] }}</p></aside>
+  </header>
+  <nav class="release-document-nav" aria-label="研究包目錄">
+    <a href="#release-flow">完整流程</a><a href="#release-figures">圖文對照</a><a href="#release-specs">研究規格</a><a href="#release-mvp">MVP 步驟</a><a href="#release-tests">測試矩陣</a><a href="#release-worksheets">工作表</a><a href="#release-handoff">交接清單</a>
+  </nav>
+  <section id="release-flow" class="release-section">
+    <h2>01・完整流程，一步接一步</h2>
+    <p>從輸入、處理到下一步交付；箭頭表示研究流程，不代表已完成系統。</p>
+    <ol class="release-flow">
+      {% for step in package['flow_steps'] %}<li><span class="release-step-number" aria-hidden="true">{{ '%02d'|format(loop.index) }}</span><div><h3>{{ step['title'] }}</h3><p>{{ step['body'] }}</p><dl><dt>輸入</dt><dd>{{ step['input'] }}</dd><dt>輸出 → 下一步</dt><dd>{{ step['output'] }}</dd></dl></div></li>{% endfor %}
+    </ol>
+  </section>
+  <section id="release-figures" class="release-section">
+    <h2>02・三張圖，分別在說什麼</h2>
+    <div class="release-figure-notes">
+      {% for slot, title, anchor in [('hero','圖一・概念主視覺','concept-overview'),('diagram','圖二・結構與資料流','concept-diagram'),('scene','圖三・使用情境','concept-scene')] %}<section><h3><a href="#{{ anchor }}">{{ title }} ↗</a></h3><p>{{ package['figure_notes'][slot] }}</p></section>{% endfor %}
+    </div>
+  </section>
+  <section id="release-specs" class="release-section">
+    <h2>03・場景、輸入與輸出規格草案</h2><p>以下是可交付討論的研究提案；「確認方式」不是已達成的成效。</p>
+    <div class="release-table-scroll" tabindex="0" role="region" aria-label="研究規格表，可水平捲動"><table><thead><tr><th scope="col">項目</th><th scope="col">提案內容</th><th scope="col">確認方式／待確認項目</th></tr></thead><tbody>{% for item in package['specs'] %}<tr><th scope="row">{{ item['item'] }}</th><td>{{ item['proposal'] }}</td><td>{{ item['verify'] }}</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+  <section id="release-mvp" class="release-section">
+    <h2>04・Micro-MVP 操作步驟</h2><p>先完成受控、可停止的小規模研究；不直接拿到真實高風險場域測試。</p>
+    <ol class="release-mvp">{% for step in package['mvp_steps'] %}<li><h3>{{ loop.index }}. {{ step['title'] }}</h3><p>{{ step['action'] }}</p><dl><dt>留下紀錄</dt><dd>{{ step['record'] }}</dd><dt>停止／退出條件</dt><dd>{{ step['stop'] }}</dd></dl></li>{% endfor %}</ol>
+  </section>
+  <section id="release-tests" class="release-section">
+    <h2>05・測試矩陣與結果紀錄</h2><p>預期行為用來判斷是否通過；實測欄須由執行者填寫，本文沒有宣稱已通過。</p>
+    <div class="release-table-scroll" tabindex="0" role="region" aria-label="測試矩陣，可水平捲動"><table><thead><tr><th scope="col">案例</th><th scope="col">設置／條件</th><th scope="col">預期行為</th><th scope="col">待填實測紀錄</th></tr></thead><tbody>{% for item in package['tests'] %}<tr><th scope="row">{{ item['case'] }}</th><td>{{ item['setup'] }}</td><td>{{ item['expected'] }}</td><td>{{ item['record'] }}</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+  <section id="release-worksheets" class="release-section">
+    <h2>06・可交接的工作表</h2><p>表內提供具體起始方案或填寫範例；標示「待填／待測／待詢」者不是測試結果、報價或核准。</p>
+    {% for sheet in package['worksheets'] %}<section class="release-worksheet"><h3>{{ sheet['title'] }}</h3><div class="release-table-scroll" tabindex="0" role="region" aria-label="{{ sheet['title'] }}，可水平捲動"><table><thead><tr>{% for column in sheet['columns'] %}<th scope="col">{{ column }}</th>{% endfor %}</tr></thead><tbody>{% for row in sheet['rows'] %}<tr>{% for cell in row %}{% if loop.first %}<th scope="row">{{ cell }}</th>{% else %}<td>{{ cell }}</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div></section>{% endfor %}
+  </section>
+  <section id="release-handoff" class="release-section">
+    <h2>07・交付給實作者的清單</h2>
+    <div class="release-table-scroll" tabindex="0" role="region" aria-label="實作交接清單，可水平捲動"><table><thead><tr><th scope="col">交接項目</th><th scope="col">已填範例／建議內容</th><th scope="col">執行時補記</th></tr></thead><tbody>{% for item in package['handoff'] %}<tr><th scope="row">{{ item['item'] }}</th><td>{{ item['example'] }}</td><td>{{ item['fill_in'] }}</td></tr>{% endfor %}</tbody></table></div>
+  </section>
+  <section class="release-section release-sources"><h2>08・方法來源與查證入口</h2><p>來源支持其說明的工具或方法，不代表來源機構認證本概念。</p><ul>{% for source in package['sources'] %}<li><a href="{{ source['url'] }}" target="_blank" rel="noopener noreferrer">{{ source['label'] }} ↗</a><p>{{ source['note'] }}</p></li>{% endfor %}</ul></section>
+</article>
+{% endif %}

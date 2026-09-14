@@ -7,7 +7,7 @@ from pathlib import Path
 
 from flask import current_app, g
 
-from .v30_catalog import V30_BLINDBOX_SEEDS
+from .v30_catalog import V30_BLINDBOX_SEEDS, V38_APPLIANCE_COPY_UPDATES
 from .v34_catalog import V34_BLINDBOX_SEEDS, V35_RELOCK_COPY_UPDATES
 
 
@@ -328,6 +328,15 @@ def seed_database(connection):
         connection.execute(
             f"UPDATE ideas SET {field} = ?, updated_at = ? WHERE slug = ? AND {field} = ?",
             (current, now, "sealed-concept-v14", previous),
+        )
+    # Correct the complete historical manuscript only, never substring-replace
+    # independently edited copies or alter any delivery/commercial state.
+    for field, previous, current in V38_APPLIANCE_COPY_UPDATES:
+        if field != "paid_content":
+            raise ValueError("Unsupported appliance safety copy field")
+        connection.execute(
+            "UPDATE ideas SET paid_content = ?, updated_at = ? WHERE slug = ? AND paid_content = ?",
+            (current, now, "sealed-concept-v11", previous),
         )
     connection.commit()
 

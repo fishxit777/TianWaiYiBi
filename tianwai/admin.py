@@ -6,7 +6,7 @@ import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify, make_response, redirect, render_template, request, session, url_for
+from flask import Blueprint, jsonify, make_response, redirect, render_template, request, send_file, session, url_for
 from webauthn.helpers.exceptions import InvalidAuthenticationResponse, InvalidRegistrationResponse
 
 from .analytics import ALLOWED_WINDOWS, build_demand_radar, trusted_analytics_start
@@ -61,6 +61,7 @@ from .recovery import (
 )
 from .turnstile import turnstile_configured, turnstile_site_key, verify_turnstile
 from .ideas import VEINS, classify_idea, publication_gaps
+from .release_packages import get_release_package, release_package_status
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -1113,6 +1114,199 @@ def update_price():
     connection.commit()
     log_audit("update_global_price", str(price), "all_non_overridden_ideas")
     return jsonify({"ok": True, "price": price})
+
+
+def _release_package_card(idea, payment_status):
+    idea = dict(idea)
+    package = get_release_package(idea["slug"]) or {}
+    status = release_package_status(idea, payment_status)
+    return {
+        "id": idea["id"],
+        "slug": idea["slug"],
+        "title": idea["title"],
+        "public_title": idea["public_title"],
+        "sort_order": idea["sort_order"],
+        "published": bool(idea["published"]),
+        "workflow_status": idea["workflow_status"],
+        "prepared_price": idea["prepared_price"],
+        "commerce": status["commerce"],
+        "package": {field: package.get(field, "") for field in ("title", "scope", "boundary")},
+        "package_status": status,
+        "preview_url": url_for("admin.preview_release_package", idea_id=idea["id"]),
+        "publish_url": url_for("admin.publish_release_package", idea_id=idea["id"]),
+    }
+
+
+def _private_package_headers(response):
+    response.headers["Cache-Control"] = "private, no-store, no-cache, max-age=0, must-revalidate"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Vary"] = "Cookie"
+    response.headers.pop("Last-Modified", None)
+    response.headers.pop("ETag", None)
+    return response
+
+
+def _package_rows(connection):
+    placeholders = ",".join("?" for _ in PRICING_BATCH_SLUGS)
+    rows = connection.execute(
+        f"SELECT * FROM ideas WHERE slug IN ({placeholders})", PRICING_BATCH_SLUGS,
+    ).fetchall()
+    by_slug = {row["slug"]: row for row in rows}
+    return [by_slug[slug] for slug in PRICING_BATCH_SLUGS if slug in by_slug]
+
+
+@admin_bp.get("/api/release-packages")
+@admin_required
+def release_packages_catalog():
+    """A dedicated editorial inventory that never reads customer/order tables."""
+    from .payments import payment_checkout_status
+
+    payment_status = payment_checkout_status()
+    rows = _package_rows(get_db())
+    cards = [_release_package_card(row, payment_status) for row in rows]
+    missing = [slug for slug in PRICING_BATCH_SLUGS if slug not in {row["slug"] for row in rows}]
+    ready = sum(card["package_status"]["ready"] for card in cards)
+    response = jsonify({
+        "ok": True,
+        "cards": cards,
+        "counts": {
+            "total": len(PRICING_BATCH_SLUGS),
+            "ready": ready,
+            "listed": sum(card["commerce"]["price_visible"] for card in cards),
+            "blocked": len(PRICING_BATCH_SLUGS) - ready,
+        },
+        "excluded_count": 1,
+        "missing_slugs": missing,
+        "can_publish_all": ready == len(PRICING_BATCH_SLUGS),
+        "publication_mode": "price_listed",
+    })
+    return _private_package_headers(response)
+
+
+@admin_bp.get("/ideas/<int:idea_id>/preview")
+@admin_required
+def preview_release_package(idea_id):
+    from .payments import payment_checkout_status
+    from .private_content import ASSET_FIELDS
+
+    idea = get_db().execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
+    if idea is None or idea["slug"] not in PRICING_BATCH_SLUGS:
+        return jsonify({"error": "此卷不在本次前十三卷預覽範圍"}), 404
+    response = make_response(render_template(
+        "admin_package_preview.html",
+        idea=dict(idea),
+        package=get_release_package(idea["slug"]),
+        package_status=release_package_status(idea, payment_checkout_status()),
+        asset_urls={
+            slot: url_for("admin.release_package_asset", idea_id=idea_id, slot=slot)
+            for slot in ASSET_FIELDS
+        },
+    ))
+    return _private_package_headers(response)
+
+
+@admin_bp.get("/ideas/<int:idea_id>/assets/<slot>")
+@admin_required
+def release_package_asset(idea_id, slot):
+    from .private_content import ASSET_FIELDS, resolve_private_asset
+
+    field = ASSET_FIELDS.get(slot)
+    if field is None:
+        return jsonify({"error": "找不到此預覽素材"}), 404
+    idea = get_db().execute(
+        "SELECT slug, hero_image, diagram_image, scene_image FROM ideas WHERE id = ?", (idea_id,),
+    ).fetchone()
+    if idea is None or idea["slug"] not in PRICING_BATCH_SLUGS:
+        return jsonify({"error": "找不到此預覽素材"}), 404
+    path = resolve_private_asset(idea[field])
+    if path is None:
+        return jsonify({"error": "找不到此預覽素材"}), 404
+    # Authorization is evaluated before all HEAD/Range/conditional requests.
+    response = send_file(path, conditional=False, etag=False, max_age=0)
+    return _private_package_headers(response)
+
+
+def _publish_package_rows(connection, rows, payment_status):
+    failures = []
+    for row in rows:
+        status = release_package_status(row, payment_status)
+        if not status["ready"]:
+            failures.append({"id": row["id"], "slug": row["slug"], "gaps": status["gaps"]})
+    if failures:
+        connection.rollback()
+        return jsonify({"error": "套件仍有缺項，本次未變更任何卷的上架狀態", "gaps": failures}), 409
+    changed = 0
+    states = []
+    try:
+        now = utc_now()
+        for row in rows:
+            sale_state = "for_sale" if row["sale_state"] == "for_sale" else "price_listed"
+            expected_change = row["published"] != 1 or row["workflow_status"] != "published" or row["sale_state"] != sale_state
+            cursor = connection.execute(
+                "UPDATE ideas SET published = 1, workflow_status = 'published', sale_state = ?, updated_at = ? "
+                "WHERE id = ? AND (published <> 1 OR workflow_status <> 'published' OR sale_state <> ?)",
+                (sale_state, now, row["id"], sale_state),
+            )
+            if cursor.rowcount != int(expected_change):
+                raise RuntimeError("套件上架狀態未完整寫入；整批取消")
+            changed += cursor.rowcount
+            states.append({
+                "id": row["id"], "slug": row["slug"], "published": True,
+                "workflow_status": "published", "sale_state": sale_state,
+            })
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    if changed:
+        log_audit(
+            "publish_release_packages", "first_thirteen" if len(rows) > 1 else str(rows[0]["id"]),
+            f"published_count={len(rows)};changed_count={changed};prices_not_logged;payment_gate_unchanged",
+        )
+    return jsonify({"ok": True, "published_count": len(rows), "changed_count": changed, "states": states})
+
+
+def _package_publication_confirmation():
+    data = request.get_json(silent=True)
+    return isinstance(data, dict) and set(data) == {"confirm_publication"} and data["confirm_publication"] is True
+
+
+@admin_bp.post("/api/ideas/<int:idea_id>/publish-package")
+@admin_required
+def publish_release_package(idea_id):
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    if not _package_publication_confirmation():
+        return jsonify({"error": "請明確確認只公開本卷線索與售價"}), 400
+    from .payments import payment_checkout_status
+
+    connection = get_db()
+    lock_commerce(connection)
+    idea = connection.execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
+    if idea is None or idea["slug"] not in PRICING_BATCH_SLUGS:
+        connection.rollback()
+        return jsonify({"error": "此卷不在本次前十三卷上架範圍"}), 404
+    return _publish_package_rows(connection, [idea], payment_checkout_status())
+
+
+@admin_bp.post("/api/release-packages/publish")
+@admin_required
+def publish_all_release_packages():
+    guard = admin_mutation_guard()
+    if guard:
+        return guard
+    if not _package_publication_confirmation():
+        return jsonify({"error": "請明確確認只公開前十三卷線索與售價"}), 400
+    from .payments import payment_checkout_status
+
+    connection = get_db()
+    lock_commerce(connection)
+    rows = _package_rows(connection)
+    if len(rows) != len(PRICING_BATCH_SLUGS):
+        connection.rollback()
+        return jsonify({"error": "前十三卷資料未完整，本次未變更任何卷的上架狀態"}), 409
+    return _publish_package_rows(connection, rows, payment_checkout_status())
 
 
 @admin_bp.get("/api/ideas/<int:idea_id>/commerce")
